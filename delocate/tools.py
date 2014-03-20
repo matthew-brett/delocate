@@ -2,6 +2,9 @@
 
 from subprocess import Popen, PIPE
 
+import os
+from os.path import join as pjoin, split as psplit, abspath, dirname
+
 import re
 
 
@@ -83,8 +86,23 @@ def parse_install_name(line):
     return IN_RE.match(line).groups()
 
 
+def _line0_says_object(line0, filename):
+    line0 = line0.strip()
+    if not line0.startswith(filename + ':'):
+        raise RuntimeError('Unexpected first line: ' + line0)
+    further_report = line0[len(filename) + 1:]
+    if further_report == '':
+        return True
+    if further_report == ' is not an object file':
+        return False
+    raise RuntimeError(
+        'Too ignorant to know what "{0}" means'.format(further_report))
+
+
 def get_install_names(filename):
     """ Return install names from library named in `filename`
+
+    Returns None if no install names, or if this is not an object file.
 
     Parameters
     ----------
@@ -94,11 +112,12 @@ def get_install_names(filename):
     Returns
     -------
     install_names : tuple
-        tuple of install for library `filename`
+        tuple of install names for library `filename`
     """
     out = back_tick(['otool', '-L', filename])
     lines = out.split('\n')
-    assert lines[0].strip() == filename + ':'
+    if not _line0_says_object(lines[0], filename):
+        return ()
     names = tuple(parse_install_name(line)[0] for line in lines[1:])
     install_id = get_install_id(filename)
     if not install_id is None:
@@ -109,6 +128,8 @@ def get_install_names(filename):
 
 def get_install_id(filename):
     """ Return install id from library named in `filename`
+
+    Returns None if no install id, or if this is not an object file.
 
     Parameters
     ----------
@@ -122,7 +143,8 @@ def get_install_id(filename):
     """
     out = back_tick(['otool', '-D', filename])
     lines = out.split('\n')
-    assert lines[0].strip() == filename + ':'
+    if not _line0_says_object(lines[0], filename):
+        return None
     if len(lines) == 1:
         return None
     if len(lines) != 2:
@@ -205,9 +227,41 @@ def add_rpath(filename, newpath):
 
     Parameters
     ----------
-    filaname : str
+    filename : str
         filename of library
     newpath : str
         rpath to add
     """
     back_tick(['install_name_tool', '-add_rpath', newpath, filename])
+
+
+def tree_libs(start_path, filter_func = None):
+    """ Collect unique install names for directory tree `start_path`
+
+    Parameters
+    ----------
+    start_path : str
+        root path of tree to search for install names
+    filter_func : None or callable, optional
+        If None, inspect all files for install names. If callable, accepts
+        filename as argument, returns True if we should inspect the file, False
+        otherwise.
+
+    Returns
+    -------
+    lib_dict : dict
+        dictionary with (key, value) pairs of (install name, list of files in
+        tree with install name)
+    """
+    lib_dict = {}
+    for dirpath, dirnames, basenames in os.walk(start_path):
+        for base in basenames:
+            fname = pjoin(dirpath, base)
+            if not filter_func is None and not filter_func(fname):
+                continue
+            for install_name in get_install_names(fname):
+                if install_name in lib_dict:
+                    lib_dict[install_name].append(fname)
+                else:
+                    lib_dict[install_name] = [fname]
+    return lib_dict

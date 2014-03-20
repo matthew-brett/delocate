@@ -1,12 +1,12 @@
 """ Tests for otool utility """
 
-from os.path import join as pjoin, split as psplit, abspath, dirname
+from os.path import join as pjoin, split as psplit, abspath, dirname, basename
 
 import shutil
 
 from ..tools import (get_install_names, set_install_name, get_install_id,
                      get_rpaths, add_rpath, parse_install_name,
-                     set_install_id)
+                     set_install_id, tree_libs)
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -20,8 +20,8 @@ LIBB = pjoin(DATA_PATH, 'libb.dylib')
 LIBC = pjoin(DATA_PATH, 'libc.dylib')
 TEST_LIB = pjoin(DATA_PATH, 'test-lib')
 
-def test_install_names():
-    # Test basic otool listing
+def test_get_install_names():
+    # Test install name listing
     assert_equal(get_install_names(LIBA),
                  ('/usr/lib/libc++.1.dylib',
                   '/usr/lib/libSystem.B.dylib'))
@@ -29,10 +29,17 @@ def test_install_names():
                  ('liba.dylib',
                   '/usr/lib/libc++.1.dylib',
                   '/usr/lib/libSystem.B.dylib'))
+    assert_equal(get_install_names(LIBC),
+                 ('liba.dylib',
+                  'libb.dylib',
+                  '/usr/lib/libc++.1.dylib',
+                  '/usr/lib/libSystem.B.dylib'))
     assert_equal(get_install_names(TEST_LIB),
                  ('libc.dylib',
                   '/usr/lib/libc++.1.dylib',
                   '/usr/lib/libSystem.B.dylib'))
+    # Non-object file returns empty tuple
+    assert_equal(get_install_names(__file__), ())
 
 
 def test_parse_install_name():
@@ -55,6 +62,8 @@ def test_install_id():
     assert_equal(get_install_id(LIBB), 'libb.dylib')
     assert_equal(get_install_id(LIBC), 'libc.dylib')
     assert_equal(get_install_id(TEST_LIB), None)
+    # Non-object file returns None too
+    assert_equal(get_install_id(__file__), None)
 
 
 def test_change_install_name():
@@ -96,3 +105,31 @@ def test_add_rpath():
         assert_equal(get_rpaths(libfoo), ('/a/path',))
         add_rpath(libfoo, '/another/path')
         assert_equal(get_rpaths(libfoo), ('/a/path', '/another/path'))
+
+
+def test_tree_libs():
+    # Test ability to walk through tree, finding dynamic libary refs
+    # Copy specific files to avoid working tree cruft
+    to_copy = [LIBA, LIBB, LIBC, TEST_LIB]
+    copied = []
+    with InTemporaryDirectory() as tmpdir:
+        for in_fname in to_copy:
+            out_fname = pjoin(tmpdir, basename(in_fname))
+            shutil.copyfile(in_fname, out_fname)
+            copied.append(out_fname)
+        liba, libb, libc, test_lib = copied
+        assert_equal(
+            tree_libs(tmpdir), # default - no filtering
+            {'/usr/lib/libc++.1.dylib': [liba, libb, libc, test_lib],
+             '/usr/lib/libSystem.B.dylib': [liba, libb, libc, test_lib],
+             'liba.dylib': [libb, libc],
+             'libb.dylib': [libc],
+             'libc.dylib': [test_lib]})
+        def filt(fname):
+            return fname.endswith('.dylib')
+        assert_equal(
+            tree_libs(tmpdir, filt), # filtering
+            {'/usr/lib/libc++.1.dylib': [liba, libb, libc],
+             '/usr/lib/libSystem.B.dylib': [liba, libb, libc],
+             'liba.dylib': [libb, libc],
+             'libb.dylib': [libc]})

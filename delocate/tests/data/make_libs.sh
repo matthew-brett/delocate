@@ -2,6 +2,11 @@
 # Create libs used for testing
 # Run in directory containing this file
 # With thanks to https://dev.lsstcorp.org/trac/wiki/LinkingDarwin
+# I ran this on a Snow Leopard machine with CXX=g++ ./make_libs.sh
+
+if [ "$CXX" = "" ]; then
+    CXX=clang++
+fi
 
 cat << EOF > a.cc
 #include <iostream>
@@ -25,7 +30,7 @@ void c();
 int main(int, char**) { c(); return 0; }
 EOF
 
-clang++ -o liba.dylib -dynamiclib a.cc
-clang++ -o libb.dylib -dynamiclib b.cc -L. -la
-clang++ -o libc.dylib -dynamiclib c.cc -L. -la -lb
-clang++ -o test-lib d.cc -L. -lc
+$CXX -o liba.dylib -dynamiclib a.cc
+$CXX -o libb.dylib -dynamiclib b.cc -L. -la
+$CXX -o libc.dylib -dynamiclib c.cc -L. -la -lb
+$CXX -o test-lib d.cc -L. -lc

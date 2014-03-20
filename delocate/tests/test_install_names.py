@@ -1,7 +1,8 @@
-""" Tests for otool utility """
+""" Tests for install name utilities """
 
 import os
-from os.path import join as pjoin, split as psplit, abspath, dirname, basename
+from os.path import (join as pjoin, split as psplit, abspath, dirname, basename,
+                     exists)
 
 import shutil
 
@@ -108,17 +109,23 @@ def test_add_rpath():
         assert_equal(get_rpaths(libfoo), ('/a/path', '/another/path'))
 
 
+def _copy_libs(lib_files, out_path):
+    copied = []
+    if not exists(out_path):
+        os.makedirs(out_path)
+    for in_fname in lib_files:
+        out_fname = pjoin(out_path, basename(in_fname))
+        shutil.copyfile(in_fname, out_fname)
+        copied.append(out_fname)
+    return copied
+
+
 def test_tree_libs():
     # Test ability to walk through tree, finding dynamic libary refs
     # Copy specific files to avoid working tree cruft
     to_copy = [LIBA, LIBB, LIBC, TEST_LIB]
-    copied = []
     with InTemporaryDirectory() as tmpdir:
-        for in_fname in to_copy:
-            out_fname = pjoin(tmpdir, basename(in_fname))
-            shutil.copyfile(in_fname, out_fname)
-            copied.append(out_fname)
-        liba, libb, libc, test_lib = copied
+        liba, libb, libc, test_lib = _copy_libs(to_copy, tmpdir)
         assert_equal(
             tree_libs(tmpdir), # default - no filtering
             {'/usr/lib/libstdc++.6.dylib': set([liba, libb, libc, test_lib]),
@@ -136,13 +143,7 @@ def test_tree_libs():
              'libb.dylib': set([libc])})
         # Copy some libraries into subtree to test tree walking
         subtree = pjoin(tmpdir, 'subtree')
-        os.mkdir(subtree)
-        sub_copied = []
-        for fname in (libb, libc, test_lib):
-            sub_name = pjoin(subtree, basename(fname))
-            shutil.copyfile(fname, sub_name)
-            sub_copied.append(sub_name)
-        slibb, slibc, stest_lib = sub_copied
+        slibb, slibc, stest_lib = _copy_libs([libb, libc, test_lib], subtree)
         assert_equal(
             tree_libs(tmpdir, filt), # filtering
             {'/usr/lib/libstdc++.6.dylib':

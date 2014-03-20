@@ -23,22 +23,22 @@ TEST_LIB = pjoin(DATA_PATH, 'test-lib')
 
 def test_get_install_names():
     # Test install name listing
-    assert_equal(get_install_names(LIBA),
-                 ('/usr/lib/libc++.1.dylib',
-                  '/usr/lib/libSystem.B.dylib'))
-    assert_equal(get_install_names(LIBB),
-                 ('liba.dylib',
-                  '/usr/lib/libc++.1.dylib',
-                  '/usr/lib/libSystem.B.dylib'))
-    assert_equal(get_install_names(LIBC),
-                 ('liba.dylib',
-                  'libb.dylib',
-                  '/usr/lib/libc++.1.dylib',
-                  '/usr/lib/libSystem.B.dylib'))
-    assert_equal(get_install_names(TEST_LIB),
-                 ('libc.dylib',
-                  '/usr/lib/libc++.1.dylib',
-                  '/usr/lib/libSystem.B.dylib'))
+    assert_equal(set(get_install_names(LIBA)),
+                 set(('/usr/lib/libstdc++.6.dylib',
+                      '/usr/lib/libSystem.B.dylib')))
+    assert_equal(set(get_install_names(LIBB)),
+                 set(('liba.dylib',
+                      '/usr/lib/libstdc++.6.dylib',
+                      '/usr/lib/libSystem.B.dylib')))
+    assert_equal(set(get_install_names(LIBC)),
+                 set(('liba.dylib',
+                      'libb.dylib',
+                      '/usr/lib/libstdc++.6.dylib',
+                      '/usr/lib/libSystem.B.dylib')))
+    assert_equal(set(get_install_names(TEST_LIB)),
+                 set(('libc.dylib',
+                      '/usr/lib/libstdc++.6.dylib',
+                      '/usr/lib/libSystem.B.dylib')))
     # Non-object file returns empty tuple
     assert_equal(get_install_names(__file__), ())
 
@@ -48,9 +48,9 @@ def test_parse_install_name():
         "liba.dylib (compatibility version 0.0.0, current version 0.0.0)"),
         ("liba.dylib", "0.0.0", "0.0.0"))
     assert_equal(parse_install_name(
-        " /usr/lib/libc++.1.dylib (compatibility version 1.0.0, "
+        " /usr/lib/libstdc++.6.dylib (compatibility version 1.0.0, "
         "current version 120.0.0)"),
-        ("/usr/lib/libc++.1.dylib", "1.0.0", "120.0.0"))
+        ("/usr/lib/libstdc++.6.dylib", "1.0.0", "120.0.0"))
     assert_equal(parse_install_name(
         "\t\t   /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, "
         "current version 1197.1.1)"),
@@ -108,13 +108,6 @@ def test_add_rpath():
         assert_equal(get_rpaths(libfoo), ('/a/path', '/another/path'))
 
 
-def _assert_sorted_equal(dict1, dict2):
-    assert_equal(sorted(dict1.keys()), sorted(dict2.keys()))
-    for key, value1 in dict1.items():
-        value2 = dict2[key]
-        assert_equal(sorted(value1), sorted(value2))
-
-
 def test_tree_libs():
     # Test ability to walk through tree, finding dynamic libary refs
     # Copy specific files to avoid working tree cruft
@@ -126,21 +119,21 @@ def test_tree_libs():
             shutil.copyfile(in_fname, out_fname)
             copied.append(out_fname)
         liba, libb, libc, test_lib = copied
-        _assert_sorted_equal(
+        assert_equal(
             tree_libs(tmpdir), # default - no filtering
-            {'/usr/lib/libc++.1.dylib': [liba, libb, libc, test_lib],
-             '/usr/lib/libSystem.B.dylib': [liba, libb, libc, test_lib],
-             'liba.dylib': [libb, libc],
-             'libb.dylib': [libc],
-             'libc.dylib': [test_lib]})
+            {'/usr/lib/libstdc++.6.dylib': set([liba, libb, libc, test_lib]),
+             '/usr/lib/libSystem.B.dylib': set([liba, libb, libc, test_lib]),
+             'liba.dylib': set([libb, libc]),
+             'libb.dylib': set([libc]),
+             'libc.dylib': set([test_lib])})
         def filt(fname):
             return fname.endswith('.dylib')
-        _assert_sorted_equal(
+        assert_equal(
             tree_libs(tmpdir, filt), # filtering
-            {'/usr/lib/libc++.1.dylib': [liba, libb, libc],
-             '/usr/lib/libSystem.B.dylib': [liba, libb, libc],
-             'liba.dylib': [libb, libc],
-             'libb.dylib': [libc]})
+            {'/usr/lib/libstdc++.6.dylib': set([liba, libb, libc]),
+             '/usr/lib/libSystem.B.dylib': set([liba, libb, libc]),
+             'liba.dylib': set([libb, libc]),
+             'libb.dylib': set([libc])})
         # Copy some libraries into subtree to test tree walking
         subtree = pjoin(tmpdir, 'subtree')
         os.mkdir(subtree)
@@ -150,20 +143,21 @@ def test_tree_libs():
             shutil.copyfile(fname, sub_name)
             sub_copied.append(sub_name)
         slibb, slibc, stest_lib = sub_copied
-        _assert_sorted_equal(
+        assert_equal(
             tree_libs(tmpdir, filt), # filtering
-            {'/usr/lib/libc++.1.dylib':
-             [liba, libb, libc, slibb, slibc],
+            {'/usr/lib/libstdc++.6.dylib':
+             set([liba, libb, libc, slibb, slibc]),
              '/usr/lib/libSystem.B.dylib':
-             [liba, libb, libc, slibb, slibc],
-             'liba.dylib': [libb, libc, slibb, slibc],
-             'libb.dylib': [libc, slibc]})
+             set([liba, libb, libc, slibb, slibc]),
+             'liba.dylib': set([libb, libc, slibb, slibc]),
+             'libb.dylib': set([libc, slibc])})
         set_install_name(slibb, 'liba.dylib', 'newlib')
-        _assert_sorted_equal(
+        assert_equal(
             tree_libs(tmpdir, filt), # filtering
-            {'/usr/lib/libc++.1.dylib':
-             [liba, libb, libc, slibb, slibc],
+            {'/usr/lib/libstdc++.6.dylib':
+             set([liba, libb, libc, slibb, slibc]),
              '/usr/lib/libSystem.B.dylib':
-             [liba, libb, libc, slibb, slibc],
-             'liba.dylib': [libb, libc, slibc],
-             'libb.dylib': [libc, slibc]})
+             set([liba, libb, libc, slibb, slibc]),
+             'liba.dylib': set([libb, libc, slibc]),
+             'newlib': set([slibb]),
+             'libb.dylib': set([libc, slibc])})

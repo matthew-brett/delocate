@@ -250,7 +250,7 @@ def tree_libs(start_path, filter_func = None):
     Returns
     -------
     lib_dict : dict
-        dictionary with (key, value) pairs of (install name, list of files in
+        dictionary with (key, value) pairs of (install name, set of files in
         tree with install name)
     """
     lib_dict = {}
@@ -261,7 +261,7 @@ def tree_libs(start_path, filter_func = None):
                 continue
             for install_name in get_install_names(fname):
                 if install_name in lib_dict:
-                    lib_dict[install_name].append(fname)
+                    lib_dict[install_name].add(fname)
                 else:
-                    lib_dict[install_name] = [fname]
+                    lib_dict[install_name] = set([fname])
     return lib_dict

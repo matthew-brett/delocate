@@ -5,7 +5,8 @@ from os.path import join as pjoin, split as psplit, abspath, dirname
 import shutil
 
 from ..tools import (get_install_names, set_install_name, get_install_id,
-                     get_rpaths, add_rpath, parse_install_name)
+                     get_rpaths, add_rpath, parse_install_name,
+                     set_install_id)
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -58,17 +59,30 @@ def test_install_id():
 
 def test_change_install_name():
     # Test ability to change install names in library
-    liba_names = get_install_names(LIBB)
+    libb_names = get_install_names(LIBB)
     with InTemporaryDirectory() as tmpdir:
         libfoo = pjoin(tmpdir, 'libfoo.dylib')
         shutil.copy2(LIBB, libfoo)
-        assert_equal(get_install_names(libfoo), liba_names)
+        assert_equal(get_install_names(libfoo), libb_names)
         set_install_name(libfoo, 'liba.dylib', 'libbar.dylib')
         assert_equal(get_install_names(libfoo),
-                     ('libbar.dylib',) + liba_names[1:])
+                     ('libbar.dylib',) + libb_names[1:])
         # If the name not found, raise an error
         assert_raises(RuntimeError,
                       set_install_name, libfoo, 'liba.dylib', 'libpho.dylib')
+
+
+def test_set_install_id():
+    # Test ability to change install id in library
+    liba_id = get_install_id(LIBA)
+    with InTemporaryDirectory() as tmpdir:
+        libfoo = pjoin(tmpdir, 'libfoo.dylib')
+        shutil.copy2(LIBA, libfoo)
+        assert_equal(get_install_id(libfoo), liba_id)
+        set_install_id(libfoo, 'libbar.dylib')
+        assert_equal(get_install_id(libfoo), 'libbar.dylib')
+    # If no install id, raise error (unlike install_name_tool)
+    assert_raises(RuntimeError, set_install_id, TEST_LIB, 'libbof.dylib')
 
 
 def test_add_rpath():

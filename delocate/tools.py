@@ -149,6 +149,25 @@ def set_install_name(filename, oldname, newname):
     back_tick(['install_name_tool', '-change', oldname, newname, filename])
 
 
+def set_install_id(filename, install_id):
+    """ Set install id for library named in `filename`
+
+    Parameters
+    ----------
+    filename : str
+        filename of library
+    install_id : str
+        install id for library `filename`
+
+    Raises
+    ------
+    RuntimeError if `filename` has not install id
+    """
+    if get_install_id(filename) is None:
+        raise RuntimeError('{0} has no install id'.format(filename))
+    back_tick(['install_name_tool', '-id', install_id, filename])
+
+
 RPATH_RE = re.compile("path (.*) \(offset \d+\)")
 
 def get_rpaths(filename):

@@ -1,5 +1,6 @@
 """ Tests for otool utility """
 
+import os
 from os.path import join as pjoin, split as psplit, abspath, dirname, basename
 
 import shutil
@@ -107,6 +108,13 @@ def test_add_rpath():
         assert_equal(get_rpaths(libfoo), ('/a/path', '/another/path'))
 
 
+def _assert_sorted_equal(dict1, dict2):
+    assert_equal(sorted(dict1.keys()), sorted(dict2.keys()))
+    for key, value1 in dict1.items():
+        value2 = dict2[key]
+        assert_equal(sorted(value1), sorted(value2))
+
+
 def test_tree_libs():
     # Test ability to walk through tree, finding dynamic libary refs
     # Copy specific files to avoid working tree cruft
@@ -118,7 +126,7 @@ def test_tree_libs():
             shutil.copyfile(in_fname, out_fname)
             copied.append(out_fname)
         liba, libb, libc, test_lib = copied
-        assert_equal(
+        _assert_sorted_equal(
             tree_libs(tmpdir), # default - no filtering
             {'/usr/lib/libc++.1.dylib': [liba, libb, libc, test_lib],
              '/usr/lib/libSystem.B.dylib': [liba, libb, libc, test_lib],
@@ -127,9 +135,35 @@ def test_tree_libs():
              'libc.dylib': [test_lib]})
         def filt(fname):
             return fname.endswith('.dylib')
-        assert_equal(
+        _assert_sorted_equal(
             tree_libs(tmpdir, filt), # filtering
             {'/usr/lib/libc++.1.dylib': [liba, libb, libc],
              '/usr/lib/libSystem.B.dylib': [liba, libb, libc],
              'liba.dylib': [libb, libc],
              'libb.dylib': [libc]})
+        # Copy some libraries into subtree to test tree walking
+        subtree = pjoin(tmpdir, 'subtree')
+        os.mkdir(subtree)
+        sub_copied = []
+        for fname in (libb, libc, test_lib):
+            sub_name = pjoin(subtree, basename(fname))
+            shutil.copyfile(fname, sub_name)
+            sub_copied.append(sub_name)
+        slibb, slibc, stest_lib = sub_copied
+        _assert_sorted_equal(
+            tree_libs(tmpdir, filt), # filtering
+            {'/usr/lib/libc++.1.dylib':
+             [liba, libb, libc, slibb, slibc],
+             '/usr/lib/libSystem.B.dylib':
+             [liba, libb, libc, slibb, slibc],
+             'liba.dylib': [libb, libc, slibb, slibc],
+             'libb.dylib': [libc, slibc]})
+        set_install_name(slibb, 'liba.dylib', 'newlib')
+        _assert_sorted_equal(
+            tree_libs(tmpdir, filt), # filtering
+            {'/usr/lib/libc++.1.dylib':
+             [liba, libb, libc, slibb, slibc],
+             '/usr/lib/libSystem.B.dylib':
+             [liba, libb, libc, slibb, slibc],
+             'liba.dylib': [libb, libc, slibc],
+             'libb.dylib': [libc, slibc]})

@@ -115,7 +115,7 @@ def _copy_libs(lib_files, out_path):
         os.makedirs(out_path)
     for in_fname in lib_files:
         out_fname = pjoin(out_path, basename(in_fname))
-        shutil.copyfile(in_fname, out_fname)
+        shutil.copy2(in_fname, out_fname)
         copied.append(out_fname)
     return copied
 

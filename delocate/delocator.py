@@ -32,6 +32,9 @@ def delocate_tree_libs(lib_dict, lib_path, root_path = None):
     lib_path : str
         path in which to store copies of libs referred to in keys of `lib_dict`
     root_path : None or str, optional
-        
+        If str, root directory of tree analyzed in `lib_dict`.  Any required
+        library within the subtrees of `root_path` does not get copied, but
+        libraries linking to it have links adjusted to use relative path to
+        this library. If None, always copy libraries.
     """
     pass

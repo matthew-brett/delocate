@@ -3,16 +3,13 @@
 from __future__ import division, print_function
 
 import os
-from os.path import (join as pjoin, split as psplit, abspath, dirname, basename,
-                     exists, relpath)
-
-from subprocess import Popen, PIPE, check_call
+from os.path import (join as pjoin, dirname, basename, relpath)
 
 from ..delocator import delocate_tree_libs, DelocationError
 from ..tools import (tree_libs, get_install_names, get_rpaths,
                      set_install_name, back_tick)
 
-from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
+from ..tmpdirs import InTemporaryDirectory
 
 from nose.tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)

@@ -3,8 +3,7 @@
 
 from __future__ import division, print_function
 
-from os.path import (join as pjoin, split as psplit, abspath, dirname, basename,
-                     exists, relpath)
+from os.path import (dirname, basename, exists, relpath)
 
 import shutil
 

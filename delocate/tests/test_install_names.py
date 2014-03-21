@@ -143,22 +143,22 @@ def test_tree_libs():
              'libb.dylib': set([libc])})
         # Copy some libraries into subtree to test tree walking
         subtree = pjoin(tmpdir, 'subtree')
-        slibb, slibc, stest_lib = _copy_libs([libb, libc, test_lib], subtree)
+        slibc, stest_lib = _copy_libs([libc, test_lib], subtree)
         assert_equal(
             tree_libs(tmpdir, filt), # filtering
             {'/usr/lib/libstdc++.6.dylib':
-             set([liba, libb, libc, slibb, slibc]),
+             set([liba, libb, libc, slibc]),
              '/usr/lib/libSystem.B.dylib':
-             set([liba, libb, libc, slibb, slibc]),
-             'liba.dylib': set([libb, libc, slibb, slibc]),
-             'libb.dylib': set([libc, slibc])})
-        set_install_name(slibb, 'liba.dylib', 'newlib')
-        assert_equal(
-            tree_libs(tmpdir, filt), # filtering
-            {'/usr/lib/libstdc++.6.dylib':
-             set([liba, libb, libc, slibb, slibc]),
-             '/usr/lib/libSystem.B.dylib':
-             set([liba, libb, libc, slibb, slibc]),
+             set([liba, libb, libc, slibc]),
              'liba.dylib': set([libb, libc, slibc]),
-             'newlib': set([slibb]),
+             'libb.dylib': set([libc, slibc])})
+        set_install_name(slibc, 'liba.dylib', 'newlib')
+        assert_equal(
+            tree_libs(tmpdir, filt), # filtering
+            {'/usr/lib/libstdc++.6.dylib':
+             set([liba, libb, libc, slibc]),
+             '/usr/lib/libSystem.B.dylib':
+             set([liba, libb, libc, slibc]),
+             'liba.dylib': set([libb, libc]),
+             'newlib': set([slibc]),
              'libb.dylib': set([libc, slibc])})

@@ -157,13 +157,18 @@ def _copy_required(lib_path, copy_filt_func, copied_libs):
     return new_copied
 
 
+def _dylibs_only(filename):
+    return (filename.endswith('.so') or
+            filename.endswith('.dylib'))
+
+
 def _not_sys_libs(libname):
     return not (libname.startswith('/usr/lib') or
                 libname.startswith('/System'))
 
 
 def delocate_path(tree_path, lib_path,
-                  lib_filt_func = None,
+                  lib_filt_func = _dylibs_only,
                   copy_filt_func = _not_sys_libs):
     """ Copy required libraries for files in `tree_path` into `lib_path`
 
@@ -172,17 +177,18 @@ def delocate_path(tree_path, lib_path,
     tree_path : str
         root path of tree to search for required libraries
     lib_path : str
-        directory to which to copy required libraries
+        directory into which we copy required libraries
     lib_filt_func : None or callable, optional
-        If None, inspect all files for install names. If callable, accepts
-        filename as argument, returns True if we should inspect the file, False
-        otherwise.
+        If None, inspect all files for dependencies on dynamic libraries. If
+        callable, accepts filename as argument, returns True if we should
+        inspect the file, False otherwise. Default is callable rejecting all
+        but files ending in ``.so`` or ``.dylib``.
     copy_filt_func : None or callable, optional
-        If callable, called on each library name; copy where
-        ``copy_filt_func(libname)`` is True, don't copy otherwise. Default is
-        callable rejecting only libraries beginning with ``/usr/lib`` or
-        ``/System``.  None means copy all libraries. On a normal system this
-        will usually end copy copying large parts of the system run-time.
+        If callable, called on each library name detected as a dependency; copy
+        where ``copy_filt_func(libname)`` is True, don't copy otherwise.
+        Default is callable rejecting only libraries beginning with
+        ``/usr/lib`` or ``/System``.  None means copy all libraries. This will
+        usually end up copying large parts of the system run-time.
     """
     if not exists(lib_path):
         os.makedirs(lib_path)

@@ -31,13 +31,13 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
     Parameters
     ----------
     lib_dict : dict
-        dictionary with (key, value) pairs of (install name, set of files in
-        tree with install name)
+        Dictionary with (key, value) pairs of (required library, set of files
+        in tree depending on that library)
     lib_path : str
-        path in which to store copies of libs referred to in keys of
+        Path in which to store copies of libs referred to in keys of
         `lib_dict`.  Assumed to exist
     root_path : str, optional
-        root directory of tree analyzed in `lib_dict`.  Any required
+        Root directory of tree analyzed in `lib_dict`.  Any required
         library within the subtrees of `root_path` does not get copied, but
         libraries linking to it have links adjusted to use relative path to
         this library.
@@ -45,8 +45,8 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
     Returns
     -------
     copied_libs : set
-        set of names of libraries copied into `lib_path`. Names are filenames
-        relative to `lib_path`
+        Set of names of libraries copied into `lib_path`. These are the
+        original names from the keys of `lib_dict`
     """
     copied_libs = set()
     delocated_libs = set()
@@ -92,17 +92,24 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
 def copy_recurse(lib_path, copy_filt_func = None, copied_libs = None):
     """ Analyze `lib_path` for library dependencies and copy libraries
 
+    `lib_path` is a directory containing libraries.  The libraries might
+    themselves have dependencies.  This function analyzes the dependencies and
+    copies library dependencies that match the filter `copy_filt_func`. It alos
+    adjusts the depending libraries to use the copy. It keeps iterating over
+    `lib_path` until all matching dependencies (of dependencies of
+    dependencies ...) have been copied.
+
     Parameters
     ----------
     lib_path : str
-        directory containing libraries
+        Directory containing libraries
     copy_filt_func : None or callable, optional
         If None, copy any library that found libraries depend on.  If callable,
-        called on each library name; copy where ``copy_filt_func(libname)`` is
-        True, don't copy otherwise
+        called on each depended library name; copy where
+        ``copy_filt_func(libname)`` is True, don't copy otherwise
     copied_libs : None or set, optional
-        names of libraries already copied into `lib_path`, so we can use these
-        library copies instead of the originals
+        Set of names of libraries already copied into `lib_path`. We need this
+        so we can avoid copying libraries we've already copied.
     """
     if copied_libs is None:
         copied_libs = set()
@@ -123,19 +130,19 @@ def _copy_required(lib_path, copy_filt_func, copied_libs):
     Parameters
     ----------
     lib_path : str
-        directory containing libraries
+        Directory containing libraries
     copy_filt_func : None or callable, optional
         If None, copy any library that found libraries depend on.  If callable,
         called on each library name; copy where ``copy_filt_func(libname)`` is
         True, don't copy otherwise
     copied_libs : None or set, optional
-        names of libraries already copied into `lib_path`, so we can use these
+        Set of names of libraries already copied into `lib_path`, so we can use these
         library copies instead of the originals
 
     Returns
     -------
     new_copied : set
-        set giving new libraries copied in this run
+        Set giving new libraries copied in this run
     """
     lib_dict = tree_libs(lib_path)
     new_copied = set()
@@ -172,9 +179,9 @@ def delocate_path(tree_path, lib_path,
     Parameters
     ----------
     tree_path : str
-        root path of tree to search for required libraries
+        Root path of tree to search for required libraries
     lib_path : str
-        directory into which we copy required libraries
+        Directory into which we copy required libraries
     lib_filt_func : None or callable, optional
         If None, inspect all files for dependencies on dynamic libraries. If
         callable, accepts filename as argument, returns True if we should

@@ -2,10 +2,18 @@
 
 from os.path import join as pjoin
 from distutils.core import setup
+import versioneer
+
+versioneer.VCS = 'git'
+versioneer.versionfile_source = pjoin('delocate', '_version.py')
+versioneer.versionfile_build = pjoin('delocate', '_version.py')
+versioneer.tag_prefix = ''
+versioneer.parentdir_prefix = 'delocate-'
 
 setup(name='delocate',
-      version='0.1',
-      description='Move dynamic libraries into package',
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
+      description='Move OSX dynamic libraries into package',
       author='Matthew Brett',
       maintainer='Matthew Brett',
       author_email='matthew.brett@gmail.com',

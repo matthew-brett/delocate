@@ -24,10 +24,7 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
     Copy all the required libs to `lib_path`.  Fix up the rpaths and install
     names in the requiring objects to point to these new copies.
 
-    Analyze copied libraries for further required libraries.  Copy these into
-    `lib_path`, and fix up copied library rpath / install names.
-
-    Exception: required libs that within the directory tree pointed to by
+    Exception: required libs within the directory tree pointed to by
     `root_path` stay where they are, but we modify requiring objects to use
     relative paths to these libraries.
 

@@ -53,6 +53,18 @@ def test_delocate_tree_libs():
         lib_dict = tree_libs(subtree)
         copy_dir = 'dynlibs'
         os.makedirs(copy_dir)
+        # First check that missing library causes error
+        set_install_name(liba,
+                         '/usr/lib/libstdc++.6.dylib',
+                         '/unlikely/libname.dylib')
+        lib_dict = tree_libs(subtree)
+        assert_raises(DelocationError,
+                      delocate_tree_libs, lib_dict, copy_dir, subtree)
+        # fix - it works
+        set_install_name(liba,
+                         '/unlikely/libname.dylib',
+                         '/usr/lib/libstdc++.6.dylib')
+        lib_dict = tree_libs(subtree)
         copied = delocate_tree_libs(lib_dict, copy_dir, subtree)
         # Only the out-of-tree libraries get copied
         ext_libs = set(('/usr/lib/libstdc++.6.dylib',
@@ -99,6 +111,7 @@ def test_delocate_tree_libs():
         set_install_name(stest_lib, slibc, new_slibc)
         slibc = new_slibc
         # Confirm new test-lib still works
+        back_tick([test_lib])
         back_tick([stest_lib])
         # Delocation now works
         lib_dict2 = tree_libs(subtree2)

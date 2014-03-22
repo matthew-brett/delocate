@@ -176,24 +176,31 @@ def test_copy_recurse():
                           'test-lib')))
         # A circular set of libraries
         os.makedirs('libcopy2')
+        libw = _copy_to(LIBA, 'libcopy2', 'libw.dylib')
         libx = _copy_to(LIBA, 'libcopy2', 'libx.dylib')
         liby = _copy_to(LIBA, 'libcopy2', 'liby.dylib')
         libz = _copy_to(LIBA, 'libcopy2', 'libz.dylib')
-        t_lib1_lib2 = ((libx, liby, libz),
-                       (liby, libx, libz),
-                       (libz, libx, liby))
-        for tlib, lib1, lib2 in t_lib1_lib2:
-            set_install_name(tlib, EXT_LIBS[0], lib1)
-            set_install_name(tlib, EXT_LIBS[1], lib2)
+        # targets and dependencies.  libw starts in the directory, first pass
+        # should install libx and liby (dependencies of libw), second pass
+        # should install libz
+        t_dep1_dep2 = (
+            (libw, libx, liby),
+            (libx, libw, liby),
+            (liby, libw, libz), # only liby depends on libz
+            (libz, libw, libx))
+        for tlib, dep1, dep2 in t_dep1_dep2:
+            set_install_name(tlib, EXT_LIBS[0], dep1)
+            set_install_name(tlib, EXT_LIBS[1], dep2)
         os.makedirs('subtree3')
-        shutil.copy2(libx, 'subtree3')
+        shutil.copy2(libw, 'subtree3')
         copy_recurse('subtree3') # not filtered
         assert_equal(set(os.listdir('subtree3')),
-                     set(('libx.dylib',
+                     set(('libw.dylib',
+                          'libx.dylib',
                           'liby.dylib',
                           'libz.dylib')))
-        for tlib, lib1, lib2 in t_lib1_lib2:
+        for tlib, dep1, dep2 in t_dep1_dep2:
             out_lib = pjoin('subtree3', basename(tlib))
             assert_equal(set(get_install_names(out_lib)),
-                         set(('@loader_path/' + basename(lib1),
-                              '@loader_path/' + basename(lib2))))
+                         set(('@loader_path/' + basename(dep1),
+                              '@loader_path/' + basename(dep2))))

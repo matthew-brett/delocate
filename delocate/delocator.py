@@ -115,11 +115,12 @@ def copy_recurse(lib_path, copy_filt_func = None, copied_libs = None):
         copied_libs = set()
     else:
         copied_libs = set(copied_libs)
-    while True:
+    done = False
+    while not done:
         new_copied = _copy_required(lib_path, copy_filt_func, copied_libs)
-        if len(new_copied) == 0:
-            return
         copied_libs = copied_libs | new_copied
+        done = len(new_copied) == 0
+    return
 
 
 def _copy_required(lib_path, copy_filt_func, copied_libs):

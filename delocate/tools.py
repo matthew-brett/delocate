@@ -3,7 +3,7 @@
 from subprocess import Popen, PIPE
 
 import os
-from os.path import join as pjoin, split as psplit, abspath, dirname
+from os.path import join as pjoin
 
 import re
 
@@ -50,7 +50,8 @@ def back_tick(cmd, ret_err=False, as_str=True, raise_err=None):
         proc.terminate()
         raise RuntimeError(cmd_str + ' process did not terminate')
     if raise_err and retcode != 0:
-        raise RuntimeError(cmd_str + ' process returned code %d' % retcode)
+        raise RuntimeError('{0} returned code {1} with error {2}'.format(
+                           cmd_str, retcode, err.decode('latin-1')))
     out = out.strip()
     if as_str:
         out = out.decode('latin-1')
@@ -235,14 +236,14 @@ def add_rpath(filename, newpath):
     back_tick(['install_name_tool', '-add_rpath', newpath, filename])
 
 
-def tree_libs(start_path, filter_func = None):
+def tree_libs(start_path, filt_func = None):
     """ Collect unique install names for directory tree `start_path`
 
     Parameters
     ----------
     start_path : str
         root path of tree to search for install names
-    filter_func : None or callable, optional
+    filt_func : None or callable, optional
         If None, inspect all files for install names. If callable, accepts
         filename as argument, returns True if we should inspect the file, False
         otherwise.
@@ -257,7 +258,7 @@ def tree_libs(start_path, filter_func = None):
     for dirpath, dirnames, basenames in os.walk(start_path):
         for base in basenames:
             fname = pjoin(dirpath, base)
-            if not filter_func is None and not filter_func(fname):
+            if not filt_func is None and not filt_func(fname):
                 continue
             for install_name in get_install_names(fname):
                 if install_name in lib_dict:

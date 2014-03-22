@@ -3,11 +3,12 @@
 
 from __future__ import division, print_function
 
+import os
 from os.path import (dirname, basename, exists, relpath)
 
 import shutil
 
-from .tools import add_rpath, set_install_name
+from .tools import add_rpath, set_install_name, tree_libs
 
 class DelocationError(Exception):
     pass
@@ -89,3 +90,105 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
             set_install_name(requiring, required,
                              '@loader_path/' + req_rel)
     return copied_libs
+
+
+def copy_recurse(lib_path, copy_filt_func = None, copied_libs = None):
+    """ Analyze `lib_path` for library dependencies and copy libraries
+
+    Parameters
+    ----------
+    lib_path : str
+        directory containing libraries
+    copy_filt_func : None or callable, optional
+        If None, copy any library that found libraries depend on.  If callable,
+        called on each library name; copy where ``copy_filt_func(libname)`` is
+        True, don't copy otherwise
+    copied_libs : None or set, optional
+        names of libraries already copied into `lib_path`, so we can use these
+        library copies instead of the originals
+    """
+    if copied_libs is None:
+        copied_libs = set()
+    else:
+        copied_libs = set(copied_libs)
+    while True:
+        new_copied = _copy_required(lib_path, copy_filt_func, copied_libs)
+        if len(new_copied) == 0:
+            return
+        copied_libs = copied_libs | new_copied
+
+
+def _copy_required(lib_path, copy_filt_func, copied_libs):
+    """ Copy libraries required for files in `lib_path` to `lib_path`
+
+    This is one pass of ``copy_recurse``
+
+    Parameters
+    ----------
+    lib_path : str
+        directory containing libraries
+    copy_filt_func : None or callable, optional
+        If None, copy any library that found libraries depend on.  If callable,
+        called on each library name; copy where ``copy_filt_func(libname)`` is
+        True, don't copy otherwise
+    copied_libs : None or set, optional
+        names of libraries already copied into `lib_path`, so we can use these
+        library copies instead of the originals
+
+    Returns
+    -------
+    new_copied : set
+        set giving new libraries copied in this run
+    """
+    lib_dict = tree_libs(lib_path)
+    new_copied = set()
+    for required, requirings in lib_dict.items():
+        if not copy_filt_func is None and not copy_filt_func(required):
+            continue
+        if required.startswith('@'):
+            continue
+        if not required in copied_libs:
+            shutil.copy2(required, lib_path)
+            new_copied.add(required)
+        for requiring in requirings:
+            set_install_name(requiring,
+                             required,
+                             '@loader_path/' + basename(required))
+    return new_copied
+
+
+def _not_sys_libs(libname):
+    return not (libname.startswith('/usr/lib') or
+                libname.startswith('/System'))
+
+
+def delocate_path(tree_path, lib_path,
+                  lib_filt_func = None,
+                  copy_filt_func = _not_sys_libs):
+    """ Copy required libraries for files in `tree_path` into `lib_path`
+
+    Parameters
+    ----------
+    tree_path : str
+        root path of tree to search for required libraries
+    lib_path : str
+        directory to which to copy required libraries
+    lib_filt_func : None or callable, optional
+        If None, inspect all files for install names. If callable, accepts
+        filename as argument, returns True if we should inspect the file, False
+        otherwise.
+    copy_filt_func : None or callable, optional
+        If callable, called on each library name; copy where
+        ``copy_filt_func(libname)`` is True, don't copy otherwise. Default is
+        callable rejecting only libraries beginning with ``/usr/lib`` or
+        ``/System``.  None means copy all libraries. On a normal system this
+        will usually end copy copying large parts of the system run-time.
+    """
+    if not exists(lib_path):
+        os.makedirs(lib_path)
+    lib_dict = tree_libs(tree_path, lib_filt_func)
+    if not copy_filt_func is None:
+        lib_dict = dict((key, value) for key, value in lib_dict.items()
+                        if copy_filt_func(key))
+    copied = delocate_tree_libs(lib_dict, lib_path, tree_path)
+    copy_recurse(lib_path, copy_filt_func, copied)

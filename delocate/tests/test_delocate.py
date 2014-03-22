@@ -27,6 +27,9 @@ def _make_libtree(out_path):
         [LIBA, LIBB, LIBC, TEST_LIB], out_path)
     sub_path = pjoin(out_path, 'subsub')
     slibc, stest_lib = _copy_libs([libc, test_lib], sub_path)
+    # Set execute permissions
+    for exe in (test_lib, stest_lib):
+        os.chmod(exe, 0o744)
     # Check test-lib doesn't work because of relative library paths
     assert_raises(RuntimeError, back_tick, [test_lib])
     assert_raises(RuntimeError, back_tick, [stest_lib])
@@ -41,7 +44,7 @@ def _make_libtree(out_path):
         (stest_lib, 'libc.dylib', sub_path),
                         ):
         set_install_name(fname, using, pjoin(path, using))
-    # Check test_lib works
+    # Check scripts now execute correctly
     back_tick([test_lib])
     back_tick([stest_lib])
     return liba, libb, libc, test_lib, slibc, stest_lib
@@ -156,6 +159,8 @@ def test_copy_recurse():
         os.makedirs('libcopy')
         test_lib, liba, libb, libc = _copy_fixpath(
             [TEST_LIB, LIBA, LIBB, LIBC], 'libcopy')
+        # Set execute permissions
+        os.chmod(test_lib, 0o744)
         # Check system finds libraries
         back_tick(['./libcopy/test-lib'])
         # One library, system filtered

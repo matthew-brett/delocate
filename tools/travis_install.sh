@@ -25,8 +25,6 @@ function install_mac_python {
 PY_SHORT_VER=${PY_VERSION:0:3}
 
 export PIP_USE_MIRRORS=1
-PIP_EXTRA=--pre --find-links=https://nipy.bic.berkeley.edu/scipy_installers
-
 
 install_mac_python $PY_VERSION
 
@@ -39,7 +37,7 @@ sudo $PYTHON ez_setup.py
 # Install pip
 PREFIX=/Library/Frameworks/Python.framework/Versions/$PY_SHORT_VER
 sudo $PREFIX/bin/easy_install-$PY_SHORT_VER pip
-export PIP="sudo $PREFIX/bin/pip-$PY_SHORT_VER $PIP_EXTRA"
+export PIP="sudo $PREFIX/bin/pip$PY_SHORT_VER"
 
 # Dependencies for testing
 $PIP install nose

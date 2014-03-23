@@ -1,0 +1,8 @@
+*.pyc
+*.so
+*.dylib
+fakepkg1/module1.c
+fakepkg1/subpkg/module2.c
+build/
+dist/
+fakepkg*.egg-info

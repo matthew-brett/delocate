@@ -1,3 +1,6 @@
+.. image:: https://travis-ci.org/matthew-brett/delocate.svg?branch=master
+    :target: https://travis-ci.org/matthew-brett/delocate
+
 ########
 Delocate
 ########

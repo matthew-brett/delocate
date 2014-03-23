@@ -22,8 +22,10 @@ from nose.tools import assert_true, assert_false, assert_equal
 from ..tmpdirs import InTemporaryDirectory
 from ..pycompat import string_types
 from ..tools import back_tick, set_install_name
+from ..delocator import _unpack_zip_to
 
 from .test_delocate import EXT_LIBS, _make_libtree, _copy_to
+from .test_wheelies import _fixed_wheel
 
 DEBUG_PRINT = os.environ.get('DELOCATE_DEBUG_PRINT', False)
 
@@ -144,3 +146,24 @@ def test_path():
         out_path = pjoin('subtree2', '.dylibs')
         code, stdout, stderr = run_command(['delocate-path', 'subtree2'])
         assert_equal(os.listdir(out_path), ['libfake.dylib'])
+
+
+def test_wheel():
+    # Smoke test for wheel fixing
+    with InTemporaryDirectory() as tmpdir:
+        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
+        code, stdout, stderr = run_command(
+            ['delocate-wheel', fixed_wheel])
+        _unpack_zip_to(fixed_wheel, 'plat_pkg')
+        dylibs = pjoin('plat_pkg', 'fakepkg1', '.dylibs')
+        assert_true(os.path.exists(dylibs))
+        assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
+        # Make another copy to test another output directory
+        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
+        code, stdout, stderr = run_command(
+            ['delocate-wheel', '-L', 'dynlibs_dir', fixed_wheel])
+        _unpack_zip_to(fixed_wheel, 'plat_pkg2')
+        assert_true(os.path.exists(pjoin('plat_pkg2', 'fakepkg1')))
+        dylibs = pjoin('plat_pkg2', 'fakepkg1', 'dynlibs_dir')
+        assert_true(os.path.exists(dylibs))
+        assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])

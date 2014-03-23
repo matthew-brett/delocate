@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+""" Copy, relink library dependencies for wheel
+
+Overwrites the wheel in-place.
+"""
+# vim: ft=python
+from __future__ import division, print_function, absolute_import
+
+import sys
+
+from optparse import OptionParser, Option
+
+from delocate import delocate_wheel, __version__
+
+def main():
+    parser = OptionParser(
+        usage="%s WHEEL_FILENAME\n\n" % sys.argv[0] + __doc__,
+        version="%prog " + __version__)
+    parser.add_option(
+        Option("-L", "--lib-sdir",
+               action="store", type='string', default='.dylibs',
+               help="Subdirectory in packages to store copied libraries"))
+    (opts, wheel_fname) = parser.parse_args()
+    if len(wheel_fname) != 1:
+        parser.print_help()
+        sys.exit(1)
+    delocate_wheel(wheel_fname[0], opts.lib_sdir)
+
+
+if __name__ == '__main__':
+    main()

@@ -4,11 +4,13 @@
 from __future__ import division, print_function
 
 import os
-from os.path import (dirname, basename, exists, relpath)
-
+from os.path import (join as pjoin, dirname, basename, exists, isdir, abspath,
+                     relpath)
+import zipfile
 import shutil
 
 from .tools import add_rpath, set_install_name, tree_libs
+from .tmpdirs import InTemporaryDirectory
 
 class DelocationError(Exception):
     pass
@@ -203,3 +205,69 @@ def delocate_path(tree_path, lib_path,
                         if copy_filt_func(key))
     copied = delocate_tree_libs(lib_dict, lib_path, tree_path)
     copy_recurse(lib_path, copy_filt_func, copied)
+
+
+def _unpack_zip_to(zip_fname, out_path):
+    z = zipfile.ZipFile(zip_fname, 'r')
+    z.extractall(out_path)
+    z.close()
+
+
+def _pack_zip_to(in_path, zip_fname):
+    z = zipfile.ZipFile(zip_fname, 'w')
+    for root, dirs, files in os.walk(in_path):
+        for file in files:
+            fname = pjoin(root, file)
+            out_fname = relpath(fname, in_path)
+            z.write(os.path.join(root, file), out_fname)
+    z.close()
+
+
+def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
+                   lib_filt_func = _dylibs_only,
+                   copy_filt_func = _not_sys_libs):
+    """ Update wheel by copying required libraries to `lib_sdir` in wheel
+
+    Create `lib_sdir` in wheel tree only if we are copying one or more
+    libraries.
+
+    Overwrite the wheel `wheel_fname` in-place.
+
+    Parameters
+    ----------
+    wheel_fname : str
+        Filename of wheel to process
+    lib_sdir : str, optional
+        Subdirectory name in wheel package directory (or directories) to store
+        needed libraries.
+    lib_filt_func : None or callable, optional
+        If None, inspect all files for dependencies on dynamic libraries. If
+        callable, accepts filename as argument, returns True if we should
+        inspect the file, False otherwise. Default is callable rejecting all
+        but files ending in ``.so`` or ``.dylib``.
+    copy_filt_func : None or callable, optional
+        If callable, called on each library name detected as a dependency; copy
+        where ``copy_filt_func(libname)`` is True, don't copy otherwise.
+        Default is callable rejecting only libraries beginning with
+        ``/usr/lib`` or ``/System``.  None means copy all libraries. This will
+        usually end up copying large parts of the system run-time.
+    """
+    wheel_fname = abspath(wheel_fname)
+    with InTemporaryDirectory():
+        _unpack_zip_to(wheel_fname, 'wheel')
+        package_paths = []
+        for entry in os.listdir('wheel'):
+            fname = pjoin('wheel', entry)
+            if isdir(fname):
+                if exists(pjoin(fname, '__init__.py')):
+                    package_paths.append(fname)
+        for package_path in package_paths:
+            lib_path = pjoin(package_path, lib_sdir)
+            if exists(lib_path):
+                raise DelocationError(
+                    '{0} already exists in wheel'.format(lib_path))
+            delocate_path(package_path, lib_path,
+                          lib_filt_func, copy_filt_func)
+            if len(os.listdir(lib_path)) == 0:
+                shutil.rmtree(lib_path)
+        _pack_zip_to('wheel', wheel_fname)

@@ -45,6 +45,10 @@ This gives::
 So scipy has picked up dynamic libraries from my homebrew installation of
 gfortran.
 
+**********
+A solution
+**********
+
 We can fix like this. First make a copy of the wheel so as not to overwrite the
 old one::
 
@@ -57,7 +61,7 @@ Then::
 
     delocate-wheel scipy-0.14.0b1-cp33-cp33m-macosx_10_6_intel.whl
 
-delocate has made a new directory ``.dylibs`` with copies of the dependencies
+`delocate` has made a new directory ``.dylibs`` with copies of the dependencies
 that are outside the OSX system trees::
 
     unzip scipy-0.14.0b1-cp33-cp33m-macosx_10_6_intel.whl

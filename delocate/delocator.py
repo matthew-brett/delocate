@@ -271,3 +271,41 @@ def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
             if len(os.listdir(lib_path)) == 0:
                 shutil.rmtree(lib_path)
         _pack_zip_to('wheel', wheel_fname)
+
+
+def wheel_libs(wheel_fname, lib_filt_func = None):
+    """ Collect unique install names from package(s) in wheel file
+
+    Parameters
+    ----------
+    wheel_fname : str
+        Filename of wheel
+    lib_filt_func : None or callable, optional
+        If None, inspect all files for install names. If callable, accepts
+        filename as argument, returns True if we should inspect the file, False
+        otherwise.
+
+    Returns
+    -------
+    lib_dict : dict
+        dictionary with (key, value) pairs of (install name, set of files in
+        wheel packages with install name)
+    """
+    wheel_fname = abspath(wheel_fname)
+    lib_dict = {}
+    with InTemporaryDirectory():
+        _unpack_zip_to(wheel_fname, 'wheel')
+        package_paths = []
+        for entry in os.listdir('wheel'):
+            fname = pjoin('wheel', entry)
+            if isdir(fname):
+                if exists(pjoin(fname, '__init__.py')):
+                    package_paths.append(fname)
+        for package_path in package_paths:
+            pkg_lib_dict = tree_libs(package_path, lib_filt_func)
+            for key, values in pkg_lib_dict.items():
+                if not key in lib_dict:
+                    lib_dict[key] = values
+                else:
+                    lib_dict[key] += values
+    return lib_dict

@@ -1,0 +1,18 @@
+language:
+  - objective-c
+
+env:
+  matrix:
+    - PY_VERSION="2.7.5"
+    - PY_VERSION="3.3.2"
+    - PY_VERSION="3.4.0"
+
+install:
+  - set -vx  # echo commands
+  - source ./tools/travis_install.sh
+
+script:
+  - echo $PWD
+  - mkdir tmp_test_dir
+  - cd tmp_test_dir
+  - source ../tools/travis_test.sh

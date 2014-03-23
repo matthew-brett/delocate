@@ -57,7 +57,7 @@ Then::
 
     delocate-wheel scipy-0.14.0b1-cp33-cp33m-macosx_10_6_intel.whl
 
-delocate has made a new directory ``.dylibs`` with copied of the dependencies
+delocate has made a new directory ``.dylibs`` with copies of the dependencies
 that are outside the OSX system trees::
 
     unzip scipy-0.14.0b1-cp33-cp33m-macosx_10_6_intel.whl

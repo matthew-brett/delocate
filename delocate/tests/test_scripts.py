@@ -118,7 +118,7 @@ def run_command(cmd, check_code=True):
 def test_listdeps():
     # smokey tests of list dependencies command
     code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH])
-    lines = stdout.split('\n')
+    lines = stdout.decode('latin1').split('\n') # bytes in py3
     assert_true(len(lines) >= 6)
     assert_true(set(EXT_LIBS) <= set(lines))
     assert_equal(code, 0)

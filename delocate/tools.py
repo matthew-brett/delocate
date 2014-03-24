@@ -66,7 +66,7 @@ def back_tick(cmd, ret_err=False, as_str=True, raise_err=None):
 
 def ensure_writable(f):
     """decorator to ensure a filename is writable before modifying it
-    
+
     If changed, original permissions are restored after the decorated modification.
     """
     def modify(filename, *args, **kwargs):
@@ -79,7 +79,7 @@ def ensure_writable(f):
             # restore original permissions
             if not m & stat.S_IWUSR:
                 os.chmod(filename, m)
-    
+
     return modify
 
 

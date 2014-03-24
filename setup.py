@@ -21,6 +21,8 @@ setup(name='delocate',
       packages=['delocate', 'delocate.tests'],
       package_data = {'delocate.tests':
                       [pjoin('data', '*.dylib'),
+                       pjoin('data', 'liba.a'),
+                       pjoin('data', 'a.o'),
                        pjoin('data', '*.whl'),
                        pjoin('data', 'test-lib'),
                        pjoin('data', 'make_libs.sh')]},

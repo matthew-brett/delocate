@@ -89,6 +89,9 @@ def parse_install_name(line):
 
 def _line0_says_object(line0, filename):
     line0 = line0.strip()
+    if line0.startswith('Archive :'):
+        # nothing to do for static libs
+        return False
     if not line0.startswith(filename + ':'):
         raise RuntimeError('Unexpected first line: ' + line0)
     further_report = line0[len(filename) + 1:]
@@ -103,7 +106,9 @@ def _line0_says_object(line0, filename):
 def get_install_names(filename):
     """ Return install names from library named in `filename`
 
-    Returns None if no install names, or if this is not an object file.
+    Returns tuple of install names
+    
+    tuple will be empty if no install names, or if this is not an object file.
 
     Parameters
     ----------

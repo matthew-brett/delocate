@@ -6,6 +6,7 @@ import os
 from os.path import join as pjoin
 
 import re
+import stat
 
 
 def back_tick(cmd, ret_err=False, as_str=True, raise_err=None):
@@ -61,6 +62,25 @@ def back_tick(cmd, ret_err=False, as_str=True, raise_err=None):
     if as_str:
         err = err.decode('latin-1')
     return out, err
+
+
+def ensure_writable(f):
+    """decorator to ensure a filename is writable before modifying it
+    
+    If changed, original permissions are restored after the decorated modification.
+    """
+    def modify(filename, *args, **kwargs):
+        m = os.stat(filename).st_mode
+        if not m & stat.S_IWUSR:
+            os.chmod(filename, m | stat.S_IWUSR)
+        try:
+            return f(filename, *args, **kwargs)
+        finally:
+            # restore original permissions
+            if not m & stat.S_IWUSR:
+                os.chmod(filename, m)
+    
+    return modify
 
 
 IN_RE = re.compile("(.*) \(compatibility version (\d+\.\d+\.\d+), "
@@ -158,6 +178,7 @@ def get_install_id(filename):
     return lines[1].strip()
 
 
+@ensure_writable
 def set_install_name(filename, oldname, newname):
     """ Set install name `oldname` to `newname` in library filename
 
@@ -177,6 +198,7 @@ def set_install_name(filename, oldname, newname):
     back_tick(['install_name_tool', '-change', oldname, newname, filename])
 
 
+@ensure_writable
 def set_install_id(filename, install_id):
     """ Set install id for library named in `filename`
 
@@ -228,6 +250,7 @@ def get_rpaths(filename):
     return tuple(paths)
 
 
+@ensure_writable
 def add_rpath(filename, newpath):
     """ Add rpath `newpath` to library `filename`
 

@@ -18,13 +18,20 @@ def main():
         Option("-L", "--lib-path",
                action="store", type='string',
                help="Output path to copy library dependencies"))
-    (opts, path) = parser.parse_args()
-    if len(path) != 1:
+    (opts, paths) = parser.parse_args()
+    if len(paths) < 1:
         parser.print_help()
         sys.exit(1)
+
     if opts.lib_path is None:
-        opts.lib_path = os.path.join(path[0], '.dylibs')
-    delocate_path(path[0], opts.lib_path)
+        opts.lib_path = '.dylibs'
+    multi = len(paths) > 1
+    for path in paths:
+        if multi:
+            print(path)
+        # evaluate paths relative to the path we are working on
+        lib_path = os.path.join(path, opts.lib_path)
+        delocate_path(path, lib_path)
 
 
 if __name__ == '__main__':

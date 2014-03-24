@@ -36,3 +36,5 @@ ar rcs liba.a a.o
 $CXX -o libb.dylib -dynamiclib b.cc -L. -la
 $CXX -o libc.dylib -dynamiclib c.cc -L. -la -lb
 $CXX -o test-lib d.cc -L. -lc
+chmod 444 liba.dylib
+chmod 400 libb.dylib

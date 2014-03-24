@@ -117,11 +117,11 @@ def run_command(cmd, check_code=True):
 
 def test_listdeps():
     # smokey tests of list dependencies command
-    code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH])
+    code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH, DATA_PATH])
+    assert_equal(code, 0)
     lines = stdout.decode('latin1').split('\n') # bytes in py3
     assert_true(len(lines) >= 6)
     assert_true(set(EXT_LIBS) <= set(lines))
-    assert_equal(code, 0)
 
 
 def test_path():
@@ -130,21 +130,24 @@ def test_path():
         # Make a tree; use realpath for OSX /private/var - /var
         liba, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree'))
-        # Check it fixes up correctly
-        code, stdout, stderr = run_command(
-            ['delocate-path', 'subtree', '-L', 'deplibs'])
-        assert_equal(len(os.listdir('deplibs')), 0)
-        back_tick([test_lib])
-        back_tick([stest_lib])
-        # Make a fake external library to link to
         os.makedirs('fakelibs')
+        
+        # Make a fake external library to link to
         fake_lib = realpath(_copy_to(liba, 'fakelibs', 'libfake.dylib'))
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree2'))
+        back_tick([test_lib])
+        back_tick([stest_lib])
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
+        
+        # Check it fixes up correctly
+        code, stdout, stderr = run_command(
+            ['delocate-path', 'subtree', 'subtree2', '-L', 'deplibs'])
+        
+        assert_equal(len(os.listdir(pjoin('subtree', 'deplibs'))), 0)
+        
         # Check fake libary gets copied and delocated
-        out_path = pjoin('subtree2', '.dylibs')
-        code, stdout, stderr = run_command(['delocate-path', 'subtree2'])
+        out_path = pjoin('subtree2', 'deplibs')
         assert_equal(os.listdir(out_path), ['libfake.dylib'])
 
 

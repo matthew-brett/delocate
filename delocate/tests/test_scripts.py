@@ -114,13 +114,31 @@ def run_command(cmd, check_code=True):
     return proc.returncode, stdout, stderr
 
 
+def _proc_lines(in_str):
+    lines = in_str.decode('latin1').split('\n') # bytes in py3
+    return [line.strip() for line in lines if line.strip() != '']
+
+
 def test_listdeps():
     # smokey tests of list dependencies command
-    code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH, DATA_PATH])
+    local_libs = set(['liba.dylib', 'libb.dylib', 'libc.dylib'])
+    # single lib
+    code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH])
+    assert_equal(set(_proc_lines(stdout)), local_libs)
     assert_equal(code, 0)
-    lines = stdout.decode('latin1').split('\n') # bytes in py3
-    assert_true(len(lines) >= 6)
-    assert_true(set(EXT_LIBS) <= set(lines))
+    # Multiple paths
+    code, stdout, stderr = run_command(
+        ['delocate-listdeps', DATA_PATH, DATA_PATH])
+    assert_equal(code, 0)
+    lines = _proc_lines(stdout)
+    assert_equal(lines,
+                 [DATA_PATH + ':'] + sorted(local_libs) +
+                 [DATA_PATH + ':'] + sorted(local_libs))
+    # With --all flag, get all dependencies
+    code, stdout, stderr = run_command(
+        ['delocate-listdeps', '--all', DATA_PATH])
+    assert_equal(set(_proc_lines(stdout)), local_libs | set(EXT_LIBS))
+    assert_equal(code, 0)
 
 
 def test_path():

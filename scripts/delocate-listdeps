@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!python
 """ List library dependencies for libraries in path or wheel
 """
 # vim: ft=python
@@ -6,28 +6,36 @@ from __future__ import division, print_function, absolute_import
 
 import sys
 import os
-from optparse import OptionParser
+from optparse import OptionParser, Option
 
 from delocate import tree_libs, wheel_libs, __version__
+from delocate.delocator import filter_system_libs
 
 def main():
     parser = OptionParser(
         usage="%s WHEEL_OR_PATH_TO_ANALYZE\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__)
+    parser.add_option(
+        Option("-a", "--all",
+               action="store_true",
+               help="Show all dependencies, including system libs"))
     (opts, paths) = parser.parse_args()
     if len(paths) < 1:
         parser.print_help()
         sys.exit(1)
-    
+
     multi = len(paths) > 1
     for path in paths:
         if multi:
-            print(path)
+            print(path + ':')
         if os.path.isdir(path):
             lib_dict = tree_libs(path)
         else:
             lib_dict = wheel_libs(path)
-        print('\n'.join(sorted(lib_dict)))
+        keys = sorted(lib_dict)
+        if not opts.all:
+            keys = [key for key in keys if filter_system_libs(key)]
+        print('\n'.join(keys))
 
 
 if __name__ == '__main__':

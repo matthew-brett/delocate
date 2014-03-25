@@ -169,14 +169,14 @@ def _dylibs_only(filename):
             filename.endswith('.dylib'))
 
 
-def _not_sys_libs(libname):
+def filter_system_libs(libname):
     return not (libname.startswith('/usr/lib') or
                 libname.startswith('/System'))
 
 
 def delocate_path(tree_path, lib_path,
                   lib_filt_func = _dylibs_only,
-                  copy_filt_func = _not_sys_libs):
+                  copy_filt_func = filter_system_libs):
     """ Copy required libraries for files in `tree_path` into `lib_path`
 
     Parameters
@@ -209,7 +209,7 @@ def delocate_path(tree_path, lib_path,
 
 def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
                    lib_filt_func = _dylibs_only,
-                   copy_filt_func = _not_sys_libs):
+                   copy_filt_func = filter_system_libs):
     """ Update wheel by copying required libraries to `lib_sdir` in wheel
 
     Create `lib_sdir` in wheel tree only if we are copying one or more

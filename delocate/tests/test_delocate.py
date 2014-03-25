@@ -8,8 +8,9 @@ import shutil
 
 from ..delocator import (DelocationError, delocate_tree_libs, copy_recurse,
                          delocate_path)
-from ..tools import (tree_libs, get_install_names, get_rpaths,
-                     set_install_name, back_tick)
+from ..libsana import tree_libs
+from ..tools import (get_install_names, get_rpaths, set_install_name,
+                     back_tick)
 
 from ..tmpdirs import InTemporaryDirectory
 

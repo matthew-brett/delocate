@@ -325,35 +325,3 @@ def find_package_dirs(root_path):
         if isdir(fname) and exists(pjoin(fname, '__init__.py')):
             package_sdirs.add(fname)
     return package_sdirs
-
-
-def tree_libs(start_path, filt_func = None):
-    """ Collect unique install names for directory tree `start_path`
-
-    Parameters
-    ----------
-    start_path : str
-        root path of tree to search for install names
-    filt_func : None or callable, optional
-        If None, inspect all files for install names. If callable, accepts
-        filename as argument, returns True if we should inspect the file, False
-        otherwise.
-
-    Returns
-    -------
-    lib_dict : dict
-        dictionary with (key, value) pairs of (install name, set of files in
-        tree with install name)
-    """
-    lib_dict = {}
-    for dirpath, dirnames, basenames in os.walk(start_path):
-        for base in basenames:
-            fname = pjoin(dirpath, base)
-            if not filt_func is None and not filt_func(fname):
-                continue
-            for install_name in get_install_names(fname):
-                if install_name in lib_dict:
-                    lib_dict[install_name].add(fname)
-                else:
-                    lib_dict[install_name] = set([fname])
-    return lib_dict

@@ -8,7 +8,7 @@ import shutil
 
 from ..tools import (InstallNameError, get_install_names, set_install_name,
                      get_install_id, get_rpaths, add_rpath, parse_install_name,
-                     set_install_id, tree_libs)
+                     set_install_id)
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -123,47 +123,3 @@ def _copy_libs(lib_files, out_path):
         shutil.copy2(in_fname, out_fname)
         copied.append(out_fname)
     return copied
-
-
-def test_tree_libs():
-    # Test ability to walk through tree, finding dynamic libary refs
-    # Copy specific files to avoid working tree cruft
-    to_copy = [LIBA, LIBB, LIBC, TEST_LIB]
-    with InTemporaryDirectory() as tmpdir:
-        liba, libb, libc, test_lib = _copy_libs(to_copy, tmpdir)
-        assert_equal(
-            tree_libs(tmpdir), # default - no filtering
-            {'/usr/lib/libstdc++.6.dylib': set([liba, libb, libc, test_lib]),
-             '/usr/lib/libSystem.B.dylib': set([liba, libb, libc, test_lib]),
-             'liba.dylib': set([libb, libc]),
-             'libb.dylib': set([libc]),
-             'libc.dylib': set([test_lib])})
-        def filt(fname):
-            return fname.endswith('.dylib')
-        assert_equal(
-            tree_libs(tmpdir, filt), # filtering
-            {'/usr/lib/libstdc++.6.dylib': set([liba, libb, libc]),
-             '/usr/lib/libSystem.B.dylib': set([liba, libb, libc]),
-             'liba.dylib': set([libb, libc]),
-             'libb.dylib': set([libc])})
-        # Copy some libraries into subtree to test tree walking
-        subtree = pjoin(tmpdir, 'subtree')
-        slibc, stest_lib = _copy_libs([libc, test_lib], subtree)
-        assert_equal(
-            tree_libs(tmpdir, filt), # filtering
-            {'/usr/lib/libstdc++.6.dylib':
-             set([liba, libb, libc, slibc]),
-             '/usr/lib/libSystem.B.dylib':
-             set([liba, libb, libc, slibc]),
-             'liba.dylib': set([libb, libc, slibc]),
-             'libb.dylib': set([libc, slibc])})
-        set_install_name(slibc, 'liba.dylib', 'newlib')
-        assert_equal(
-            tree_libs(tmpdir, filt), # filtering
-            {'/usr/lib/libstdc++.6.dylib':
-             set([liba, libb, libc, slibc]),
-             '/usr/lib/libSystem.B.dylib':
-             set([liba, libb, libc, slibc]),
-             'liba.dylib': set([libb, libc]),
-             'newlib': set([slibc]),
-             'libb.dylib': set([libc, slibc])})

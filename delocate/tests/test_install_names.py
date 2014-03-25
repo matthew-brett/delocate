@@ -1,13 +1,13 @@
 """ Tests for install name utilities """
 
 import os
-from os.path import (join as pjoin, split as psplit, abspath, dirname, basename,
-                     exists)
+from os.path import (join as pjoin, split as psplit, abspath, dirname,
+                     basename, exists)
 
 import shutil
 
-from ..tools import (get_install_names, set_install_name, get_install_id,
-                     get_rpaths, add_rpath, parse_install_name,
+from ..tools import (InstallNameError, get_install_names, set_install_name,
+                     get_install_id, get_rpaths, add_rpath, parse_install_name,
                      set_install_id, tree_libs)
 
 from ..tmpdirs import InTemporaryDirectory
@@ -84,7 +84,7 @@ def test_change_install_name():
         assert_equal(get_install_names(libfoo),
                      ('libbar.dylib',) + libb_names[1:])
         # If the name not found, raise an error
-        assert_raises(RuntimeError,
+        assert_raises(InstallNameError,
                       set_install_name, libfoo, 'liba.dylib', 'libpho.dylib')
 
 
@@ -98,7 +98,7 @@ def test_set_install_id():
         set_install_id(libfoo, 'libbar.dylib')
         assert_equal(get_install_id(libfoo), 'libbar.dylib')
     # If no install id, raise error (unlike install_name_tool)
-    assert_raises(RuntimeError, set_install_id, TEST_LIB, 'libbof.dylib')
+    assert_raises(InstallNameError, set_install_id, TEST_LIB, 'libbof.dylib')
 
 
 def test_add_rpath():

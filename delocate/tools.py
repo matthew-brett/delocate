@@ -8,6 +8,9 @@ import zipfile
 import re
 import stat
 
+class InstallNameError(Exception):
+    pass
+
 
 def back_tick(cmd, ret_err=False, as_str=True, raise_err=None):
     """ Run command `cmd`, return stdout, or stdout, stderr if `ret_err`
@@ -113,13 +116,13 @@ def _line0_says_object(line0, filename):
         # nothing to do for static libs
         return False
     if not line0.startswith(filename + ':'):
-        raise RuntimeError('Unexpected first line: ' + line0)
+        raise InstallNameError('Unexpected first line: ' + line0)
     further_report = line0[len(filename) + 1:]
     if further_report == '':
         return True
     if further_report == ' is not an object file':
         return False
-    raise RuntimeError(
+    raise InstallNameError(
         'Too ignorant to know what "{0}" means'.format(further_report))
 
 
@@ -127,7 +130,7 @@ def get_install_names(filename):
     """ Return install names from library named in `filename`
 
     Returns tuple of install names
-    
+
     tuple will be empty if no install names, or if this is not an object file.
 
     Parameters
@@ -174,7 +177,7 @@ def get_install_id(filename):
     if len(lines) == 1:
         return None
     if len(lines) != 2:
-        raise RuntimeError('Unexpected otool output ' + out)
+        raise InstallNameError('Unexpected otool output ' + out)
     return lines[1].strip()
 
 
@@ -193,7 +196,7 @@ def set_install_name(filename, oldname, newname):
     """
     names = get_install_names(filename)
     if oldname not in names:
-        raise RuntimeError('{0} not in install names for {1}'.format(
+        raise InstallNameError('{0} not in install names for {1}'.format(
             oldname, filename))
     back_tick(['install_name_tool', '-change', oldname, newname, filename])
 
@@ -214,7 +217,7 @@ def set_install_id(filename, install_id):
     RuntimeError if `filename` has not install id
     """
     if get_install_id(filename) is None:
-        raise RuntimeError('{0} has no install id'.format(filename))
+        raise InstallNameError('{0} has no install id'.format(filename))
     back_tick(['install_name_tool', '-id', install_id, filename])
 
 

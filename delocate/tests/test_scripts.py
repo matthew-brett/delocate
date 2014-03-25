@@ -10,19 +10,18 @@ from __future__ import division, print_function, absolute_import
 
 import sys
 import os
-import shutil
 
 from os.path import (dirname, join as pjoin, isfile, isdir, abspath, realpath,
                      pathsep)
 
 from subprocess import Popen, PIPE
 
-from nose.tools import assert_true, assert_false, assert_equal
-
 from ..tmpdirs import InTemporaryDirectory
 from ..pycompat import string_types
 from ..tools import back_tick, set_install_name
-from ..delocator import _unpack_zip_to
+from ..delocator import zip2dir
+
+from nose.tools import assert_true, assert_false, assert_equal
 
 from .test_delocate import EXT_LIBS, _make_libtree, _copy_to
 from .test_wheelies import _fixed_wheel
@@ -154,7 +153,7 @@ def test_wheel():
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         code, stdout, stderr = run_command(
             ['delocate-wheel', fixed_wheel])
-        _unpack_zip_to(fixed_wheel, 'plat_pkg')
+        zip2dir(fixed_wheel, 'plat_pkg')
         dylibs = pjoin('plat_pkg', 'fakepkg1', '.dylibs')
         assert_true(os.path.exists(dylibs))
         assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
@@ -162,7 +161,7 @@ def test_wheel():
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         code, stdout, stderr = run_command(
             ['delocate-wheel', '-L', 'dynlibs_dir', fixed_wheel])
-        _unpack_zip_to(fixed_wheel, 'plat_pkg2')
+        zip2dir(fixed_wheel, 'plat_pkg2')
         assert_true(os.path.exists(pjoin('plat_pkg2', 'fakepkg1')))
         dylibs = pjoin('plat_pkg2', 'fakepkg1', 'dynlibs_dir')
         assert_true(os.path.exists(dylibs))

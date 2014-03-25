@@ -2,8 +2,10 @@
 from __future__ import division, print_function
 
 import os
+from os.path import join as pjoin, split as psplit, abspath, dirname
+import shutil
 
-from ..tools import back_tick, ensure_writable
+from ..tools import back_tick, ensure_writable, zip2dir, dir2zip
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -37,3 +39,27 @@ def test_ensure_writable():
         st = os.stat('test.bin')
         foo('test.bin')
         assert_equal(os.stat('test.bin'), st)
+
+
+def test_zip2():
+    # Test utilities to unzip and zip up
+    with InTemporaryDirectory():
+        os.mkdir('a_dir')
+        os.mkdir('zips')
+        with open(pjoin('a_dir', 'file1.txt'), 'wt') as fobj:
+            fobj.write('File one')
+        s_dir = pjoin('a_dir', 's_dir')
+        os.mkdir(s_dir)
+        with open(pjoin(s_dir, 'file2.txt'), 'wt') as fobj:
+            fobj.write('File two')
+        zip_fname = pjoin('zips', 'my.zip')
+        dir2zip('a_dir', zip_fname)
+        zip2dir(zip_fname, 'another_dir')
+        assert_equal(os.listdir('another_dir'), ['file1.txt', 's_dir'])
+        assert_equal(os.listdir(pjoin('another_dir', 's_dir')), ['file2.txt'])
+        # Try zipping from a subdirectory, with a different extension
+        dir2zip(s_dir, 'another.ext')
+        # Remove original tree just to be sure
+        shutil.rmtree('a_dir')
+        zip2dir('another.ext', 'third_dir')
+        assert_equal(os.listdir('third_dir'), ['file2.txt'])

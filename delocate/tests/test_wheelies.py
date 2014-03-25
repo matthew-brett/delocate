@@ -5,8 +5,8 @@ from os.path import (join as pjoin, dirname, basename, relpath, realpath,
                      abspath, exists)
 import shutil
 
-from ..delocator import (DelocationError, delocate_wheel, _unpack_zip_to,
-                         _pack_zip_to)
+from ..delocator import (DelocationError, delocate_wheel, zip2dir,
+                         dir2zip)
 from ..tools import (tree_libs, get_install_names, get_rpaths,
                      set_install_name, back_tick)
 
@@ -30,7 +30,7 @@ def test_fix_pure_python():
         shutil.copy2(PURE_WHEEL, 'wheels')
         wheel_name = pjoin('wheels', basename(PURE_WHEEL))
         delocate_wheel(wheel_name)
-        _unpack_zip_to(wheel_name, 'pure_pkg')
+        zip2dir(wheel_name, 'pure_pkg')
         assert_true(exists(pjoin('pure_pkg', 'fakepkg2')))
         assert_false(exists(pjoin('pure_pkg', 'fakepkg2', '.dylibs')))
 
@@ -38,7 +38,7 @@ def test_fix_pure_python():
 def _fixed_wheel(out_path):
     wheel_base = basename(PLAT_WHEEL)
     with InGivenDirectory(out_path):
-        _unpack_zip_to(PLAT_WHEEL, '_plat_pkg')
+        zip2dir(PLAT_WHEEL, '_plat_pkg')
         if not exists('_libs'):
             os.makedirs('_libs')
         shutil.copy2(STRAY_LIB, '_libs')
@@ -46,7 +46,7 @@ def _fixed_wheel(out_path):
         requiring = pjoin('_plat_pkg', 'fakepkg1', 'subpkg', 'module2.so')
         old_lib = set(get_install_names(requiring)).difference(EXT_LIBS).pop()
         set_install_name(requiring, old_lib, stray_lib)
-        _pack_zip_to('_plat_pkg', wheel_base)
+        dir2zip('_plat_pkg', wheel_base)
         shutil.rmtree('_plat_pkg')
     return pjoin(out_path, wheel_base), stray_lib
 
@@ -58,7 +58,7 @@ def test_fix_plat():
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         assert_true(exists(stray_lib))
         delocate_wheel(fixed_wheel)
-        _unpack_zip_to(fixed_wheel, 'plat_pkg')
+        zip2dir(fixed_wheel, 'plat_pkg')
         assert_true(exists(pjoin('plat_pkg', 'fakepkg1')))
         dylibs = pjoin('plat_pkg', 'fakepkg1', '.dylibs')
         assert_true(exists(dylibs))
@@ -66,7 +66,7 @@ def test_fix_plat():
         # Make another copy to test another output directory
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         delocate_wheel(fixed_wheel, 'dylibs_dir')
-        _unpack_zip_to(fixed_wheel, 'plat_pkg2')
+        zip2dir(fixed_wheel, 'plat_pkg2')
         assert_true(exists(pjoin('plat_pkg2', 'fakepkg1')))
         dylibs = pjoin('plat_pkg2', 'fakepkg1', 'dylibs_dir')
         assert_true(exists(dylibs))

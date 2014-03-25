@@ -6,10 +6,9 @@ from __future__ import division, print_function
 import os
 from os.path import (join as pjoin, dirname, basename, exists, isdir, abspath,
                      relpath)
-import zipfile
 import shutil
 
-from .tools import add_rpath, set_install_name, tree_libs
+from .tools import add_rpath, set_install_name, tree_libs, zip2dir, dir2zip
 from .tmpdirs import InTemporaryDirectory
 
 class DelocationError(Exception):
@@ -207,22 +206,6 @@ def delocate_path(tree_path, lib_path,
     copy_recurse(lib_path, copy_filt_func, copied)
 
 
-def _unpack_zip_to(zip_fname, out_path):
-    z = zipfile.ZipFile(zip_fname, 'r')
-    z.extractall(out_path)
-    z.close()
-
-
-def _pack_zip_to(in_path, zip_fname):
-    z = zipfile.ZipFile(zip_fname, 'w')
-    for root, dirs, files in os.walk(in_path):
-        for file in files:
-            fname = pjoin(root, file)
-            out_fname = relpath(fname, in_path)
-            z.write(os.path.join(root, file), out_fname)
-    z.close()
-
-
 def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
                    lib_filt_func = _dylibs_only,
                    copy_filt_func = _not_sys_libs):
@@ -254,7 +237,7 @@ def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
     """
     wheel_fname = abspath(wheel_fname)
     with InTemporaryDirectory():
-        _unpack_zip_to(wheel_fname, 'wheel')
+        zip2dir(wheel_fname, 'wheel')
         package_paths = []
         for entry in os.listdir('wheel'):
             fname = pjoin('wheel', entry)
@@ -270,7 +253,7 @@ def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
                           lib_filt_func, copy_filt_func)
             if len(os.listdir(lib_path)) == 0:
                 shutil.rmtree(lib_path)
-        _pack_zip_to('wheel', wheel_fname)
+        dir2zip('wheel', wheel_fname)
 
 
 def wheel_libs(wheel_fname, lib_filt_func = None):
@@ -294,7 +277,7 @@ def wheel_libs(wheel_fname, lib_filt_func = None):
     wheel_fname = abspath(wheel_fname)
     lib_dict = {}
     with InTemporaryDirectory():
-        _unpack_zip_to(wheel_fname, 'wheel')
+        zip2dir(wheel_fname, 'wheel')
         package_paths = []
         for entry in os.listdir('wheel'):
             fname = pjoin('wheel', entry)

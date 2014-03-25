@@ -59,6 +59,7 @@ def test_fix_plat():
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         assert_true(exists(stray_lib))
+        # In-place fix
         assert_equal(delocate_wheel(fixed_wheel),
                      set([stray_lib]))
         zip2dir(fixed_wheel, 'plat_pkg')
@@ -66,19 +67,31 @@ def test_fix_plat():
         dylibs = pjoin('plat_pkg', 'fakepkg1', '.dylibs')
         assert_true(exists(dylibs))
         assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
-        # Make another copy to test another output directory
+        # New output name
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        assert_equal(delocate_wheel(fixed_wheel, 'dylibs_dir'),
+        assert_equal(delocate_wheel(fixed_wheel, 'fixed_wheel.ext'),
                      set([stray_lib]))
-        zip2dir(fixed_wheel, 'plat_pkg2')
+        zip2dir('fixed_wheel.ext', 'plat_pkg1')
+        assert_true(exists(pjoin('plat_pkg1', 'fakepkg1')))
+        dylibs = pjoin('plat_pkg1', 'fakepkg1', '.dylibs')
+        assert_true(exists(dylibs))
+        assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
+        # Test another lib output directory
+        assert_equal(delocate_wheel(fixed_wheel,
+                                    'fixed_wheel2.ext',
+                                    'dylibs_dir'),
+                     set([stray_lib]))
+        zip2dir('fixed_wheel2.ext', 'plat_pkg2')
         assert_true(exists(pjoin('plat_pkg2', 'fakepkg1')))
         dylibs = pjoin('plat_pkg2', 'fakepkg1', 'dylibs_dir')
         assert_true(exists(dylibs))
         assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
-        # And another to test check for existing output directory
-        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
+        # Test check for existing output directory
         assert_raises(DelocationError,
-                      delocate_wheel, fixed_wheel, 'subpkg')
+                      delocate_wheel,
+                      fixed_wheel,
+                      'broken_wheel.ext',
+                      'subpkg')
 
 
 def test_wheel_libs():

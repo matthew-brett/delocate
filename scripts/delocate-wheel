@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!python
 """ Copy, relink library dependencies for wheel
 
-Overwrites the wheel in-place.
+Overwrites the wheel in-place by default
 """
 # vim: ft=python
 from __future__ import division, print_function, absolute_import
@@ -24,12 +24,11 @@ def main():
     if len(wheels) < 1:
         parser.print_help()
         sys.exit(1)
-    
     multi = len(wheels) > 1
     for wheel in wheels:
         if multi:
             print(wheel)
-        delocate_wheel(wheel, opts.lib_sdir)
+        delocate_wheel(wheel, lib_sdir=opts.lib_sdir)
 
 
 if __name__ == '__main__':

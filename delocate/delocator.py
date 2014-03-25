@@ -217,7 +217,9 @@ def delocate_path(tree_path, lib_path,
     return copy_recurse(lib_path, copy_filt_func, copied)
 
 
-def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
+def delocate_wheel(in_wheel,
+                   out_wheel = None,
+                   lib_sdir = '.dylibs',
                    lib_filt_func = _dylibs_only,
                    copy_filt_func = filter_system_libs):
     """ Update wheel by copying required libraries to `lib_sdir` in wheel
@@ -229,8 +231,10 @@ def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
 
     Parameters
     ----------
-    wheel_fname : str
+    in_wheel : str
         Filename of wheel to process
+    out_wheel : None or str
+        Filename of processed wheel to write.  If None, overwrite `in_wheel`
     lib_sdir : str, optional
         Subdirectory name in wheel package directory (or directories) to store
         needed libraries.
@@ -251,9 +255,15 @@ def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
     copied_libs : set
         original paths of libraries copied into `lib_path`
     """
-    wheel_fname = abspath(wheel_fname)
+    in_wheel = abspath(in_wheel)
+    if out_wheel is None:
+        out_wheel = in_wheel
+    else:
+        out_wheel = abspath(out_wheel)
+    in_place = in_wheel == out_wheel
     with InTemporaryDirectory():
-        zip2dir(wheel_fname, 'wheel')
+        all_copied = set()
+        zip2dir(in_wheel, 'wheel')
         for package_path in find_package_dirs('wheel'):
             lib_path = pjoin(package_path, lib_sdir)
             if exists(lib_path):
@@ -263,8 +273,10 @@ def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
                                         lib_filt_func, copy_filt_func)
             if len(os.listdir(lib_path)) == 0:
                 shutil.rmtree(lib_path)
-        dir2zip('wheel', wheel_fname)
-    return copied_libs
+            all_copied = all_copied | copied_libs
+        if len(all_copied) or not in_place:
+            dir2zip('wheel', out_wheel)
+    return all_copied
 
 
 def wheel_libs(wheel_fname, lib_filt_func = None):

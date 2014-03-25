@@ -208,5 +208,7 @@ def test_wheel():
         shutil.copy2(fixed_wheel, 'wheel_copy.ext')
         code, stdout, stderr = run_command(
             ['delocate-wheel', '-o', 'fixed2', fixed_wheel, 'wheel_copy.ext'])
+        assert_equal(_proc_lines(stdout),
+                     [fixed_wheel, 'wheel_copy.ext'])
         _check_wheel(pjoin('fixed2', basename(fixed_wheel)), '.dylibs')
         _check_wheel(pjoin('fixed2', 'wheel_copy.ext'), '.dylibs')

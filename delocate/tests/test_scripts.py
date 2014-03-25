@@ -206,7 +206,7 @@ def test_wheel():
             ['delocate-wheel', '-o', 'fixed2', fixed_wheel, 'wheel_copy.ext'])
         assert_equal(_proc_lines(stdout),
                      ['Fixing: ' + name
-                      for name in fixed_wheel, 'wheel_copy.ext'])
+                      for name in (fixed_wheel, 'wheel_copy.ext')])
         _check_wheel(pjoin('fixed2', basename(fixed_wheel)), '.dylibs')
         _check_wheel(pjoin('fixed2', 'wheel_copy.ext'), '.dylibs')
         # Verbose - single wheel

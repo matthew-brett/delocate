@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!python
 """ Copy, relink library dependencies for libraries in path
 """
 # vim: ft=python

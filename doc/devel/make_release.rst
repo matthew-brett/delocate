@@ -79,7 +79,7 @@ to upstream on github.
   `setuptools intro`_::
 
     python setup.py register
-    python setup.py sdist --formats=gztar,zip upload
+    python setup.py sdist --formats=gztar,zip bdist_wheel upload
 
 * Remember you'll need your ``~/.pypirc`` file set up right for this to work.
   See `setuptools intro`_.  The file should look something like this::

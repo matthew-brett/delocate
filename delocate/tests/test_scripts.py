@@ -12,7 +12,7 @@ import sys
 import os
 
 from os.path import (dirname, join as pjoin, isfile, isdir, abspath, realpath,
-                     pathsep)
+                     pathsep, basename, exists)
 
 from subprocess import Popen, PIPE
 
@@ -178,21 +178,32 @@ def test_path():
 
 
 def test_wheel():
-    # Smoke test for wheel fixing
+    # Some tests for wheel fixing
     with InTemporaryDirectory() as tmpdir:
+        # Default in-place fix
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         code, stdout, stderr = run_command(
             ['delocate-wheel', fixed_wheel])
         zip2dir(fixed_wheel, 'plat_pkg')
         dylibs = pjoin('plat_pkg', 'fakepkg1', '.dylibs')
-        assert_true(os.path.exists(dylibs))
+        assert_true(exists(dylibs))
         assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
         # Make another copy to test another output directory
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         code, stdout, stderr = run_command(
             ['delocate-wheel', '-L', 'dynlibs_dir', fixed_wheel])
         zip2dir(fixed_wheel, 'plat_pkg2')
-        assert_true(os.path.exists(pjoin('plat_pkg2', 'fakepkg1')))
+        assert_true(exists(pjoin('plat_pkg2', 'fakepkg1')))
         dylibs = pjoin('plat_pkg2', 'fakepkg1', 'dynlibs_dir')
-        assert_true(os.path.exists(dylibs))
+        assert_true(exists(dylibs))
+        assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
+        # Another output directory
+        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
+        code, stdout, stderr = run_command(
+            ['delocate-wheel', '-o', 'fixed', fixed_wheel])
+        out_wheel = pjoin('fixed', basename(fixed_wheel))
+        assert_true(exists(out_wheel))
+        zip2dir(out_wheel, 'plat_pkg3')
+        dylibs = pjoin('plat_pkg3', 'fakepkg1', '.dylibs')
+        assert_true(exists(dylibs))
         assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])

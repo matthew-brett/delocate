@@ -3,3 +3,4 @@ build/
 dist/
 MANIFEST
 .coverage
+delocate*info/

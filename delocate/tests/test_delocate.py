@@ -3,11 +3,12 @@
 from __future__ import division, print_function
 
 import os
-from os.path import (join as pjoin, dirname, basename, relpath, realpath)
+from os.path import (join as pjoin, dirname, basename, relpath, realpath,
+                     abspath)
 import shutil
 
 from ..delocator import (DelocationError, delocate_tree_libs, copy_recurse,
-                         delocate_path)
+                         delocate_path, rebase_lib_dict)
 from ..tools import (tree_libs, get_install_names, get_rpaths,
                      set_install_name, back_tick)
 
@@ -212,6 +213,19 @@ def test_copy_recurse():
                          set(('@loader_path/' + basename(dep1),
                               '@loader_path/' + basename(dep2))))
 
+
+def test_rebase_lib_dict():
+    data_path = relpath(DATA_PATH)
+    # Test expected output of unmodified lib_dict
+    lib_dict = tree_libs(data_path)
+    rel_libs = set('lib{0}.dylib'.format(c) for c in 'abc')
+    assert_equal(set(lib_dict), set(EXT_LIBS) | rel_libs)
+    assert_equal(lib_dict['liba.dylib'], set(relpath(L) for L in (LIBB, LIBC)))
+    # Modify
+    base_dir = '/some/path'
+    rlib_dict = rebase_lib_dict(lib_dict, data_path, base_dir)
+    rrel_libs = set(abspath('lib{0}.dylib'.format(c)) for c in 'abc')
+    assert_equal(set(rlib_dict), set(EXT_LIBS) | rrel_libs)
 
 
 def test_delocate_path():

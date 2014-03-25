@@ -181,7 +181,8 @@ def filter_system_libs(libname):
 
 def delocate_path(tree_path, lib_path,
                   lib_filt_func = _dylibs_only,
-                  copy_filt_func = filter_system_libs):
+                  copy_filt_func = filter_system_libs,
+                  safe = None):
     """ Copy required libraries for files in `tree_path` into `lib_path`
 
     Parameters
@@ -215,6 +216,62 @@ def delocate_path(tree_path, lib_path,
                         if copy_filt_func(key))
     copied = delocate_tree_libs(lib_dict, lib_path, tree_path)
     return copy_recurse(lib_path, copy_filt_func, copied)
+
+
+def delocate_to_path(tree_path,
+                     out_path = None,
+                     lib_sdir = '.dylibs',
+                     lib_filt_func = _dylibs_only,
+                     copy_filt_func = filter_system_libs):
+    """ Copy required libraries for files in `tree_path` into `lib_path`
+
+    Parameters
+    ----------
+    tree_path : str
+        Root path of tree to search for required libraries
+    out_path : None or str
+        Directory to write processed copy of `tree_path`
+    lib_sdir : str, optional
+        Subdirectory name in `tree_path` in which to store needed libraries.
+    lib_filt_func : None or callable, optional
+        If None, inspect all files for dependencies on dynamic libraries. If
+        callable, accepts filename as argument, returns True if we should
+        inspect the file, False otherwise. Default is callable rejecting all
+        but files ending in ``.so`` or ``.dylib``.
+    copy_filt_func : None or callable, optional
+        If callable, called on each library name detected as a dependency; copy
+        where ``copy_filt_func(libname)`` is True, don't copy otherwise.
+        Default is callable rejecting only libraries beginning with
+        ``/usr/lib`` or ``/System``.  None means copy all libraries. This will
+        usually end up copying large parts of the system run-time.
+
+    Returns
+    -------
+    copied_libs : set
+        original paths of libraries copied into `lib_path`
+    """
+    tree_path = abspath(tree_path)
+    if out_path is None:
+        out_path = tree_path
+    else:
+        out_path = abspath(out_path)
+    lib_path = pjoin(out_path, lib_sdir)
+    if not exists(lib_path):
+        os.makedirs(lib_path)
+    lib_dict = tree_libs(tree_path, lib_filt_func)
+    if not copy_filt_func is None:
+        lib_dict = dict((key, value) for key, value in lib_dict.items()
+                        if copy_filt_func(key))
+    # Copy to out_path if necessary
+    if not tree_path == out_path:
+        if exists(out_path):
+            raise DelocationError(out_path + ' exists, not overwriting')
+        shutil.copy2(tree_path, out_path)
+    # Make lib_dict paths absolute and required paths relative
+    lib_dict = dict((abspath(key), value) for key, value in lib_dict.items())
+    copied = delocate_tree_libs(lib_dict, lib_path, tree_path)
+    return copy_recurse(lib_path, copy_filt_func, copied)
+
 
 
 def delocate_wheel(in_wheel,

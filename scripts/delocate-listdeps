@@ -14,16 +14,20 @@ def main():
     parser = OptionParser(
         usage="%s WHEEL_OR_PATH_TO_ANALYZE\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__)
-    (opts, path) = parser.parse_args()
-    if len(path) != 1:
+    (opts, paths) = parser.parse_args()
+    if len(paths) < 1:
         parser.print_help()
         sys.exit(1)
-    source = path[0]
-    if os.path.isdir(source):
-        lib_dict = tree_libs(source)
-    else:
-        lib_dict = wheel_libs(source)
-    print('\n'.join(sorted(lib_dict)))
+    
+    multi = len(paths) > 1
+    for path in paths:
+        if multi:
+            print(path)
+        if os.path.isdir(path):
+            lib_dict = tree_libs(path)
+        else:
+            lib_dict = wheel_libs(path)
+        print('\n'.join(sorted(lib_dict)))
 
 
 if __name__ == '__main__':

@@ -41,17 +41,20 @@ def test_ensure_writable():
         assert_equal(os.stat('test.bin'), st)
 
 
+def _write_file(filename, contents):
+    with open(filename, 'wt') as fobj:
+        fobj.write(contents)
+
+
 def test_zip2():
     # Test utilities to unzip and zip up
     with InTemporaryDirectory():
         os.mkdir('a_dir')
         os.mkdir('zips')
-        with open(pjoin('a_dir', 'file1.txt'), 'wt') as fobj:
-            fobj.write('File one')
+        _write_file(pjoin('a_dir', 'file1.txt'), 'File one')
         s_dir = pjoin('a_dir', 's_dir')
         os.mkdir(s_dir)
-        with open(pjoin(s_dir, 'file2.txt'), 'wt') as fobj:
-            fobj.write('File two')
+        _write_file(pjoin(s_dir, 'file2.txt'), 'File two')
         zip_fname = pjoin('zips', 'my.zip')
         dir2zip('a_dir', zip_fname)
         zip2dir(zip_fname, 'another_dir')

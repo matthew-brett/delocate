@@ -157,7 +157,6 @@ def test_path():
         liba, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree'))
         os.makedirs('fakelibs')
-        
         # Make a fake external library to link to
         fake_lib = realpath(_copy_to(liba, 'fakelibs', 'libfake.dylib'))
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
@@ -165,13 +164,10 @@ def test_path():
         back_tick([test_lib])
         back_tick([stest_lib])
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
-        
         # Check it fixes up correctly
         code, stdout, stderr = run_command(
             ['delocate-path', 'subtree', 'subtree2', '-L', 'deplibs'])
-        
         assert_equal(len(os.listdir(pjoin('subtree', 'deplibs'))), 0)
-        
         # Check fake libary gets copied and delocated
         out_path = pjoin('subtree2', 'deplibs')
         assert_equal(os.listdir(out_path), ['libfake.dylib'])

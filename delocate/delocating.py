@@ -7,6 +7,7 @@ import os
 from os.path import (join as pjoin, dirname, basename, exists, isdir, abspath,
                      relpath)
 import shutil
+import warnings
 
 from .libsana import tree_libs
 from .tools import (add_rpath, set_install_name, zip2dir, dir2zip,
@@ -57,6 +58,8 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
     # Test for errors first to avoid getting half-way through changing the tree
     for required, requirings in lib_dict.items():
         if required.startswith('@'): # assume @rpath etc are correct
+            # But warn, because likely they are not
+            warnings.warn('Not processing required path ' + required)
             continue
         r_ed_base = basename(required)
         if relpath(required, root_path).startswith('..'):

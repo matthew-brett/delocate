@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 """ setup script for delocate package """
+import sys
 from os.path import join as pjoin
-try:
+
+# For some commands, use setuptools.
+if len(set(('develop', 'bdist_egg', 'bdist_rpm', 'bdist', 'bdist_dumb',
+            'install_egg_info', 'egg_info', 'easy_install', 'bdist_wheel',
+            'bdist_mpkg')).intersection(sys.argv)) > 0:
     import setuptools
-except ImportError:
-    pass
+
 from distutils.core import setup
 import versioneer
 

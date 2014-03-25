@@ -9,7 +9,7 @@ import os
 from optparse import OptionParser, Option
 
 from delocate import tree_libs, wheel_libs, __version__
-from delocate.delocator import filter_system_libs
+from delocate.delocating import filter_system_libs
 
 def main():
     parser = OptionParser(

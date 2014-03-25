@@ -60,15 +60,15 @@ A solution
 
 We can fix like this::
 
-    `$ delocate-wheel -o fixed_wheels -v scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl 
+    \$ delocate-wheel -w fixed_wheels -v scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
     Fixing: scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
     Copied to package .dylibs directory:
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgcc_s.1.dylib
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgfortran.3.dylib
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libquadmath.0.dylib
 
-The ``-o`` flag tells delocate-wheel to output to a new directory instead of
-overwriting the old wheel.  ``-v`` (verbose) tells you what delocate-wheel is
+The ``-w`` flag tells delocate-wheel to output to a new wheel directory instead
+of overwriting the old wheel.  ``-v`` (verbose) tells you what delocate-wheel is
 doing.  In this case it has made a new directory in the wheel zipfile, named
 ``scipy/.dylibs``. It has copied all the library dependencies that are outside
 the OSX system trees into this directory, and patched the python ``.so``
@@ -77,8 +77,7 @@ extensions in the wheel to use these copies instead of looking in
 
 Check the links again to confirm::
 
-    delocate-listdeps scipy
-    $ delocate-listdeps fixed_wheels/scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl 
+    \$ delocate-listdeps fixed_wheels/scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
     @loader_path/libgcc_s.1.dylib
     @loader_path/libquadmath.0.dylib
     @rpath/libgcc_s.1.dylib

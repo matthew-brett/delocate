@@ -197,12 +197,12 @@ def test_wheel():
         # Another output directory
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         code, stdout, stderr = run_command(
-            ['delocate-wheel', '-o', 'fixed', fixed_wheel])
+            ['delocate-wheel', '-w', 'fixed', fixed_wheel])
         _check_wheel(pjoin('fixed', basename(fixed_wheel)), '.dylibs')
         # More than one wheel
         shutil.copy2(fixed_wheel, 'wheel_copy.ext')
         code, stdout, stderr = run_command(
-            ['delocate-wheel', '-o', 'fixed2', fixed_wheel, 'wheel_copy.ext'])
+            ['delocate-wheel', '-w', 'fixed2', fixed_wheel, 'wheel_copy.ext'])
         assert_equal(_proc_lines(stdout),
                      ['Fixing: ' + name
                       for name in (fixed_wheel, 'wheel_copy.ext')])
@@ -210,14 +210,14 @@ def test_wheel():
         _check_wheel(pjoin('fixed2', 'wheel_copy.ext'), '.dylibs')
         # Verbose - single wheel
         code, stdout, stderr = run_command(
-            ['delocate-wheel', '-o', 'fixed3', fixed_wheel, '-v'])
+            ['delocate-wheel', '-w', 'fixed3', fixed_wheel, '-v'])
         _check_wheel(pjoin('fixed3', basename(fixed_wheel)), '.dylibs')
         wheel_lines1 = ['Fixing: ' + fixed_wheel,
                         'Copied to package .dylibs directory:',
                         stray_lib]
         assert_equal(_proc_lines(stdout), wheel_lines1)
         code, stdout, stderr = run_command(
-            ['delocate-wheel', '-v', '-o', 'fixed4',
+            ['delocate-wheel', '-v', '--wheel-dir', 'fixed4',
              fixed_wheel, 'wheel_copy.ext'])
         wheel_lines2 = ['Fixing: wheel_copy.ext',
                         'Copied to package .dylibs directory:',

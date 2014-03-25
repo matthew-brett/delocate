@@ -23,9 +23,10 @@ def main():
                action="store", type='string', default='.dylibs',
                help="Subdirectory in packages to store copied libraries"))
     parser.add_option(
-        Option("-o", "--out-path",
+        Option("-w", "--wheel-dir",
                action="store", type='string',
-               help="Directory to store delocated wheels (default=overwrite)"))
+               help="Directory to store delocated wheels (default is to "
+               "overwrite input)"))
     parser.add_option(
         Option("-v", "--verbose",
                action="store_true",
@@ -35,13 +36,13 @@ def main():
         parser.print_help()
         sys.exit(1)
     multi = len(wheels) > 1
-    if opts.out_path and not exists(opts.out_path):
-        os.makedirs(opts.out_path)
+    if opts.wheel_dir and not exists(opts.wheel_dir):
+        os.makedirs(opts.wheel_dir)
     for wheel in wheels:
         if multi or opts.verbose:
             print('Fixing: ' + wheel)
-        if opts.out_path:
-            out_wheel = pjoin(opts.out_path, basename(wheel))
+        if opts.wheel_dir:
+            out_wheel = pjoin(opts.wheel_dir, basename(wheel))
         else:
             out_wheel = wheel
         copied = delocate_wheel(wheel, out_wheel, lib_sdir=opts.lib_sdir)

@@ -112,6 +112,11 @@ def copy_recurse(lib_path, copy_filt_func = None, copied_libs = None):
     copied_libs : None or set, optional
         Set of names of libraries already copied into `lib_path`. We need this
         so we can avoid copying libraries we've already copied.
+
+    Returns
+    -------
+    copied_libs : set
+        Possibly augmented set of copied libraries
     """
     if copied_libs is None:
         copied_libs = set()
@@ -122,7 +127,7 @@ def copy_recurse(lib_path, copy_filt_func = None, copied_libs = None):
         new_copied = _copy_required(lib_path, copy_filt_func, copied_libs)
         copied_libs = copied_libs | new_copied
         done = len(new_copied) == 0
-    return
+    return copied_libs
 
 
 def _copy_required(lib_path, copy_filt_func, copied_libs):
@@ -196,6 +201,11 @@ def delocate_path(tree_path, lib_path,
         Default is callable rejecting only libraries beginning with
         ``/usr/lib`` or ``/System``.  None means copy all libraries. This will
         usually end up copying large parts of the system run-time.
+
+    Returns
+    -------
+    copied_libs : set
+        original paths of libraries copied into `lib_path`
     """
     if not exists(lib_path):
         os.makedirs(lib_path)
@@ -204,7 +214,7 @@ def delocate_path(tree_path, lib_path,
         lib_dict = dict((key, value) for key, value in lib_dict.items()
                         if copy_filt_func(key))
     copied = delocate_tree_libs(lib_dict, lib_path, tree_path)
-    copy_recurse(lib_path, copy_filt_func, copied)
+    return copy_recurse(lib_path, copy_filt_func, copied)
 
 
 def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
@@ -235,6 +245,11 @@ def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
         Default is callable rejecting only libraries beginning with
         ``/usr/lib`` or ``/System``.  None means copy all libraries. This will
         usually end up copying large parts of the system run-time.
+
+    Returns
+    -------
+    copied_libs : set
+        original paths of libraries copied into `lib_path`
     """
     wheel_fname = abspath(wheel_fname)
     with InTemporaryDirectory():
@@ -244,11 +259,12 @@ def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
             if exists(lib_path):
                 raise DelocationError(
                     '{0} already exists in wheel'.format(lib_path))
-            delocate_path(package_path, lib_path,
-                          lib_filt_func, copy_filt_func)
+            copied_libs = delocate_path(package_path, lib_path,
+                                        lib_filt_func, copy_filt_func)
             if len(os.listdir(lib_path)) == 0:
                 shutil.rmtree(lib_path)
         dir2zip('wheel', wheel_fname)
+    return copied_libs
 
 
 def wheel_libs(wheel_fname, lib_filt_func = None):

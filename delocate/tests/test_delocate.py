@@ -168,13 +168,14 @@ def test_copy_recurse():
             return not libname.startswith('/usr/lib')
         os.makedirs('subtree')
         _copy_fixpath([LIBA], 'subtree')
-        copy_recurse('subtree', copy_filt_func=filt_func)
-        assert_equal(set(os.listdir('subtree')),
-                     set(['liba.dylib']))
+        assert_equal(copy_recurse('subtree', copy_filt_func=filt_func),
+                     set())
+        assert_equal(set(os.listdir('subtree')), set(['liba.dylib']))
         # An object that depends on a library that depends on two libraries
         os.makedirs('subtree2')
         shutil.copy2(test_lib, 'subtree2')
-        copy_recurse('subtree2', filt_func)
+        assert_equal(copy_recurse('subtree2', filt_func),
+                     set([liba, libb, libc]))
         assert_equal(set(os.listdir('subtree2')),
                      set(('liba.dylib',
                           'libb.dylib',
@@ -220,7 +221,8 @@ def test_delocate_path():
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree'))
         # Check it fixes up correctly
-        delocate_path('subtree', 'deplibs')
+        assert_equal(delocate_path('subtree', 'deplibs'),
+                     set())
         assert_equal(len(os.listdir('deplibs')), 0)
         back_tick([test_lib])
         back_tick([stest_lib])
@@ -231,7 +233,8 @@ def test_delocate_path():
             realpath('subtree2'))
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
         # Check fake libary gets copied and delocated
-        delocate_path('subtree2', 'deplibs2')
+        assert_equal(delocate_path('subtree2', 'deplibs2'),
+                     set([fake_lib]))
         assert_equal(os.listdir('deplibs2'), ['libfake.dylib'])
         assert_true('@rpath/libfake.dylib' in get_install_names(slibc))
         assert_true('@loader_path/../../deplibs2' in get_rpaths(slibc))
@@ -242,7 +245,8 @@ def test_delocate_path():
         def filt(libname):
             return not (libname.startswith('/usr') or
                         'libfake' in libname)
-        delocate_path('subtree3', 'deplibs3', None, filt)
+        assert_equal(delocate_path('subtree3', 'deplibs3', None, filt),
+                     set())
         assert_equal(len(os.listdir('deplibs3')), 0)
         # Test tree names filtering works
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
@@ -250,11 +254,13 @@ def test_delocate_path():
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
         def lib_filt(filename):
             return not filename.endswith('subsub/libc.dylib')
-        delocate_path('subtree4', 'deplibs4', lib_filt)
+        assert_equal(delocate_path('subtree4', 'deplibs4', lib_filt),
+                     set())
         assert_equal(len(os.listdir('deplibs4')), 0)
         # Check can use already existing directory
         os.makedirs('deplibs5')
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree5'))
-        delocate_path('subtree5', 'deplibs5')
+        assert_equal(delocate_path('subtree5', 'deplibs5'),
+                     set())
         assert_equal(len(os.listdir('deplibs5')), 0)

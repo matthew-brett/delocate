@@ -32,7 +32,7 @@ def test_fix_pure_python():
         os.makedirs('wheels')
         shutil.copy2(PURE_WHEEL, 'wheels')
         wheel_name = pjoin('wheels', basename(PURE_WHEEL))
-        delocate_wheel(wheel_name)
+        assert_equal(delocate_wheel(wheel_name), set())
         zip2dir(wheel_name, 'pure_pkg')
         assert_true(exists(pjoin('pure_pkg', 'fakepkg2')))
         assert_false(exists(pjoin('pure_pkg', 'fakepkg2', '.dylibs')))
@@ -60,7 +60,8 @@ def test_fix_plat():
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         assert_true(exists(stray_lib))
-        delocate_wheel(fixed_wheel)
+        assert_equal(delocate_wheel(fixed_wheel),
+                     set([stray_lib]))
         zip2dir(fixed_wheel, 'plat_pkg')
         assert_true(exists(pjoin('plat_pkg', 'fakepkg1')))
         dylibs = pjoin('plat_pkg', 'fakepkg1', '.dylibs')
@@ -68,7 +69,8 @@ def test_fix_plat():
         assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
         # Make another copy to test another output directory
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        delocate_wheel(fixed_wheel, 'dylibs_dir')
+        assert_equal(delocate_wheel(fixed_wheel, 'dylibs_dir'),
+                     set([stray_lib]))
         zip2dir(fixed_wheel, 'plat_pkg2')
         assert_true(exists(pjoin('plat_pkg2', 'fakepkg1')))
         dylibs = pjoin('plat_pkg2', 'fakepkg1', 'dylibs_dir')

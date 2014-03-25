@@ -35,7 +35,7 @@ libraries elsewhere on the machine, so you can't distribute it, because others
 may not have these same libraries.  Here we analyze the dependencies for a scipy
 wheel::
 
-    \$ delocate-listdeps scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
+    $ delocate-listdeps scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgcc_s.1.dylib
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgfortran.3.dylib
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libquadmath.0.dylib
@@ -43,7 +43,7 @@ wheel::
 By default, this does not include libraries in ``/usr/lib`` and ``/System``.
 See those too with::
 
-    \$ delocate-listdeps --all scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
+    $ delocate-listdeps --all scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
     /System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate
     /usr/lib/libSystem.B.dylib
     /usr/lib/libstdc++.6.dylib
@@ -58,7 +58,7 @@ installation of ``gfortran`` (as well as the system libs).
 
     If you see any dependencies starting with ``@`` in a wheel that has not yet
     been processed with ``delocate-wheel``, the delocation process below will
-    likely not work, and leave you with - er - broken wheel.
+    likely not work, and leave you with - er - a broken wheel.
 
 **********
 A solution
@@ -66,7 +66,7 @@ A solution
 
 We can fix like this::
 
-    \$ delocate-wheel -w fixed_wheels -v scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
+    $ delocate-wheel -w fixed_wheels -v scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
     Fixing: scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
     Copied to package .dylibs directory:
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgcc_s.1.dylib
@@ -83,7 +83,7 @@ extensions in the wheel to use these copies instead of looking in
 
 Check the links again to confirm::
 
-    \$ delocate-listdeps fixed_wheels/scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
+    $ delocate-listdeps fixed_wheels/scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
     @loader_path/libgcc_s.1.dylib
     @loader_path/libquadmath.0.dylib
     @rpath/libgcc_s.1.dylib

@@ -18,8 +18,7 @@ from subprocess import Popen, PIPE
 
 from ..tmpdirs import InTemporaryDirectory
 from ..pycompat import string_types
-from ..tools import back_tick, set_install_name
-from ..delocator import zip2dir
+from ..tools import back_tick, set_install_name, zip2dir
 
 from nose.tools import assert_true, assert_false, assert_equal
 

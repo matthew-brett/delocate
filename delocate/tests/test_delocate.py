@@ -6,8 +6,8 @@ import os
 from os.path import (join as pjoin, dirname, basename, relpath, realpath)
 import shutil
 
-from ..delocator import (DelocationError, delocate_tree_libs, copy_recurse,
-                         delocate_path)
+from ..delocating import (DelocationError, delocate_tree_libs, copy_recurse,
+                          delocate_path)
 from ..libsana import tree_libs
 from ..tools import (get_install_names, get_rpaths, set_install_name,
                      back_tick)

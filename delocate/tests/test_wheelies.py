@@ -5,7 +5,7 @@ from os.path import (join as pjoin, dirname, basename, relpath, realpath,
                      abspath, exists)
 import shutil
 
-from ..delocator import DelocationError, delocate_wheel
+from ..delocating import DelocationError, delocate_wheel
 from ..tools import (get_install_names, set_install_name, zip2dir,
                      dir2zip)
 

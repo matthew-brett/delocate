@@ -1,4 +1,4 @@
-""" Routines to manipulate dynamic libraries in trees
+""" Routines to copy / relink library dependencies in trees and wheels
 """
 
 from __future__ import division, print_function

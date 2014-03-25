@@ -8,7 +8,8 @@ from os.path import (join as pjoin, dirname, basename, exists, isdir, abspath,
                      relpath)
 import shutil
 
-from .tools import add_rpath, set_install_name, tree_libs, zip2dir, dir2zip
+from .tools import (add_rpath, set_install_name, tree_libs, zip2dir, dir2zip,
+                    find_package_dirs)
 from .tmpdirs import InTemporaryDirectory
 
 class DelocationError(Exception):
@@ -238,13 +239,7 @@ def delocate_wheel(wheel_fname, lib_sdir = '.dylibs',
     wheel_fname = abspath(wheel_fname)
     with InTemporaryDirectory():
         zip2dir(wheel_fname, 'wheel')
-        package_paths = []
-        for entry in os.listdir('wheel'):
-            fname = pjoin('wheel', entry)
-            if isdir(fname):
-                if exists(pjoin(fname, '__init__.py')):
-                    package_paths.append(fname)
-        for package_path in package_paths:
+        for package_path in find_package_dirs('wheel'):
             lib_path = pjoin(package_path, lib_sdir)
             if exists(lib_path):
                 raise DelocationError(
@@ -278,13 +273,7 @@ def wheel_libs(wheel_fname, lib_filt_func = None):
     lib_dict = {}
     with InTemporaryDirectory():
         zip2dir(wheel_fname, 'wheel')
-        package_paths = []
-        for entry in os.listdir('wheel'):
-            fname = pjoin('wheel', entry)
-            if isdir(fname):
-                if exists(pjoin(fname, '__init__.py')):
-                    package_paths.append(fname)
-        for package_path in package_paths:
+        for package_path in find_package_dirs('wheel'):
             pkg_lib_dict = tree_libs(package_path, lib_filt_func)
             for key, values in pkg_lib_dict.items():
                 if not key in lib_dict:

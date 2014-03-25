@@ -22,7 +22,7 @@ from ..tools import back_tick, set_install_name, zip2dir
 
 from nose.tools import assert_true, assert_false, assert_equal
 
-from .test_delocate import EXT_LIBS, _make_libtree, _copy_to
+from .test_delocating import EXT_LIBS, _make_libtree, _copy_to
 from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
                             STRAY_LIB_DEP)
 

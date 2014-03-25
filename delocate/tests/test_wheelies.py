@@ -15,7 +15,7 @@ from nose.tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
 
 from .test_install_names import DATA_PATH
-from .test_delocate import EXT_LIBS
+from .test_delocating import EXT_LIBS
 
 PLAT_WHEEL = pjoin(DATA_PATH, 'fakepkg1-1.0-cp27-none-macosx_10_6_intel.whl')
 PURE_WHEEL = pjoin(DATA_PATH, 'fakepkg2-1.0-py27-none-any.whl')

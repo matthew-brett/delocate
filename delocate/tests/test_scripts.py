@@ -205,6 +205,22 @@ def test_wheel():
         code, stdout, stderr = run_command(
             ['delocate-wheel', '-o', 'fixed2', fixed_wheel, 'wheel_copy.ext'])
         assert_equal(_proc_lines(stdout),
-                     [fixed_wheel, 'wheel_copy.ext'])
+                     ['Fixing: ' + name
+                      for name in fixed_wheel, 'wheel_copy.ext'])
         _check_wheel(pjoin('fixed2', basename(fixed_wheel)), '.dylibs')
         _check_wheel(pjoin('fixed2', 'wheel_copy.ext'), '.dylibs')
+        # Verbose - single wheel
+        code, stdout, stderr = run_command(
+            ['delocate-wheel', '-o', 'fixed3', fixed_wheel, '-v'])
+        _check_wheel(pjoin('fixed3', basename(fixed_wheel)), '.dylibs')
+        wheel_lines1 = ['Fixing: ' + fixed_wheel,
+                        'Copied to package .dylibs directory:',
+                        stray_lib]
+        assert_equal(_proc_lines(stdout), wheel_lines1)
+        code, stdout, stderr = run_command(
+            ['delocate-wheel', '-v', '-o', 'fixed4',
+             fixed_wheel, 'wheel_copy.ext'])
+        wheel_lines2 = ['Fixing: wheel_copy.ext',
+                        'Copied to package .dylibs directory:',
+                        stray_lib]
+        assert_equal(_proc_lines(stdout), wheel_lines1 + wheel_lines2)

@@ -65,7 +65,7 @@ overwriting the old wheel.  ``-v`` (verbose) tells you what delocate-wheel is
 doing.  In this case it has made a new directory in the wheel zipfile, named
 ``scipy/.dylibs``. It has copied all the library dependencies that are outside
 the OSX system trees into this directory, and patched the python ``.so``
-extensions in the wheel to use the copies instead of looking in
+extensions in the wheel to use these copies instead of looking in
 ``/usr/local/Cellar/gfortran/4.8.2/gfortran/lib``.
 
 Check the links again to confirm::
@@ -82,3 +82,24 @@ So - system dylibs the same, but the others moved into the wheel tree.
 
 This makes the wheel more likely to work on another machine which does not have
 the same version of gfortran installed - in this example.
+
+****
+Code
+****
+
+See https://github.com/matthew-brett/delocate
+
+Released under the BSD two-clause license - see the file ``LICENSE`` in the
+source distribution.
+
+`travis-ci <https://travis-ci.org/matthew-brett/delocate>`_ kindly tests the
+code automatically under Python 2.7, 3.3 and 3.4.
+
+.. The latest released version is at https://pypi.python.org/pypi/delocate
+
+*******
+Support
+*******
+
+Please put up issues on the `delocate issue tracker
+<https://github.com/matthew-brett/delocate/issues>`_.

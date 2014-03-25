@@ -30,5 +30,15 @@ setup(name='delocate',
           'delocate-listdeps',
           'delocate-wheel',
           'delocate-path')],
-      license='BSD license'
+      license='BSD license',
+      classifiers = ['Intended Audience :: Developers',
+                     "Environment :: Console",
+                     'License :: OSI Approved :: BSD License',
+                     'Programming Language :: Python',
+                     'Operating System :: MacOS :: MacOS X',
+                     'Development Status :: 3 - Alpha',
+                     'Topic :: Software Development :: Libraries :: '
+                     'Python Modules',
+                     'Topic :: Software Development :: Build Tools'],
+      long_description = open('README.rst', 'rt').read()
      )

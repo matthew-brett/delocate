@@ -19,7 +19,7 @@ Provides scripts:
 * ``delocate-wheel`` -- rewrite wheel having copied and relinked library
   dependencies into the wheel tree.
 
-.. note::
+.. warning::
 
     Please be careful - this software is alpha quality and has not been much
     tested in the wild.  Make backups of your paths and wheels before trying the
@@ -53,6 +53,12 @@ See those too with::
 
 The output tells me that scipy has picked up dynamic libraries from my homebrew
 installation of ``gfortran`` (as well as the system libs).
+
+.. warning::
+
+    If you see any dependencies starting with ``@`` in a wheel that has not yet
+    been processed with ``delocate-wheel``, the delocation process below will
+    likely not work, and leave you with - er - broken wheel.
 
 **********
 A solution

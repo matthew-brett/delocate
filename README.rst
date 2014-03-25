@@ -102,7 +102,7 @@ source distribution.
 `travis-ci <https://travis-ci.org/matthew-brett/delocate>`_ kindly tests the
 code automatically under Python 2.7, 3.3 and 3.4.
 
-.. The latest released version is at https://pypi.python.org/pypi/delocate
+The latest released version is at https://pypi.python.org/pypi/delocate
 
 *******
 Support

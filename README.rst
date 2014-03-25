@@ -23,21 +23,20 @@ Provides scripts:
 The problem
 ***********
 
-Let's say you have built a wheel somewhere, but it's linking to dynamic libraries
-elsewhere on the machine, so you can't distribute it, because others may not
-have these same libraries.  Here's what a scipy wheel looks like. First we unzip
-the wheel to get the contents::
+Let's say you have built a wheel somewhere, but it's linking to dynamic
+libraries elsewhere on the machine, so you can't distribute it, because others
+may not have these same libraries.  Here we analyze the dependencies for a scipy
+wheel::
 
-    mkdir scipy-wheel-contents
-    cd scipy-wheel-contents
-    unzip ../scipy-0.14.0b1-cp33-cp33m-macosx_10_6_intel.whl
+    \$ delocate-listdeps scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
+    /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgcc_s.1.dylib
+    /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgfortran.3.dylib
+    /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libquadmath.0.dylib
 
-Then look at the dependencies::
+By default, this does not include libraries in ``/usr/lib`` and ``/System``.
+See those too with::
 
-    delocate-listdeps scipy
-
-This gives::
-
+    \$ delocate-listdeps --all scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
     /System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate
     /usr/lib/libSystem.B.dylib
     /usr/lib/libstdc++.6.dylib
@@ -45,44 +44,34 @@ This gives::
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgfortran.3.dylib
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libquadmath.0.dylib
 
-So scipy has picked up dynamic libraries from my homebrew installation of
-gfortran.
+The output tells me that scipy has picked up dynamic libraries from my homebrew
+installation of ``gfortran`` (as well as the system libs).
 
 **********
 A solution
 **********
 
-We can fix like this. First make a copy of the wheel so as not to overwrite the
-old one::
+We can fix like this::
 
-    cd .. # the directory containing the wheel
-    mkdir new_wheel
-    cp scipy-0.14.0b1-cp33-cp33m-macosx_10_6_intel.whl new_wheel
-    cd new_wheel
+    `$ delocate-wheel -o fixed_wheels -v scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl 
+    Fixing: scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
+    Copied to package .dylibs directory:
+    /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgcc_s.1.dylib
+    /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgfortran.3.dylib
+    /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libquadmath.0.dylib
 
-Then::
+The ``-o`` flag tells delocate-wheel to output to a new directory instead of
+overwriting the old wheel.  ``-v`` (verbose) tells you what delocate-wheel is
+doing.  In this case it has made a new directory in the wheel zipfile, named
+``scipy/.dylibs``. It has copied all the library dependencies that are outside
+the OSX system trees into this directory, and patched the python ``.so``
+extensions in the wheel to use the copies instead of looking in
+``/usr/local/Cellar/gfortran/4.8.2/gfortran/lib``.
 
-    delocate-wheel scipy-0.14.0b1-cp33-cp33m-macosx_10_6_intel.whl
-
-`delocate` has made a new directory ``.dylibs`` with copies of the dependencies
-that are outside the OSX system trees::
-
-    unzip scipy-0.14.0b1-cp33-cp33m-macosx_10_6_intel.whl
-    ls scipy/.dylibs
-
-This gives::
-
-    libgcc_s.1.dylib  libgfortran.3.dylib  libquadmath.0.dylib
-
-Check the links again::
+Check the links again to confirm::
 
     delocate-listdeps scipy
-
-Result::
-
-    /System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate
-    /usr/lib/libSystem.B.dylib
-    /usr/lib/libstdc++.6.dylib
+    $ delocate-listdeps fixed_wheels/scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl 
     @loader_path/libgcc_s.1.dylib
     @loader_path/libquadmath.0.dylib
     @rpath/libgcc_s.1.dylib

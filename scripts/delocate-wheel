@@ -20,11 +20,16 @@ def main():
         Option("-L", "--lib-sdir",
                action="store", type='string', default='.dylibs',
                help="Subdirectory in packages to store copied libraries"))
-    (opts, wheel_fname) = parser.parse_args()
-    if len(wheel_fname) != 1:
+    (opts, wheels) = parser.parse_args()
+    if len(wheels) < 1:
         parser.print_help()
         sys.exit(1)
-    delocate_wheel(wheel_fname[0], opts.lib_sdir)
+    
+    multi = len(wheels) > 1
+    for wheel in wheels:
+        if multi:
+            print(wheel)
+        delocate_wheel(wheel, opts.lib_sdir)
 
 
 if __name__ == '__main__':

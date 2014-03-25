@@ -3,7 +3,7 @@
 from subprocess import Popen, PIPE
 
 import os
-from os.path import join as pjoin, relpath
+from os.path import join as pjoin, relpath, isdir, exists
 import zipfile
 import re
 import stat
@@ -304,6 +304,27 @@ def dir2zip(in_dir, zip_fname):
             z.write(os.path.join(root, file), out_fname)
     z.close()
 
+
+def find_package_dirs(root_path):
+    """ Find python package directories in directory `root_path`
+
+    Parameters
+    ----------
+    root_path : str
+        Directory to search for package subdirectories
+
+    Returns
+    -------
+    package_sdirs : set
+        Set of strings where each is a subdirectory of `root_path`, containing
+        an ``__init__.py`` file.  Paths prefixed by `root_path`
+    """
+    package_sdirs = set()
+    for entry in os.listdir(root_path):
+        fname = pjoin(root_path, entry)
+        if isdir(fname) and exists(pjoin(fname, '__init__.py')):
+            package_sdirs.add(fname)
+    return package_sdirs
 
 
 def tree_libs(start_path, filt_func = None):

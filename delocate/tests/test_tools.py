@@ -5,7 +5,8 @@ import os
 from os.path import join as pjoin, split as psplit, abspath, dirname
 import shutil
 
-from ..tools import back_tick, ensure_writable, zip2dir, dir2zip
+from ..tools import (back_tick, ensure_writable, zip2dir, dir2zip,
+                     find_package_dirs)
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -66,3 +67,23 @@ def test_zip2():
         shutil.rmtree('a_dir')
         zip2dir('another.ext', 'third_dir')
         assert_equal(os.listdir('third_dir'), ['file2.txt'])
+
+
+def test_find_package_dirs():
+    # Test utility for finding package directories
+    with InTemporaryDirectory():
+        os.mkdir('to_test')
+        a_dir = pjoin('to_test', 'a_dir')
+        b_dir = pjoin('to_test', 'b_dir')
+        c_dir = pjoin('to_test', 'c_dir')
+        for dir in (a_dir, b_dir, c_dir):
+            os.mkdir(dir)
+        assert_equal(find_package_dirs('to_test'), set([]))
+        _write_file(pjoin(a_dir, '__init__.py'), "# a package")
+        assert_equal(find_package_dirs('to_test'), set([a_dir]))
+        _write_file(pjoin(c_dir, '__init__.py'), "# another package")
+        assert_equal(find_package_dirs('to_test'), set([a_dir, c_dir]))
+        # Not recursive
+        assert_equal(find_package_dirs('.'), set())
+        _write_file(pjoin('to_test', '__init__.py'), "# base package")
+        assert_equal(find_package_dirs('.'), set([pjoin('.', 'to_test')]))

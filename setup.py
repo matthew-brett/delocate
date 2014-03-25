@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-
+""" setup script for delocate package """
 from os.path import join as pjoin
+try:
+    import setuptools
+except ImportError:
+    pass
 from distutils.core import setup
 import versioneer
 

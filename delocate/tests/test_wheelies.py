@@ -21,6 +21,9 @@ from .test_delocate import EXT_LIBS
 PLAT_WHEEL = pjoin(DATA_PATH, 'fakepkg1-1.0-cp27-none-macosx_10_6_intel.whl')
 PURE_WHEEL = pjoin(DATA_PATH, 'fakepkg2-1.0-py27-none-any.whl')
 STRAY_LIB = pjoin(DATA_PATH, 'libextfunc.dylib')
+# The install_name in the wheel for the stray library
+STRAY_LIB_DEP = ('/Users/mb312/dev_trees/delocate/wheel_makers/'
+                 'fakepkg1/libs/libextfunc.dylib')
 
 
 def test_fix_pure_python():

@@ -24,7 +24,8 @@ from ..delocator import zip2dir
 from nose.tools import assert_true, assert_false, assert_equal
 
 from .test_delocate import EXT_LIBS, _make_libtree, _copy_to
-from .test_wheelies import _fixed_wheel
+from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
+                            STRAY_LIB_DEP)
 
 DEBUG_PRINT = os.environ.get('DELOCATE_DEBUG_PRINT', False)
 
@@ -139,6 +140,14 @@ def test_listdeps():
         ['delocate-listdeps', '--all', DATA_PATH])
     assert_equal(set(_proc_lines(stdout)), local_libs | set(EXT_LIBS))
     assert_equal(code, 0)
+    # Works on wheels as well
+    code, stdout, stderr = run_command(
+        ['delocate-listdeps', PURE_WHEEL])
+    assert_equal(set(_proc_lines(stdout)), set())
+    code, stdout, stderr = run_command(
+        ['delocate-listdeps', PURE_WHEEL, PLAT_WHEEL])
+    assert_equal(_proc_lines(stdout),
+                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', STRAY_LIB_DEP])
 
 
 def test_path():

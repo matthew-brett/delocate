@@ -19,6 +19,13 @@ Provides scripts:
 * ``delocate-wheel`` -- rewrite wheel having copied and relinked library
   dependencies into the wheel tree.
 
+.. note::
+
+    Please be careful - this software is alpha quality and has not been much
+    tested in the wild.  Make backups of your paths and wheels before trying the
+    utilities on them, please report any problems on the issue tracker (see
+    below).
+
 ***********
 The problem
 ***********

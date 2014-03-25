@@ -283,13 +283,14 @@ def wheel_libs(wheel_fname, lib_filt_func = None):
     -------
     lib_dict : dict
         dictionary with (key, value) pairs of (install name, set of files in
-        wheel packages with install name)
+        wheel packages with install name).  Root directory of wheel package
+        appears as current directory in file listing
     """
     wheel_fname = abspath(wheel_fname)
     lib_dict = {}
-    with InTemporaryDirectory():
-        zip2dir(wheel_fname, 'wheel')
-        for package_path in find_package_dirs('wheel'):
+    with InTemporaryDirectory() as tmpdir:
+        zip2dir(wheel_fname, tmpdir)
+        for package_path in find_package_dirs('.'):
             pkg_lib_dict = tree_libs(package_path, lib_filt_func)
             for key, values in pkg_lib_dict.items():
                 if not key in lib_dict:

@@ -5,10 +5,9 @@ from os.path import (join as pjoin, dirname, basename, relpath, realpath,
                      abspath, exists)
 import shutil
 
-from ..delocator import (DelocationError, delocate_wheel, zip2dir,
-                         dir2zip)
+from ..delocator import DelocationError, delocate_wheel, wheel_libs
 from ..tools import (tree_libs, get_install_names, get_rpaths,
-                     set_install_name, back_tick)
+                     set_install_name, back_tick, zip2dir, dir2zip)
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
 from nose.tools import (assert_true, assert_false, assert_raises,
@@ -80,3 +79,15 @@ def test_fix_plat():
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         assert_raises(DelocationError,
                       delocate_wheel, fixed_wheel, 'subpkg')
+
+
+def test_wheel_libs():
+    # Test routine to list dependencies from wheels
+    assert_equal(wheel_libs(PURE_WHEEL), {})
+    mod2 = pjoin('.', 'fakepkg1', 'subpkg', 'module2.so')
+    assert_equal(wheel_libs(PLAT_WHEEL),
+                 {STRAY_LIB_DEP: set([mod2]),
+                  '/usr/lib/libSystem.B.dylib': set([mod2])})
+    def filt(fname):
+        return not fname == mod2
+    assert_equal(wheel_libs(PLAT_WHEEL, filt), {})

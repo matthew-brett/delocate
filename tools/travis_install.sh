@@ -39,6 +39,9 @@ PREFIX=/Library/Frameworks/Python.framework/Versions/$PY_SHORT_VER
 sudo $PREFIX/bin/easy_install-$PY_SHORT_VER pip
 export PIP="sudo $PREFIX/bin/pip$PY_SHORT_VER"
 
+# Dependencies for install
+$PIP install wheel
+
 # Dependencies for testing
 $PIP install nose
 

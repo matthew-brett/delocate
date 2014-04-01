@@ -5,9 +5,9 @@ from os.path import (join as pjoin, dirname, basename, relpath, realpath,
                      abspath, exists)
 import shutil
 
-from ..delocating import DelocationError, delocate_wheel
+from ..delocating import DelocationError, delocate_wheel, rewrite_record
 from ..tools import (get_install_names, set_install_name, zip2dir,
-                     dir2zip)
+                     dir2zip, back_tick)
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
 
@@ -92,3 +92,35 @@ def test_fix_plat():
                       fixed_wheel,
                       'broken_wheel.ext',
                       'subpkg')
+        # Test that `wheel unpack` works
+        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
+        assert_equal(delocate_wheel(fixed_wheel), set([stray_lib]))
+        back_tick(['wheel', 'unpack', fixed_wheel])
+
+
+def test_rewrite_record():
+    dist_info_sdir = 'fakepkg2-1.0.dist-info'
+    with InTemporaryDirectory():
+        zip2dir(PURE_WHEEL, 'wheel')
+        record_fname = pjoin('wheel', dist_info_sdir, 'RECORD')
+        with open(record_fname, 'rt') as fobj:
+            record_orig = fobj.read()
+        # Test we get the same record by rewriting
+        os.unlink(record_fname)
+        rewrite_record('wheel')
+        with open(record_fname, 'rt') as fobj:
+            record_new = fobj.read()
+        assert_equal(record_orig, record_new)
+        # Test that signature gets deleted
+        sig_fname = pjoin('wheel', dist_info_sdir, 'RECORD.jws')
+        with open(sig_fname, 'wt') as fobj:
+            fobj.write('something')
+        rewrite_record('wheel')
+        with open(record_fname, 'rt') as fobj:
+            record_new = fobj.read()
+        assert_equal(record_orig, record_new)
+        assert_false(exists(sig_fname))
+        # Test error for too many dist-infos
+        shutil.copytree(pjoin('wheel', dist_info_sdir),
+                        pjoin('wheel', 'anotherpkg-2.0.dist-info'))
+        assert_raises(DelocationError, rewrite_record, 'wheel')

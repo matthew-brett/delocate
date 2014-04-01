@@ -8,6 +8,11 @@ from os.path import (join as pjoin, dirname, basename, exists, isdir, abspath,
                      relpath)
 import shutil
 import warnings
+import hashlib
+import csv
+import glob
+
+from wheel.util import urlsafe_b64encode, open_for_csv, native
 
 from .libsana import tree_libs
 from .tools import (add_rpath, set_install_name, zip2dir, dir2zip,
@@ -221,6 +226,55 @@ def delocate_path(tree_path, lib_path,
     return copy_recurse(lib_path, copy_filt_func, copied)
 
 
+def rewrite_record(bdist_dir):
+    """ Rewrite RECORD file with hashes for all files in `wheel_sdir`
+
+    Copied from :method:`wheel.bdist_wheel.bdist_wheel.write_record`
+
+    Will also unsign wheel
+
+    Parameters
+    ----------
+    bdist_dir : str
+        Path of unpacked wheel file
+    """
+    info_dirs = glob.glob(pjoin(bdist_dir, '*.dist-info'))
+    if len(info_dirs) != 1:
+        raise DelocationError("Should be exactly one `*.dist_info` directory")
+    record_path = os.path.join(info_dirs[0], 'RECORD')
+    record_relpath = os.path.relpath(record_path, bdist_dir)
+    # Unsign wheel - because we're invalidating the record hash
+    sig_path = os.path.join(info_dirs[0], 'RECORD.jws')
+    if exists(sig_path):
+        os.unlink(sig_path)
+
+    def walk():
+        for dir, dirs, files in os.walk(bdist_dir):
+            for f in files:
+                yield os.path.join(dir, f)
+
+    def skip(path):
+        """Wheel hashes every possible file."""
+        return (path == record_relpath)
+
+    with open_for_csv(record_path, 'w+') as record_file:
+        writer = csv.writer(record_file)
+        for path in walk():
+            relpath = os.path.relpath(path, bdist_dir)
+            if skip(relpath):
+                hash = ''
+                size = ''
+            else:
+                with open(path, 'rb') as f:
+                    data = f.read()
+                digest = hashlib.sha256(data).digest()
+                hash = 'sha256=' + native(urlsafe_b64encode(digest))
+                size = len(data)
+            record_path = os.path.relpath(
+                path, bdist_dir).replace(os.path.sep, '/')
+            writer.writerow((record_path, hash, size))
+
+
 def delocate_wheel(in_wheel,
                    out_wheel = None,
                    lib_sdir = '.dylibs',
@@ -278,6 +332,8 @@ def delocate_wheel(in_wheel,
             if len(os.listdir(lib_path)) == 0:
                 shutil.rmtree(lib_path)
             all_copied = all_copied | copied_libs
+        if len(all_copied):
+            rewrite_record('wheel')
         if len(all_copied) or not in_place:
             dir2zip('wheel', out_wheel)
     return all_copied

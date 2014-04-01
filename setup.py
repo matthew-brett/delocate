@@ -18,6 +18,10 @@ versioneer.versionfile_build = pjoin('delocate', '_version.py')
 versioneer.tag_prefix = ''
 versioneer.parentdir_prefix = 'delocate-'
 
+setuptools_args = {}
+if 'setuptools' in sys.modules:
+    setuptools_args['install_requires'] = ['wheel']
+
 setup(name='delocate',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
@@ -48,5 +52,6 @@ setup(name='delocate',
                      'Topic :: Software Development :: Libraries :: '
                      'Python Modules',
                      'Topic :: Software Development :: Build Tools'],
-      long_description = open('README.rst', 'rt').read()
+      long_description = open('README.rst', 'rt').read(),
+      **setuptools_args
      )

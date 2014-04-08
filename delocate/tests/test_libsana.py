@@ -63,7 +63,7 @@ def test_tree_libs():
 def test_wheel_libs():
     # Test routine to list dependencies from wheels
     assert_equal(wheel_libs(PURE_WHEEL), {})
-    mod2 = pjoin('.', 'fakepkg1', 'subpkg', 'module2.so')
+    mod2 = pjoin('fakepkg1', 'subpkg', 'module2.so')
     assert_equal(wheel_libs(PLAT_WHEEL),
                  {STRAY_LIB_DEP: set([mod2]),
                   '/usr/lib/libSystem.B.dylib': set([mod2])})

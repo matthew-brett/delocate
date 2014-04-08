@@ -321,7 +321,7 @@ def find_package_dirs(root_path):
     """
     package_sdirs = set()
     for entry in os.listdir(root_path):
-        fname = pjoin(root_path, entry)
+        fname = entry if root_path == '.' else pjoin(root_path, entry)
         if isdir(fname) and exists(pjoin(fname, '__init__.py')):
             package_sdirs.add(fname)
     return package_sdirs

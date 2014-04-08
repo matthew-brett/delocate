@@ -86,4 +86,5 @@ def test_find_package_dirs():
         # Not recursive
         assert_equal(find_package_dirs('.'), set())
         _write_file(pjoin('to_test', '__init__.py'), "# base package")
-        assert_equal(find_package_dirs('.'), set([pjoin('.', 'to_test')]))
+        # Also - strips '.' for current directory
+        assert_equal(find_package_dirs('.'), set(['to_test']))

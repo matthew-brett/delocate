@@ -75,7 +75,9 @@ def test_delocate_tree_libs():
         lib_dict = tree_libs(subtree)
         copied = delocate_tree_libs(lib_dict, copy_dir, subtree)
         # Only the out-of-tree libraries get copied
-        assert_equal(copied, set(EXT_LIBS))
+        assert_equal(copied,
+                     dict(zip(EXT_LIBS,
+                              (set(all_local_libs), set(all_local_libs)))))
         assert_equal(set(os.listdir(copy_dir)),
                      set([basename(lib) for lib in EXT_LIBS]))
         # Libraries using the copied libraries now have an rpath pointing to
@@ -107,6 +109,7 @@ def test_delocate_tree_libs():
         os.makedirs(copy_dir2)
         # Trying to delocate where all local libraries appear to be
         # out-of-tree will raise an error because of duplicate library names
+        # (libc and slibc both named <something>/libc.dylib)
         lib_dict2 = tree_libs(subtree2)
         assert_raises(DelocationError,
                       delocate_tree_libs, lib_dict2, copy_dir2, '/tmp')
@@ -122,8 +125,15 @@ def test_delocate_tree_libs():
         # Delocation now works
         lib_dict2 = tree_libs(subtree2)
         copied2 = delocate_tree_libs(lib_dict2, copy_dir2, '/tmp')
+        local_libs = [liba, libb, libc, slibc, test_lib, stest_lib]
+        assert_equal(copied2,
+                     dict(((EXT_LIBS[0], set(local_libs)),
+                           (EXT_LIBS[1], set(local_libs)),
+                           (libc, set([test_lib])),
+                           (slibc, set([stest_lib])),
+                           (libb, set([slibc, libc])),
+                           (liba, set([libb, slibc, libc])))))
         ext_local_libs = set(EXT_LIBS) | set([liba, libb, libc, slibc])
-        assert_equal(copied2, ext_local_libs)
         assert_equal(set(os.listdir(copy_dir2)),
                      set([basename(lib) for lib in ext_local_libs]))
         # Libraries using the copied libraries now have an rpath pointing to
@@ -245,8 +255,7 @@ def test_delocate_path():
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree'))
         # Check it fixes up correctly
-        assert_equal(delocate_path('subtree', 'deplibs'),
-                     set())
+        assert_equal(delocate_path('subtree', 'deplibs'), {})
         assert_equal(len(os.listdir('deplibs')), 0)
         back_tick([test_lib])
         back_tick([stest_lib])
@@ -257,8 +266,9 @@ def test_delocate_path():
             realpath('subtree2'))
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
         # Check fake libary gets copied and delocated
+        slc_rel = pjoin('subtree2', 'subsub', 'libc.dylib')
         assert_equal(delocate_path('subtree2', 'deplibs2'),
-                     set([fake_lib]))
+                     {fake_lib: set([slc_rel])})
         assert_equal(os.listdir('deplibs2'), ['libfake.dylib'])
         assert_true('@rpath/libfake.dylib' in get_install_names(slibc))
         assert_true('@loader_path/../../deplibs2' in get_rpaths(slibc))
@@ -269,8 +279,7 @@ def test_delocate_path():
         def filt(libname):
             return not (libname.startswith('/usr') or
                         'libfake' in libname)
-        assert_equal(delocate_path('subtree3', 'deplibs3', None, filt),
-                     set())
+        assert_equal(delocate_path('subtree3', 'deplibs3', None, filt), {})
         assert_equal(len(os.listdir('deplibs3')), 0)
         # Test tree names filtering works
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
@@ -278,13 +287,11 @@ def test_delocate_path():
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
         def lib_filt(filename):
             return not filename.endswith('subsub/libc.dylib')
-        assert_equal(delocate_path('subtree4', 'deplibs4', lib_filt),
-                     set())
+        assert_equal(delocate_path('subtree4', 'deplibs4', lib_filt), {})
         assert_equal(len(os.listdir('deplibs4')), 0)
         # Check can use already existing directory
         os.makedirs('deplibs5')
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree5'))
-        assert_equal(delocate_path('subtree5', 'deplibs5'),
-                     set())
+        assert_equal(delocate_path('subtree5', 'deplibs5'), {})
         assert_equal(len(os.listdir('deplibs5')), 0)

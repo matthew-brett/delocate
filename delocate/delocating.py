@@ -17,7 +17,7 @@ from wheel.util import urlsafe_b64encode, open_for_csv, native
 from .libsana import tree_libs
 from .tools import (add_rpath, set_install_name, zip2dir, dir2zip,
                     find_package_dirs)
-from .tmpdirs import InTemporaryDirectory
+from .tmpdirs import InTemporaryDirectory, InGivenDirectory
 
 class DelocationError(Exception):
     pass
@@ -53,11 +53,12 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
 
     Returns
     -------
-    copied_libs : set
-        Set of names of libraries copied into `lib_path`. These are the
-        original names from the keys of `lib_dict`
+    copied_libs : dict
+        Dict with (key, value) pairs of (name of library copied into
+        `lib_path`, sequence of libraries depending on copied library). The
+        names are the original names from the keys of `lib_dict`
     """
-    copied_libs = set()
+    copied_libs = {}
     delocated_libs = set()
     copied_basenames = set()
     # Test for errors first to avoid getting half-way through changing the tree
@@ -75,7 +76,7 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
             if not exists(required):
                 raise DelocationError('library "{0}" does not exist'.format(
                     required))
-            copied_libs.add(required)
+            copied_libs[required] = requirings
             copied_basenames.add(r_ed_base)
         else: # Is local, plan to set relative loader_path
             delocated_libs.add(required)
@@ -226,8 +227,10 @@ def delocate_path(tree_path, lib_path,
 
     Returns
     -------
-    copied_libs : set
-        original paths of libraries copied into `lib_path`
+    copied_libs : dict
+        Dict with (key, value) pairs of (name of library copied into
+        `lib_path`, sequence of libraries depending on copied library). The
+        names are the original names from the keys of `lib_dict`
     """
     if not exists(lib_path):
         os.makedirs(lib_path)
@@ -288,6 +291,15 @@ def rewrite_record(bdist_dir):
             writer.writerow((record_path, hash, size))
 
 
+def _merge_lib_dict(d1, d2):
+    for required, requirings in d2.items():
+        if required in d1:
+            d1[required] = d1[required] | requirings
+        else:
+            d1[required] = requirings
+    return 
+
+
 def delocate_wheel(in_wheel,
                    out_wheel = None,
                    lib_sdir = '.dylibs',
@@ -323,8 +335,10 @@ def delocate_wheel(in_wheel,
 
     Returns
     -------
-    copied_libs : set
-        original paths of libraries copied into `lib_path`
+    copied_libs : dict
+        Dict with (key, value) pairs of (name of library copied into
+        `lib_path`, sequence of libraries depending on copied library). The
+        names are the original names from the keys of `lib_dict`
     """
     in_wheel = abspath(in_wheel)
     if out_wheel is None:
@@ -333,18 +347,19 @@ def delocate_wheel(in_wheel,
         out_wheel = abspath(out_wheel)
     in_place = in_wheel == out_wheel
     with InTemporaryDirectory():
-        all_copied = set()
+        all_copied = {}
         zip2dir(in_wheel, 'wheel')
-        for package_path in find_package_dirs('wheel'):
-            lib_path = pjoin(package_path, lib_sdir)
-            if exists(lib_path):
-                raise DelocationError(
-                    '{0} already exists in wheel'.format(lib_path))
-            copied_libs = delocate_path(package_path, lib_path,
-                                        lib_filt_func, copy_filt_func)
-            if len(os.listdir(lib_path)) == 0:
-                shutil.rmtree(lib_path)
-            all_copied = all_copied | copied_libs
+        with InGivenDirectory('wheel'):
+            for package_path in find_package_dirs('.'):
+                lib_path = pjoin(package_path, lib_sdir)
+                if exists(lib_path):
+                    raise DelocationError(
+                        '{0} already exists in wheel'.format(lib_path))
+                copied_libs = delocate_path(package_path, lib_path,
+                                            lib_filt_func, copy_filt_func)
+                if len(os.listdir(lib_path)) == 0:
+                    shutil.rmtree(lib_path)
+                _merge_lib_dict(all_copied, copied_libs)
         if len(all_copied):
             rewrite_record('wheel')
         if len(all_copied) or not in_place:

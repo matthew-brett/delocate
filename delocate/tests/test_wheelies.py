@@ -31,7 +31,7 @@ def test_fix_pure_python():
         os.makedirs('wheels')
         shutil.copy2(PURE_WHEEL, 'wheels')
         wheel_name = pjoin('wheels', basename(PURE_WHEEL))
-        assert_equal(delocate_wheel(wheel_name), set())
+        assert_equal(delocate_wheel(wheel_name), {})
         zip2dir(wheel_name, 'pure_pkg')
         assert_true(exists(pjoin('pure_pkg', 'fakepkg2')))
         assert_false(exists(pjoin('pure_pkg', 'fakepkg2', '.dylibs')))
@@ -60,8 +60,9 @@ def test_fix_plat():
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         assert_true(exists(stray_lib))
         # In-place fix
+        dep_mod = pjoin('fakepkg1', 'subpkg', 'module2.so')
         assert_equal(delocate_wheel(fixed_wheel),
-                     set([stray_lib]))
+                     {stray_lib: set([dep_mod])})
         zip2dir(fixed_wheel, 'plat_pkg')
         assert_true(exists(pjoin('plat_pkg', 'fakepkg1')))
         dylibs = pjoin('plat_pkg', 'fakepkg1', '.dylibs')
@@ -70,7 +71,7 @@ def test_fix_plat():
         # New output name
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         assert_equal(delocate_wheel(fixed_wheel, 'fixed_wheel.ext'),
-                     set([stray_lib]))
+                     {stray_lib: set([dep_mod])})
         zip2dir('fixed_wheel.ext', 'plat_pkg1')
         assert_true(exists(pjoin('plat_pkg1', 'fakepkg1')))
         dylibs = pjoin('plat_pkg1', 'fakepkg1', '.dylibs')
@@ -80,7 +81,7 @@ def test_fix_plat():
         assert_equal(delocate_wheel(fixed_wheel,
                                     'fixed_wheel2.ext',
                                     'dylibs_dir'),
-                     set([stray_lib]))
+                     {stray_lib: set([dep_mod])})
         zip2dir('fixed_wheel2.ext', 'plat_pkg2')
         assert_true(exists(pjoin('plat_pkg2', 'fakepkg1')))
         dylibs = pjoin('plat_pkg2', 'fakepkg1', 'dylibs_dir')
@@ -94,7 +95,7 @@ def test_fix_plat():
                       'subpkg')
         # Test that `wheel unpack` works
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        assert_equal(delocate_wheel(fixed_wheel), set([stray_lib]))
+        assert_equal(delocate_wheel(fixed_wheel), {stray_lib: set([dep_mod])})
         back_tick(['wheel', 'unpack', fixed_wheel])
 
 

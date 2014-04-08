@@ -169,14 +169,20 @@ def test_copy_recurse():
             return not libname.startswith('/usr/lib')
         os.makedirs('subtree')
         _copy_fixpath([LIBA], 'subtree')
-        assert_equal(copy_recurse('subtree', copy_filt_func=filt_func),
-                     set())
+        # Nothing copied therefore
+        assert_equal(copy_recurse('subtree', copy_filt_func=filt_func), {})
         assert_equal(set(os.listdir('subtree')), set(['liba.dylib']))
         # An object that depends on a library that depends on two libraries
+        # test_lib depends on libc, libc depends on liba and libb. libc gets
+        # copied first, then liba, libb
+        def _st(fname):
+            return pjoin('subtree2', basename(fname))
         os.makedirs('subtree2')
         shutil.copy2(test_lib, 'subtree2')
         assert_equal(copy_recurse('subtree2', filt_func),
-                     set([liba, libb, libc]))
+                     {libc: set([_st(test_lib)]),
+                      libb: set([libc]),
+                      liba: set([libb, libc])})
         assert_equal(set(os.listdir('subtree2')),
                      set(('liba.dylib',
                           'libb.dylib',
@@ -192,7 +198,7 @@ def test_copy_recurse():
         # should install libx and liby (dependencies of libw), second pass
         # should install libz
         t_dep1_dep2 = (
-            (libw, libx, liby),
+            (libw, libx, liby), # only libx depends on libw
             (libx, libw, liby),
             (liby, libw, libz), # only liby depends on libz
             (libz, libw, libx))
@@ -201,7 +207,13 @@ def test_copy_recurse():
             set_install_name(tlib, EXT_LIBS[1], dep2)
         os.makedirs('subtree3')
         shutil.copy2(libw, 'subtree3')
-        copy_recurse('subtree3') # not filtered
+        st_libw = pjoin('subtree3', basename(libw))
+        assert_equal(copy_recurse('subtree3'), # not filtered
+                     {libw: set([libx, liby, libz]),
+                      libx: set([st_libw, libw, libz]),
+                      liby: set([st_libw, libw, libx]),
+                      libz: set([liby]),
+                     })
         assert_equal(set(os.listdir('subtree3')),
                      set(('libw.dylib',
                           'libx.dylib',
@@ -212,7 +224,18 @@ def test_copy_recurse():
             assert_equal(set(get_install_names(out_lib)),
                          set(('@loader_path/' + basename(dep1),
                               '@loader_path/' + basename(dep2))))
-
+        # Check case of not-empty copied_libs
+        os.makedirs('subtree4')
+        shutil.copy2(libw, 'subtree4')
+        copied_libs = {libw: set([libx, liby, libz])}
+        assert_equal(copy_recurse('subtree4', None, copied_libs),
+                     {libw: set([libx, liby, libz]),
+                      libx: set([libw, libz]),
+                      liby: set([libw, libx]),
+                      libz: set([liby]),
+                     })
+        # Not modified in-place
+        assert_equal(copied_libs, {libw: set([libx, liby, libz])})
 
 
 def test_delocate_path():

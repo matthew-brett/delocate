@@ -118,29 +118,34 @@ def copy_recurse(lib_path, copy_filt_func = None, copied_libs = None):
         If None, copy any library that found libraries depend on.  If callable,
         called on each depended library name; copy where
         ``copy_filt_func(libname)`` is True, don't copy otherwise
-    copied_libs : None or set, optional
-        Set of names of libraries already copied into `lib_path`. We need this
-        so we can avoid copying libraries we've already copied.
+    copied_libs : dict
+        Dict with (key, value) pairs of (name of library copied into
+        `lib_path`, sequence of libraries depending on copied library). The
+        names are the original names from the keys of `lib_dict`
 
     Returns
     -------
-    copied_libs : set
-        Possibly augmented set of copied libraries
+    copied_libs : dict
+        Input `copied_libs` dict with any extra libraries and / or dependencies
+        added.
     """
     if copied_libs is None:
-        copied_libs = set()
+        copied_libs = {}
     else:
-        copied_libs = set(copied_libs)
+        copied_libs = dict(copied_libs)
     done = False
     while not done:
-        new_copied = _copy_required(lib_path, copy_filt_func, copied_libs)
-        copied_libs = copied_libs | new_copied
-        done = len(new_copied) == 0
+        in_len = len(copied_libs)
+        _copy_required(lib_path, copy_filt_func, copied_libs)
+        done = len(copied_libs) == in_len
     return copied_libs
 
 
 def _copy_required(lib_path, copy_filt_func, copied_libs):
     """ Copy libraries required for files in `lib_path` to `lib_path`
+
+    Augment `copied_libs` dictionary with any newly copied libraries, modifying
+    `copied_libs` in-place.
 
     This is one pass of ``copy_recurse``
 
@@ -152,30 +157,38 @@ def _copy_required(lib_path, copy_filt_func, copied_libs):
         If None, copy any library that found libraries depend on.  If callable,
         called on each library name; copy where ``copy_filt_func(libname)`` is
         True, don't copy otherwise
-    copied_libs : None or set, optional
-        Set of names of libraries already copied into `lib_path`, so we can use these
-        library copies instead of the originals
-
-    Returns
-    -------
-    new_copied : set
-        Set giving new libraries copied in this run
+    copied_libs : dict
+        Dict with (key, value) pairs of (name of library copied into
+        `lib_path`, sequence of libraries depending on copied library). The
+        names are the original names from the keys of `lib_dict`
     """
+    # Paths will be prepended with `lib_path`
     lib_dict = tree_libs(lib_path)
-    new_copied = set()
+    # Map library paths after copy to path before copy
+    copied2orig = dict((pjoin(lib_path, basename(c)), c) for c in copied_libs)
     for required, requirings in lib_dict.items():
         if not copy_filt_func is None and not copy_filt_func(required):
             continue
         if required.startswith('@'):
+            # May have been processed by us, or have some rpath, loader_path of
+            # its own. Either way, leave alone
             continue
-        if not required in copied_libs:
-            shutil.copy2(required, lib_path)
-            new_copied.add(required)
+        required_base = basename(required)
+        # Will we need to make a local copy or do we have this one already?
+        needs_copy = required not in copied_libs
+        # Set requiring lib install names to point to local copy
         for requiring in requirings:
             set_install_name(requiring,
                              required,
-                             '@loader_path/' + basename(required))
-    return new_copied
+                             '@loader_path/' + required_base)
+        # Make requiring names point to original libraries
+        procd_requirings = set(copied2orig.get(r, r) for r in requirings)
+        if needs_copy: # Haven't see this one before, add entry to copied_libs
+            shutil.copy2(required, lib_path)
+            copied2orig[pjoin(lib_path, required_base)] = required
+            copied_libs[required] = procd_requirings
+        else: # Have seen this before, add any new requirements
+            copied_libs[required] = copied_libs[required] | procd_requirings
 
 
 def _dylibs_only(filename):

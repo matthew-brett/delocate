@@ -60,6 +60,16 @@ installation of ``gfortran`` (as well as the system libs).
     been processed with ``delocate-wheel``, the delocation process below will
     likely not work, and leave you with - er - a broken wheel.
 
+You can get a listing of the files depending on each of the libraries,
+using the ``--depending`` flag::
+
+    $ delocate-listdeps --depending scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
+    /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgcc_s.1.dylib:
+        scipy/interpolate/dfitpack.so
+        scipy/special/specfun.so
+        scipy/interpolate/_fitpack.so
+        ...
+
 **********
 A solution
 **********

@@ -122,18 +122,30 @@ def _proc_lines(in_str):
 def test_listdeps():
     # smokey tests of list dependencies command
     local_libs = set(['liba.dylib', 'libb.dylib', 'libc.dylib'])
-    # single lib
+    # single path, with libs
     code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH])
     assert_equal(set(_proc_lines(stdout)), local_libs)
     assert_equal(code, 0)
-    # Multiple paths
-    code, stdout, stderr = run_command(
-        ['delocate-listdeps', DATA_PATH, DATA_PATH])
-    assert_equal(code, 0)
-    lines = _proc_lines(stdout)
-    assert_equal(lines,
-                 [DATA_PATH + ':'] + sorted(local_libs) +
-                 [DATA_PATH + ':'] + sorted(local_libs))
+    # single path, no libs
+    with InTemporaryDirectory():
+        zip2dir(PURE_WHEEL, 'pure')
+        code, stdout, stderr = run_command(['delocate-listdeps', 'pure'])
+        assert_equal(set(_proc_lines(stdout)), set())
+        assert_equal(code, 0)
+        # Multiple paths one with libs
+        zip2dir(PLAT_WHEEL, 'plat')
+        code, stdout, stderr = run_command(
+            ['delocate-listdeps', 'pure', 'plat'])
+        assert_equal(_proc_lines(stdout),
+                    ['pure:', 'plat:', STRAY_LIB_DEP])
+        assert_equal(code, 0)
+        # With -d flag, get list of dependending modules
+        code, stdout, stderr = run_command(
+            ['delocate-listdeps', '-d', 'pure', 'plat'])
+        assert_equal(_proc_lines(stdout),
+                     ['pure:', 'plat:', STRAY_LIB_DEP + ':',
+                      pjoin('plat', 'fakepkg1', 'subpkg', 'module2.so')])
+        assert_equal(code, 0)
     # With --all flag, get all dependencies
     code, stdout, stderr = run_command(
         ['delocate-listdeps', '--all', DATA_PATH])
@@ -147,6 +159,20 @@ def test_listdeps():
         ['delocate-listdeps', PURE_WHEEL, PLAT_WHEEL])
     assert_equal(_proc_lines(stdout),
                  [PURE_WHEEL + ':', PLAT_WHEEL + ':', STRAY_LIB_DEP])
+    # -d flag (is also --dependency flag)
+    m2 = pjoin('fakepkg1', 'subpkg', 'module2.so')
+    code, stdout, stderr = run_command(
+        ['delocate-listdeps', '--depending', PURE_WHEEL, PLAT_WHEEL])
+    assert_equal(_proc_lines(stdout),
+                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', STRAY_LIB_DEP + ':',
+                  m2])
+    # Can be used with --all
+    code, stdout, stderr = run_command(
+        ['delocate-listdeps', '--all', '--depending', PURE_WHEEL, PLAT_WHEEL])
+    assert_equal(_proc_lines(stdout),
+                 [PURE_WHEEL + ':', PLAT_WHEEL + ':',
+                  STRAY_LIB_DEP + ':', m2,
+                  EXT_LIBS[1] + ':', m2])
 
 
 def test_path():

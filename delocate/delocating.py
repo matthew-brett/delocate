@@ -81,17 +81,14 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
         else: # Is local, plan to set relative loader_path
             delocated_libs.add(required)
     # Modify in place now that we've checked for errors
-    rpathed = set()
     for required in copied_libs:
         shutil.copy2(required, lib_path)
         # Set rpath and install names for this copied library
         for requiring in lib_dict[required]:
-            if requiring not in rpathed:
-                req_rel = relpath(lib_path, dirname(requiring))
-                add_rpath(requiring, '@loader_path/' + req_rel)
-                rpathed.add(requiring)
+            req_rel = relpath(lib_path, dirname(requiring))
             set_install_name(requiring, required,
-                             '@rpath/' + basename(required))
+                             '@loader_path/{0}/{1}'.format(
+                                 req_rel, basename(required)))
     for required in delocated_libs:
         # Set relative path for local library
         for requiring in lib_dict[required]:

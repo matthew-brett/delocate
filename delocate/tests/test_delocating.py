@@ -80,13 +80,15 @@ def test_delocate_tree_libs():
                               (set(all_local_libs), set(all_local_libs)))))
         assert_equal(set(os.listdir(copy_dir)),
                      set([basename(lib) for lib in EXT_LIBS]))
-        # Libraries using the copied libraries now have an rpath pointing to
-        # the copied library directory, and rpath/libname as install names
-        to_exts = set(['@rpath/' + basename(elib) for elib in copied])
+        # Libraries using the copied libraries now have an install name starting
+        # with @loader_path, then pointing to the copied library directory
         for lib in all_local_libs:
             pathto_copies = relpath(copy_dir, dirname(lib))
-            assert_equal(get_rpaths(lib), ('@loader_path/' + pathto_copies,))
-            assert_true(to_exts <= set(get_install_names(lib)))
+            lib_inames = get_install_names(lib)
+            new_links = ['@loader_path/{0}/{1}'.format(pathto_copies,
+                                                       basename(elib))
+                         for elib in copied]
+            assert_true(set(new_links) <= set(lib_inames))
         # Libraries now have a relative loader_path to their corresponding
         # in-tree libraries
         for requiring, using, rel_path in (
@@ -136,13 +138,16 @@ def test_delocate_tree_libs():
         ext_local_libs = set(EXT_LIBS) | set([liba, libb, libc, slibc])
         assert_equal(set(os.listdir(copy_dir2)),
                      set([basename(lib) for lib in ext_local_libs]))
-        # Libraries using the copied libraries now have an rpath pointing to
-        # the copied library directory, and rpath/libname as install names
+        # Libraries using the copied libraries now have an install name starting
+        # with @loader_path, then pointing to the copied library directory
         all_local_libs = liba, libb, libc, test_lib, slibc, stest_lib
         for lib in all_local_libs:
             pathto_copies = relpath(copy_dir2, dirname(lib))
-            assert_equal(get_rpaths(lib), ('@loader_path/' + pathto_copies,))
-            assert_true(to_exts <= set(get_install_names(lib)))
+            lib_inames = get_install_names(lib)
+            new_links = ['@loader_path/{0}/{1}'.format(pathto_copies,
+                                                       basename(elib))
+                         for elib in copied]
+            assert_true(set(new_links) <= set(lib_inames))
 
 
 def _copy_fixpath(files, directory):
@@ -270,8 +275,7 @@ def test_delocate_path():
         assert_equal(delocate_path('subtree2', 'deplibs2'),
                      {fake_lib: set([slc_rel])})
         assert_equal(os.listdir('deplibs2'), ['libfake.dylib'])
-        assert_true('@rpath/libfake.dylib' in get_install_names(slibc))
-        assert_true('@loader_path/../../deplibs2' in get_rpaths(slibc))
+        assert_true('@loader_path/../../deplibs2/libfake.dylib' in get_install_names(slibc))
         # Unless we set the filter otherwise
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree3'))

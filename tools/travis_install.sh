@@ -1,5 +1,10 @@
 #!/usr/bin/env sh
 
+# Canonical URL for ez_setup
+# EZ_SETUP_URL='https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py'
+# Cached copy set by mb312 account crontab
+EZ_SETUP_URL='https://nipy.bic.berkeley.edu/scipy_installers/ez_setup.py'
+
 function require_success {
     STATUS=$?
     MESSAGE=$1
@@ -29,7 +34,7 @@ export PIP_USE_MIRRORS=1
 install_mac_python $PY_VERSION
 
 # Install setuptools
-curl https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py > ez_setup.py
+curl ${EZ_SETUP_URL} > ez_setup.py
 require_success "failed to download setuptools"
 
 sudo $PYTHON ez_setup.py

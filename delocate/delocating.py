@@ -349,11 +349,12 @@ def delocate_wheel(in_wheel,
         with InGivenDirectory('wheel'):
             for package_path in find_package_dirs('.'):
                 lib_path = pjoin(package_path, lib_sdir)
-                if exists(lib_path):
-                    raise DelocationError(
-                        '{0} already exists in wheel'.format(lib_path))
+                lib_path_exists = exists(lib_path)
                 copied_libs = delocate_path(package_path, lib_path,
                                             lib_filt_func, copy_filt_func)
+                if copied_libs and lib_path_exists:
+                    raise DelocationError(
+                        '{0} already exists in wheel'.format(lib_path))
                 if len(os.listdir(lib_path)) == 0:
                     shutil.rmtree(lib_path)
                 _merge_lib_dict(all_copied, copied_libs)

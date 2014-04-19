@@ -65,7 +65,8 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
     for required, requirings in lib_dict.items():
         if required.startswith('@'): # assume @rpath etc are correct
             # But warn, because likely they are not
-            warnings.warn('Not processing required path ' + required)
+            warnings.warn('Not processing required path {0} because it '
+                          'begins with @'.format(required))
             continue
         r_ed_base = basename(required)
         if relpath(required, root_path).startswith('..'):

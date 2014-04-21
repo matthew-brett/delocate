@@ -6,7 +6,8 @@ Analyze library dependencies in paths and wheel files
 import os
 from os.path import join as pjoin, relpath, abspath, isdir, exists
 
-from .tools import get_install_names, zip2dir, find_package_dirs
+from .tools import (get_install_names, zip2dir, find_package_dirs,
+                    get_real_install_names)
 from .tmpdirs import InTemporaryDirectory
 
 def tree_libs(start_path, filt_func = None):
@@ -33,7 +34,7 @@ def tree_libs(start_path, filt_func = None):
             fname = pjoin(dirpath, base)
             if not filt_func is None and not filt_func(fname):
                 continue
-            for install_name in get_install_names(fname):
+            for install_name in get_real_install_names(fname):
                 if install_name in lib_dict:
                     lib_dict[install_name].add(fname)
                 else:

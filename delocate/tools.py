@@ -3,7 +3,7 @@
 from subprocess import Popen, PIPE
 
 import os
-from os.path import join as pjoin, relpath, isdir, exists
+from os.path import join as pjoin, relpath, isdir, exists, realpath
 import zipfile
 import re
 import stat
@@ -155,6 +155,16 @@ def get_install_names(filename):
     return names
 
 
+def get_real_install_names(filename):
+    names = []
+    for name in get_install_names(filename):
+        if name.startswith('@'):
+            names.append(name)
+        else:
+            names.append(realpath(name))
+    return tuple(names)
+
+
 def get_install_id(filename):
     """ Return install id from library named in `filename`
 
@@ -194,7 +204,7 @@ def set_install_name(filename, oldname, newname):
     newname : str
         replacement name for `oldname`
     """
-    names = get_install_names(filename)
+    names = get_real_install_names(filename)
     if oldname not in names:
         raise InstallNameError('{0} not in install names for {1}'.format(
             oldname, filename))

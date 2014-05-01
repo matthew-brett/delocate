@@ -7,7 +7,7 @@ import os
 from os.path import join as pjoin, abspath, realpath
 
 from .tools import get_install_names, zip2dir, find_package_dirs
-from .tmpdirs import InTemporaryDirectory
+from .tmpdirs import TemporaryDirectory, InTemporaryDirectory
 
 def tree_libs(start_path, filt_func = None):
     """ Collect unique install names for directory tree `start_path`
@@ -114,19 +114,14 @@ def wheel_libs(wheel_fname, lib_filt_func = None):
     Returns
     -------
     lib_dict : dict
-        dictionary with (key, value) pairs of (install name, set of files in
-        wheel packages with install name).  Root directory of wheel package
-        appears as current directory in file listing
+        dictionary with (key, value) pairs of (``libpath``,
+        ``dependings_dict``).  ``libpath`` is library being depended on,
+        relative to wheel root path if within wheel tree.  ``dependings_dict``
+        is (key, value) of (``depending_lib_path``, ``install_name``).  Again,
+        ``depending_lib_path`` is library relative to wheel root path, if
+        within wheel tree.
     """
-    wheel_fname = abspath(wheel_fname)
-    lib_dict = {}
-    with InTemporaryDirectory() as tmpdir:
+    with TemporaryDirectory() as tmpdir:
         zip2dir(wheel_fname, tmpdir)
-        for package_path in find_package_dirs('.'):
-            pkg_lib_dict = tree_libs(package_path, lib_filt_func)
-            for key, values in pkg_lib_dict.items():
-                if not key in lib_dict:
-                    lib_dict[key] = values
-                else:
-                    lib_dict[key] += values
-    return lib_dict
+        lib_dict = tree_libs(tmpdir, lib_filt_func)
+    return strip_lib_dict(lib_dict, realpath(tmpdir) + os.path.sep)

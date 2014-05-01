@@ -143,12 +143,10 @@ def test_wheel_libs():
     # Test routine to list dependencies from wheels
     assert_equal(wheel_libs(PURE_WHEEL), {})
     mod2 = pjoin('fakepkg1', 'subpkg', 'module2.so')
-    rp_stray = realpath(STRAY_LIB_DEP)
-    rp_mod2 = realpath(mod2)
     sys_b = '/usr/lib/libSystem.B.dylib'
     assert_equal(wheel_libs(PLAT_WHEEL),
-                 {rp_stray: {rp_mod2: STRAY_LIB_DEP},
-                  realpath(sys_b): {rp_mod2: sys_b}})
+                 {STRAY_LIB_DEP: {mod2: STRAY_LIB_DEP},
+                  realpath(sys_b): {mod2: sys_b}})
     def filt(fname):
-        return not fname == mod2
+        return not fname.endswith(mod2)
     assert_equal(wheel_libs(PLAT_WHEEL, filt), {})

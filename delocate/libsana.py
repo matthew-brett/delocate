@@ -61,8 +61,46 @@ def tree_libs(start_path, filt_func = None):
     return lib_dict
 
 
+def strip_lib_dict(lib_dict, strip_prefix):
+    """ Return `lib_dict` with `strip_prefix` removed from start of paths
+
+    Use to give form of `lib_dict` that appears relative to some base path
+    given by `strip_prefix`.  Particularly useful for analyzing wheels where we
+    unpack to a temporary path before analyzing.
+
+    Parameters
+    ----------
+    lib_dict : dict
+        See :func:`tree_libs` for definition.  All depending and depended paths
+        are canonical (therefore absolute)
+    strip_prefix : str
+        Prefix to remove (if present) from all depended and depending library
+        paths in `lib_dict`
+
+    Returns
+    -------
+    relative_dict : dict
+        `lib_dict` with `strip_prefix` removed from beginning of all depended
+        and depending library paths.
+    """
+    relative_dict = {}
+    n = len(strip_prefix)
+
+    def stripped(path):
+        return path if not path.startswith(strip_prefix) else path[n:]
+
+    for lib_path, dependings_dict in lib_dict.items():
+        ding_dict = {}
+        for depending_libpath, install_name in dependings_dict.items():
+            ding_dict[stripped(depending_libpath)] = install_name
+        relative_dict[stripped(lib_path)] = ding_dict
+    return relative_dict
+
+
 def wheel_libs(wheel_fname, lib_filt_func = None):
     """ Collect unique install names from package(s) in wheel file
+
+    Use this routine for a dump of the dependency tree.
 
     Parameters
     ----------

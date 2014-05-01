@@ -4,7 +4,7 @@ Analyze library dependencies in paths and wheel files
 """
 
 import os
-from os.path import join as pjoin, relpath, abspath, isdir, exists
+from os.path import join as pjoin, abspath, realpath
 
 from .tools import get_install_names, zip2dir, find_package_dirs
 from .tmpdirs import InTemporaryDirectory
@@ -24,20 +24,40 @@ def tree_libs(start_path, filt_func = None):
     Returns
     -------
     lib_dict : dict
-        dictionary with (key, value) pairs of (install name, set of files in
-        tree with install name)
+        dictionary with (key, value) pairs of (``libpath``,
+        ``dependings_dict``).
+
+        ``libpath`` is canonical (``os.path.realpath``) filename of library, or
+        library name starting with {'@rpath', '@loader_path',
+        '@executable_path'}.
+
+        ``dependings_dict`` is a dict with (key, value) pairs of
+        (``depending_libpath``, ``install_name``), where ``dependings_libpath``
+        is the canonical (``os.path.realpath``) filename of the library
+        depending on ``libpath``, and ``install_name`` is the "install_name" by
+        which ``depending_libpath`` refers to ``libpath``.
+
+    Notes
+    -----
+
+    See:
+
+    * https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/dyld.1.html
+    * http://matthew-brett.github.io/pydagogue/mac_runtime_link.html
     """
     lib_dict = {}
     for dirpath, dirnames, basenames in os.walk(start_path):
         for base in basenames:
-            fname = pjoin(dirpath, base)
-            if not filt_func is None and not filt_func(fname):
+            depending_libpath = realpath(pjoin(dirpath, base))
+            if not filt_func is None and not filt_func(depending_libpath):
                 continue
-            for install_name in get_install_names(fname):
-                if install_name in lib_dict:
-                    lib_dict[install_name].add(fname)
+            for install_name in get_install_names(depending_libpath):
+                lib_path = (install_name if install_name.startswith('@')
+                            else realpath(install_name))
+                if lib_path in lib_dict:
+                    lib_dict[lib_path][depending_libpath] = install_name
                 else:
-                    lib_dict[install_name] = set([fname])
+                    lib_dict[lib_path] = {depending_libpath: install_name}
     return lib_dict
 
 

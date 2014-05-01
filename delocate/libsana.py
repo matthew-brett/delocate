@@ -61,7 +61,7 @@ def tree_libs(start_path, filt_func = None):
     return lib_dict
 
 
-def strip_lib_dict(lib_dict, strip_prefix):
+def stripped_lib_dict(lib_dict, strip_prefix):
     """ Return `lib_dict` with `strip_prefix` removed from start of paths
 
     Use to give form of `lib_dict` that appears relative to some base path
@@ -124,4 +124,4 @@ def wheel_libs(wheel_fname, lib_filt_func = None):
     with TemporaryDirectory() as tmpdir:
         zip2dir(wheel_fname, tmpdir)
         lib_dict = tree_libs(tmpdir, lib_filt_func)
-    return strip_lib_dict(lib_dict, realpath(tmpdir) + os.path.sep)
+    return stripped_lib_dict(lib_dict, realpath(tmpdir) + os.path.sep)

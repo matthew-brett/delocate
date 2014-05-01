@@ -7,7 +7,7 @@ import os
 from os.path import (join as pjoin, split as psplit, abspath, dirname,
                      realpath, basename, relpath)
 
-from ..libsana import tree_libs, strip_lib_dict, wheel_libs
+from ..libsana import tree_libs, stripped_lib_dict, wheel_libs
 from ..tools import set_install_name
 
 from ..tmpdirs import InTemporaryDirectory
@@ -106,7 +106,7 @@ def get_ext_dict_stripped(local_libs, start_path):
     return ext_dict
 
 
-def test_strip_lib_dict():
+def test_stripped_lib_dict():
     # Test routine to return lib_dict with relative paths
     to_copy = [LIBA, LIBB, LIBC, TEST_LIB]
     with InTemporaryDirectory() as tmpdir:
@@ -118,7 +118,7 @@ def test_strip_lib_dict():
             'libb.dylib': {'libc.dylib': 'libb.dylib'},
             'libc.dylib': {'test-lib': 'libc.dylib'}})
         my_path = realpath(tmpdir) + os.path.sep
-        assert_equal(strip_lib_dict(tree_libs(tmpdir), my_path), exp_dict)
+        assert_equal(stripped_lib_dict(tree_libs(tmpdir), my_path), exp_dict)
         # Copy some libraries into subtree to test tree walking
         subtree = pjoin(tmpdir, 'subtree')
         liba, libb, libc, test_lib = local_libs
@@ -136,7 +136,7 @@ def test_strip_lib_dict():
             'libc.dylib': {'test-lib': 'libc.dylib',
                            'subtree/test-lib': 'libc.dylib',
                           }})
-        assert_equal(strip_lib_dict(tree_libs(tmpdir), my_path), exp_dict)
+        assert_equal(stripped_lib_dict(tree_libs(tmpdir), my_path), exp_dict)
 
 
 def test_wheel_libs():

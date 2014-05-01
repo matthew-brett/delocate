@@ -18,10 +18,7 @@ from nose.tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
 
 from .test_install_names import (DATA_PATH, LIBA, LIBB, LIBC, TEST_LIB,
-                                 _copy_libs)
-
-# External libs linked from test data
-EXT_LIBS = ('/usr/lib/libstdc++.6.dylib', '/usr/lib/libSystem.B.dylib')
+                                 _copy_libs, EXT_LIBS)
 
 def _make_libtree(out_path):
     liba, libb, libc, test_lib = _copy_libs(

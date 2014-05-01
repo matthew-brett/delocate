@@ -15,6 +15,8 @@ from ..tmpdirs import InTemporaryDirectory
 from nose.tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
 
+# External libs linked from test data
+EXT_LIBS = ('/usr/lib/libstdc++.6.dylib', '/usr/lib/libSystem.B.dylib')
 
 DATA_PATH = pjoin(dirname(__file__), 'data')
 LIBA = pjoin(DATA_PATH, 'liba.dylib')
@@ -27,21 +29,13 @@ TEST_LIB = pjoin(DATA_PATH, 'test-lib')
 def test_get_install_names():
     # Test install name listing
     assert_equal(set(get_install_names(LIBA)),
-                 set(('/usr/lib/libstdc++.6.dylib',
-                      '/usr/lib/libSystem.B.dylib')))
+                 set(EXT_LIBS))
     assert_equal(set(get_install_names(LIBB)),
-                 set(('liba.dylib',
-                      '/usr/lib/libstdc++.6.dylib',
-                      '/usr/lib/libSystem.B.dylib')))
+                 set(('liba.dylib',) + EXT_LIBS))
     assert_equal(set(get_install_names(LIBC)),
-                 set(('liba.dylib',
-                      'libb.dylib',
-                      '/usr/lib/libstdc++.6.dylib',
-                      '/usr/lib/libSystem.B.dylib')))
+                 set(('liba.dylib', 'libb.dylib') + EXT_LIBS))
     assert_equal(set(get_install_names(TEST_LIB)),
-                 set(('libc.dylib',
-                      '/usr/lib/libstdc++.6.dylib',
-                      '/usr/lib/libSystem.B.dylib')))
+                 set(('libc.dylib',) + EXT_LIBS))
     # Non-object file returns empty tuple
     assert_equal(get_install_names(__file__), ())
     # Static archive and object files returns empty tuple

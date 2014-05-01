@@ -22,7 +22,8 @@ from ..tools import back_tick, set_install_name, zip2dir
 
 from nose.tools import assert_true, assert_false, assert_equal
 
-from .test_delocating import EXT_LIBS, _make_libtree, _copy_to
+from .test_install_names import EXT_LIBS
+from .test_delocating import _make_libtree, _copy_to
 from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
                             STRAY_LIB_DEP)
 
@@ -149,7 +150,8 @@ def test_listdeps():
     # With --all flag, get all dependencies
     code, stdout, stderr = run_command(
         ['delocate-listdeps', '--all', DATA_PATH])
-    assert_equal(set(_proc_lines(stdout)), local_libs | set(EXT_LIBS))
+    rp_ext_libs = set(realpath(L) for L in EXT_LIBS)
+    assert_equal(set(_proc_lines(stdout)), local_libs | rp_ext_libs)
     assert_equal(code, 0)
     # Works on wheels as well
     code, stdout, stderr = run_command(

@@ -10,16 +10,16 @@ from .tools import get_install_names, zip2dir, find_package_dirs
 from .tmpdirs import TemporaryDirectory, InTemporaryDirectory
 
 def tree_libs(start_path, filt_func = None):
-    """ Collect unique install names for directory tree `start_path`
+    """ Return analysis of library dependencies within `start_path`
 
     Parameters
     ----------
     start_path : str
-        root path of tree to search for install names
+        root path of tree to search for libraries depending on other libraries.
     filt_func : None or callable, optional
-        If None, inspect all files for install names. If callable, accepts
-        filename as argument, returns True if we should inspect the file, False
-        otherwise.
+        If None, inspect all files for library dependencies. If callable,
+        accepts filename as argument, returns True if we should inspect the
+        file, False otherwise.
 
     Returns
     -------
@@ -98,7 +98,7 @@ def stripped_lib_dict(lib_dict, strip_prefix):
 
 
 def wheel_libs(wheel_fname, lib_filt_func = None):
-    """ Collect unique install names from package(s) in wheel file
+    """ Return analysis of library dependencies with a Python wheel
 
     Use this routine for a dump of the dependency tree.
 
@@ -107,9 +107,9 @@ def wheel_libs(wheel_fname, lib_filt_func = None):
     wheel_fname : str
         Filename of wheel
     lib_filt_func : None or callable, optional
-        If None, inspect all files for install names. If callable, accepts
-        filename as argument, returns True if we should inspect the file, False
-        otherwise.
+        If None, inspect all files for library dependencies. If callable,
+        accepts filename as argument, returns True if we should inspect the
+        file, False otherwise.
 
     Returns
     -------

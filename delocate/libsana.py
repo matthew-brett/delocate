@@ -97,7 +97,7 @@ def stripped_lib_dict(lib_dict, strip_prefix):
     return relative_dict
 
 
-def wheel_libs(wheel_fname, lib_filt_func = None):
+def wheel_libs(wheel_fname, filt_func = None):
     """ Return analysis of library dependencies with a Python wheel
 
     Use this routine for a dump of the dependency tree.
@@ -106,7 +106,7 @@ def wheel_libs(wheel_fname, lib_filt_func = None):
     ----------
     wheel_fname : str
         Filename of wheel
-    lib_filt_func : None or callable, optional
+    filt_func : None or callable, optional
         If None, inspect all files for library dependencies. If callable,
         accepts filename as argument, returns True if we should inspect the
         file, False otherwise.
@@ -123,5 +123,5 @@ def wheel_libs(wheel_fname, lib_filt_func = None):
     """
     with TemporaryDirectory() as tmpdir:
         zip2dir(wheel_fname, tmpdir)
-        lib_dict = tree_libs(tmpdir, lib_filt_func)
+        lib_dict = tree_libs(tmpdir, filt_func)
     return stripped_lib_dict(lib_dict, realpath(tmpdir) + os.path.sep)

@@ -15,7 +15,6 @@ from nose.tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
 
 from .test_install_names import DATA_PATH
-from .test_delocating import EXT_LIBS
 
 PLAT_WHEEL = pjoin(DATA_PATH, 'fakepkg1-1.0-cp27-none-macosx_10_6_intel.whl')
 PURE_WHEEL = pjoin(DATA_PATH, 'fakepkg2-1.0-py27-none-any.whl')
@@ -23,6 +22,9 @@ STRAY_LIB = pjoin(DATA_PATH, 'libextfunc.dylib')
 # The install_name in the wheel for the stray library
 STRAY_LIB_DEP = ('/Users/mb312/dev_trees/delocate/wheel_makers/'
                  'fakepkg1/libs/libextfunc.dylib')
+
+# This import below constants to avoid circular import errors
+from .test_delocating import EXT_LIBS
 
 
 def test_fix_pure_python():
@@ -59,10 +61,12 @@ def test_fix_plat():
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         assert_true(exists(stray_lib))
+        # Shortcut
+        _rp = realpath
         # In-place fix
         dep_mod = pjoin('fakepkg1', 'subpkg', 'module2.so')
         assert_equal(delocate_wheel(fixed_wheel),
-                     {stray_lib: set([dep_mod])})
+                     {_rp(stray_lib): {dep_mod: stray_lib}})
         zip2dir(fixed_wheel, 'plat_pkg')
         assert_true(exists(pjoin('plat_pkg', 'fakepkg1')))
         dylibs = pjoin('plat_pkg', 'fakepkg1', '.dylibs')
@@ -71,7 +75,7 @@ def test_fix_plat():
         # New output name
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         assert_equal(delocate_wheel(fixed_wheel, 'fixed_wheel.ext'),
-                     {stray_lib: set([dep_mod])})
+                     {_rp(stray_lib): {dep_mod: stray_lib}})
         zip2dir('fixed_wheel.ext', 'plat_pkg1')
         assert_true(exists(pjoin('plat_pkg1', 'fakepkg1')))
         dylibs = pjoin('plat_pkg1', 'fakepkg1', '.dylibs')
@@ -81,7 +85,7 @@ def test_fix_plat():
         assert_equal(delocate_wheel(fixed_wheel,
                                     'fixed_wheel2.ext',
                                     'dylibs_dir'),
-                     {stray_lib: set([dep_mod])})
+                     {_rp(stray_lib): {dep_mod: stray_lib}})
         zip2dir('fixed_wheel2.ext', 'plat_pkg2')
         assert_true(exists(pjoin('plat_pkg2', 'fakepkg1')))
         dylibs = pjoin('plat_pkg2', 'fakepkg1', 'dylibs_dir')
@@ -95,7 +99,8 @@ def test_fix_plat():
                       'subpkg')
         # Test that `wheel unpack` works
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        assert_equal(delocate_wheel(fixed_wheel), {stray_lib: set([dep_mod])})
+        assert_equal(delocate_wheel(fixed_wheel),
+                     {_rp(stray_lib): {dep_mod: stray_lib}})
         back_tick(['wheel', 'unpack', fixed_wheel])
 
 

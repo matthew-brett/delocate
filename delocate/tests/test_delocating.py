@@ -19,6 +19,7 @@ from nose.tools import (assert_true, assert_false, assert_raises,
 
 from .test_install_names import (DATA_PATH, LIBA, LIBB, LIBC, TEST_LIB,
                                  _copy_libs, EXT_LIBS)
+from .test_libsana import get_ext_dict
 
 def _make_libtree(out_path):
     liba, libb, libc, test_lib = _copy_libs(
@@ -72,15 +73,14 @@ def test_delocate_tree_libs():
         lib_dict = tree_libs(subtree)
         copied = delocate_tree_libs(lib_dict, copy_dir, subtree)
         # Only the out-of-tree libraries get copied
-        assert_equal(copied,
-                     dict(zip(EXT_LIBS,
-                              (set(all_local_libs), set(all_local_libs)))))
+        exp_dict = get_ext_dict(all_local_libs)
+        assert_equal(copied, exp_dict)
         assert_equal(set(os.listdir(copy_dir)),
-                     set([basename(lib) for lib in EXT_LIBS]))
+                     set([basename(realpath(lib)) for lib in EXT_LIBS]))
         # Libraries using the copied libraries now have an install name starting
         # with @loader_path, then pointing to the copied library directory
         for lib in all_local_libs:
-            pathto_copies = relpath(copy_dir, dirname(lib))
+            pathto_copies = relpath(realpath(copy_dir), dirname(realpath(lib)))
             lib_inames = get_install_names(lib)
             new_links = ['@loader_path/{0}/{1}'.format(pathto_copies,
                                                        basename(elib))
@@ -125,21 +125,28 @@ def test_delocate_tree_libs():
         lib_dict2 = tree_libs(subtree2)
         copied2 = delocate_tree_libs(lib_dict2, copy_dir2, '/tmp')
         local_libs = [liba, libb, libc, slibc, test_lib, stest_lib]
-        assert_equal(copied2,
-                     dict(((EXT_LIBS[0], set(local_libs)),
-                           (EXT_LIBS[1], set(local_libs)),
-                           (libc, set([test_lib])),
-                           (slibc, set([stest_lib])),
-                           (libb, set([slibc, libc])),
-                           (liba, set([libb, slibc, libc])))))
-        ext_local_libs = set(EXT_LIBS) | set([liba, libb, libc, slibc])
+        rp_liba, rp_libb, rp_libc, rp_slibc, rp_test_lib, rp_stest_lib = \
+                [realpath(L) for L in local_libs]
+        exp_dict = get_ext_dict(local_libs)
+        exp_dict.update({
+            rp_libc: {rp_test_lib: libc},
+            rp_slibc: {rp_stest_lib: slibc},
+            rp_libb: {rp_slibc: libb,
+                      rp_libc: libb},
+            rp_liba: {rp_slibc: liba,
+                      rp_libc: liba,
+                      rp_libb: liba}})
+        assert_equal(copied2, exp_dict)
+        ext_local_libs = (set(realpath(L) for L in EXT_LIBS) |
+                          set([liba, libb, libc, slibc]))
         assert_equal(set(os.listdir(copy_dir2)),
                      set([basename(lib) for lib in ext_local_libs]))
         # Libraries using the copied libraries now have an install name starting
         # with @loader_path, then pointing to the copied library directory
         all_local_libs = liba, libb, libc, test_lib, slibc, stest_lib
         for lib in all_local_libs:
-            pathto_copies = relpath(copy_dir2, dirname(lib))
+            pathto_copies = relpath(realpath(copy_dir2),
+                                    dirname(realpath(lib)))
             lib_inames = get_install_names(lib)
             new_links = ['@loader_path/{0}/{1}'.format(pathto_copies,
                                                        basename(elib))
@@ -184,17 +191,20 @@ def test_copy_recurse():
         # Nothing copied therefore
         assert_equal(copy_recurse('subtree', copy_filt_func=filt_func), {})
         assert_equal(set(os.listdir('subtree')), set(['liba.dylib']))
+        # shortcut
+        _rp = realpath
         # An object that depends on a library that depends on two libraries
         # test_lib depends on libc, libc depends on liba and libb. libc gets
         # copied first, then liba, libb
         def _st(fname):
-            return pjoin('subtree2', basename(fname))
+            return _rp(pjoin('subtree2', basename(fname)))
         os.makedirs('subtree2')
         shutil.copy2(test_lib, 'subtree2')
         assert_equal(copy_recurse('subtree2', filt_func),
-                     {libc: set([_st(test_lib)]),
-                      libb: set([libc]),
-                      liba: set([libb, libc])})
+                     {_rp(libc): {_st(test_lib): libc},
+                      _rp(libb): {_rp(libc): libb},
+                      _rp(liba): {_rp(libb): liba,
+                                  _rp(libc): liba}})
         assert_equal(set(os.listdir('subtree2')),
                      set(('liba.dylib',
                           'libb.dylib',
@@ -221,11 +231,16 @@ def test_copy_recurse():
         shutil.copy2(libw, 'subtree3')
         st_libw = pjoin('subtree3', basename(libw))
         assert_equal(copy_recurse('subtree3'), # not filtered
-                     {libw: set([libx, liby, libz]),
-                      libx: set([st_libw, libw, libz]),
-                      liby: set([st_libw, libw, libx]),
-                      libz: set([liby]),
-                     })
+                     {_rp(libw): {_rp(libx): libw,
+                                  _rp(liby): libw,
+                                  _rp(libz): libw},
+                      _rp(libx): {_rp(st_libw): libx,
+                                  _rp(libw): libx,
+                                  _rp(libz): libx},
+                      _rp(liby): {_rp(st_libw): liby,
+                                  _rp(libw): liby,
+                                  _rp(libx): liby},
+                      _rp(libz): {_rp(liby): libz}})
         assert_equal(set(os.listdir('subtree3')),
                      set(('libw.dylib',
                           'libx.dylib',
@@ -239,15 +254,21 @@ def test_copy_recurse():
         # Check case of not-empty copied_libs
         os.makedirs('subtree4')
         shutil.copy2(libw, 'subtree4')
-        copied_libs = {libw: set([libx, liby, libz])}
+        copied_libs = {_rp(libw): {_rp(libx): libw,
+                                   _rp(liby): libw,
+                                   _rp(libz): libw}}
+        copied_copied = copied_libs.copy()
         assert_equal(copy_recurse('subtree4', None, copied_libs),
-                     {libw: set([libx, liby, libz]),
-                      libx: set([libw, libz]),
-                      liby: set([libw, libx]),
-                      libz: set([liby]),
-                     })
+                     {_rp(libw): {_rp(libx): libw,
+                                  _rp(liby): libw,
+                                  _rp(libz): libw},
+                      _rp(libx): {_rp(libw): libx,
+                                  _rp(libz): libx},
+                      _rp(liby): {_rp(libw): liby,
+                                  _rp(libx): liby},
+                      _rp(libz): {_rp(liby): libz}})
         # Not modified in-place
-        assert_equal(copied_libs, {libw: set([libx, liby, libz])})
+        assert_equal(copied_libs, copied_copied)
 
 
 def test_delocate_path():
@@ -267,12 +288,15 @@ def test_delocate_path():
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree2'))
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
+        # shortcut
+        _rp = realpath
         # Check fake libary gets copied and delocated
         slc_rel = pjoin('subtree2', 'subsub', 'libc.dylib')
         assert_equal(delocate_path('subtree2', 'deplibs2'),
-                     {fake_lib: set([slc_rel])})
+                     {_rp(fake_lib): {_rp(slc_rel): fake_lib}})
         assert_equal(os.listdir('deplibs2'), ['libfake.dylib'])
-        assert_true('@loader_path/../../deplibs2/libfake.dylib' in get_install_names(slibc))
+        assert_true('@loader_path/../../deplibs2/libfake.dylib' in
+                    get_install_names(slibc))
         # Unless we set the filter otherwise
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree3'))

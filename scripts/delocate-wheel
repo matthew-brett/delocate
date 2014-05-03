@@ -7,7 +7,7 @@ Overwrites the wheel in-place by default
 from __future__ import division, print_function, absolute_import
 
 import os
-from os.path import join as pjoin, basename, exists
+from os.path import join as pjoin, basename, exists, expanduser
 import sys
 
 from optparse import OptionParser, Option
@@ -36,13 +36,17 @@ def main():
         parser.print_help()
         sys.exit(1)
     multi = len(wheels) > 1
-    if opts.wheel_dir and not exists(opts.wheel_dir):
-        os.makedirs(opts.wheel_dir)
+    if opts.wheel_dir:
+        wheel_dir = expanduser(opts.wheel_dir)
+        if not exists(wheel_dir):
+            os.makedirs(wheel_dir)
+    else:
+        wheel_dir = None
     for wheel in wheels:
         if multi or opts.verbose:
             print('Fixing: ' + wheel)
-        if opts.wheel_dir:
-            out_wheel = pjoin(opts.wheel_dir, basename(wheel))
+        if wheel_dir:
+            out_wheel = pjoin(wheel_dir, basename(wheel))
         else:
             out_wheel = wheel
         copied = delocate_wheel(wheel, out_wheel, lib_sdir=opts.lib_sdir)

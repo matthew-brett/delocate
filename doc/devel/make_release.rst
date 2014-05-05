@@ -1,8 +1,8 @@
 .. _release-guide:
 
-*********************************
-Guide to making a delocat release
-*********************************
+***********************************
+Guide to making a delocate release
+***********************************
 
 A guide for developers who are doing a delocate release
 
@@ -79,7 +79,16 @@ to upstream on github.
   `setuptools intro`_::
 
     python setup.py register
-    python setup.py sdist --formats=gztar,zip bdist_wheel upload
+    python setup.py sdist --formats=gztar,zip upload
+
+* Upload wheels by building in virtualenvs, something like::
+
+   workon py27
+   python setup.py bdist_wheel upload
+   workon py33
+   python setup.py bdist_wheel upload
+   workon py34
+   python setup.py bdist_wheel upload
 
 * Remember you'll need your ``~/.pypirc`` file set up right for this to work.
   See `setuptools intro`_.  The file should look something like this::

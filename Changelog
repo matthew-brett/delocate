@@ -1,0 +1,50 @@
+.. -*- mode: rst -*-
+.. vim:ft=rst
+
+.. _changelog:
+
+###################
+Delocate change log
+###################
+
+`Matthew Brett` (MB) wrote most of the code.  Min Ragan-Kelley (MinRK) did a lot
+of work discussing OSX things with MB, and contributes fixes too.
+
+********
+Releases
+********
+
+* 0.3.0 (Monday 5 2014)
+
+  Second public release
+
+  * Switch to using just ``@loader_path`` rather than a combination of
+    ``@loader_path`` and ``@rpath`` for pointing to relocated libraries.  Using
+    ``@rpath`` was giving some errors of form::
+
+        "install_name_tool: changing install names or rpaths can't be redone
+        for: libsomething.dylib (for architecture x86_64) because larger updated
+        load commands do not fit (the program must be relinked, and you may need
+        to use -headerpad or -headerpad_max_install_names)
+
+    |--| presumably because ``@rpath`` had been zero length before we got to the
+    library.
+  * Add flag to display depending libraries as well as the libraries a tree /
+    wheel depends on.
+  * Use canonical paths for depended and depending library paths, including
+    following symbolic links.  This means that two links pointing to the same
+    file don't appear to be two different libraries, causing an error when
+    copying the second into the directory containing the copied libraries.
+  * Don't raise an error when delocating a wheel that was previously delocated
+    (MinRK)
+
+* 0.2.1 (Monday March 31 2014)
+
+  Bugfix release
+
+  * Rewrite wheel RECORD file when writing wheel.  Delocated wheels were
+    breaking ``wheel unpack`` command.
+
+* 0.2.0 (Tuesday March 25 2014)
+
+  First public release

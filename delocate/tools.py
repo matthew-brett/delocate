@@ -296,7 +296,8 @@ def dir2zip(in_dir, zip_fname):
     zip_fname : str
         Filename of zip archive to write
     """
-    z = zipfile.ZipFile(zip_fname, 'w')
+    z = zipfile.ZipFile(zip_fname, 'w',
+                        compression=zipfile.ZIP_DEFLATED)
     for root, dirs, files in os.walk(in_dir):
         for file in files:
             fname = pjoin(root, file)

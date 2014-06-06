@@ -1,0 +1,103 @@
+#!python
+""" Fuse two (probably delocated) wheels
+
+Overwrites the first wheel in-place by default
+"""
+# vim: ft=python
+from __future__ import division, print_function, absolute_import
+
+import os
+from os.path import (join as pjoin, basename, exists, expanduser, splitext,
+                     isfile, abspath)
+import sys
+import shutil
+
+from optparse import OptionParser, Option
+
+from delocate import __version__
+from delocate.tools import zip2dir, dir2zip, back_tick
+from delocate.tmpdirs import InTemporaryDirectory
+from delocate.delocating import rewrite_record
+
+LIB_EXTS = ('.so', '.dylib', '.a')
+
+def fuse_libs(filename1, filename2):
+    """ Use lipo to merge libraries `filename1`, `filename2`
+
+    Overwrites `filename1`
+
+    Parameters
+    ----------
+    filename1 : str
+        filename of library
+    filename2 : str
+        filename of library
+    """
+    return back_tick(['lipo', '-create',
+                      filename1, filename2,
+                      '-output', filename1])
+
+
+def cmp(filename1, filename2):
+    """ Returns True if contents of the files are the same
+    """
+    with open(filename1, 'rb') as fobj:
+        contents1 = fobj.read()
+    with open(filename2, 'rb') as fobj:
+        contents2 = fobj.read()
+    return contents1 == contents2
+
+
+def main():
+    parser = OptionParser(
+        usage="%s WHEEL1 WHEEL2\n\n" % sys.argv[0] + __doc__,
+        version="%prog " + __version__)
+    parser.add_option(
+        Option("-w", "--wheel-dir",
+               action="store", type='string',
+               help="Directory to store delocated wheels (default is to "
+               "overwrite WHEEL1 input)"))
+    parser.add_option(
+        Option("-v", "--verbose",
+               action="store_true",
+               help="Show libraries copied during fix"))
+    (opts, wheels) = parser.parse_args()
+    if len(wheels) != 2:
+        parser.print_help()
+        sys.exit(1)
+    wheel1, wheel2 = [abspath(expanduser(wheel)) for wheel in wheels]
+    if opts.wheel_dir is None:
+        out_wheel = wheel1
+    else:
+        out_wheel = pjoin(abspath(expanduser(opts.wheel_dir)),
+                          basename(wheel1))
+    with InTemporaryDirectory():
+        zip2dir(wheel1, 'wheel1')
+        zip2dir(wheel2, 'wheel2')
+        for dirpath, dirnames, filenames in os.walk('wheel1'):
+            wheel2_dirpath = dirpath.replace('wheel1', 'wheel2', 1)
+            for fname in filenames:
+                root, ext = splitext(fname)
+                if ext not in LIB_EXTS:
+                    continue
+                wheel2_path = pjoin(wheel2_dirpath, fname)
+                if not isfile(wheel2_path):
+                    continue
+                wheel1_path = pjoin(dirpath, fname)
+                if cmp(wheel1_path, wheel2_path):
+                    continue
+                fuse_libs(wheel1_path, wheel2_path)
+        for dirpath, dirnames, filenames in os.walk('wheel2'):
+            wheel1_dirpath = dirpath.replace('wheel2', 'wheel1', 1)
+            for fname in filenames:
+                wheel2_path = pjoin(dirpath, fname)
+                wheel1_path = pjoin(wheel1_dirpath, fname)
+                if not exists(wheel1_path):
+                    shutil.copyfile(wheel2_path, wheel1_path)
+        rewrite_record('wheel1')
+        print('Writing', out_wheel)
+        dir2zip('wheel1', out_wheel)
+
+
+if __name__ == '__main__':
+    main()

@@ -3,7 +3,7 @@
 # Canonical URL for ez_setup
 # EZ_SETUP_URL='https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py'
 # Cached copy set by mb312 account crontab
-EZ_SETUP_URL='https://nipy.bic.berkeley.edu/scipy_installers/ez_setup.py'
+EZ_SETUP_URL='https://nipy.bic.berkeley.edu/scipy_installers/buildbot-files/ez_setup.py'
 
 function require_success {
     STATUS=$?

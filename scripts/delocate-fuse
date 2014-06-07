@@ -15,7 +15,7 @@ import shutil
 from optparse import OptionParser, Option
 
 from delocate import __version__
-from delocate.tools import zip2dir, dir2zip, back_tick
+from delocate.tools import zip2dir, dir2zip, back_tick, cmp_contents
 from delocate.tmpdirs import InTemporaryDirectory
 from delocate.delocating import rewrite_record
 
@@ -37,15 +37,6 @@ def fuse_libs(filename1, filename2):
                       filename1, filename2,
                       '-output', filename1])
 
-
-def cmp(filename1, filename2):
-    """ Returns True if contents of the files are the same
-    """
-    with open(filename1, 'rb') as fobj:
-        contents1 = fobj.read()
-    with open(filename2, 'rb') as fobj:
-        contents2 = fobj.read()
-    return contents1 == contents2
 
 
 def main():
@@ -84,7 +75,7 @@ def main():
                 if not isfile(wheel2_path):
                     continue
                 wheel1_path = pjoin(dirpath, fname)
-                if cmp(wheel1_path, wheel2_path):
+                if cmp_contents(wheel1_path, wheel2_path):
                     continue
                 fuse_libs(wheel1_path, wheel2_path)
         for dirpath, dirnames, filenames in os.walk('wheel2'):

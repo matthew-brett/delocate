@@ -326,3 +326,26 @@ def find_package_dirs(root_path):
         if isdir(fname) and exists(pjoin(fname, '__init__.py')):
             package_sdirs.add(fname)
     return package_sdirs
+
+
+def cmp_contents(filename1, filename2):
+    """ Returns True if contents of the files are the same
+
+    Parameters
+    ----------
+    filename1 : str
+        filename of first file to compare
+    filename2 : str
+        filename of second file to compare
+
+    Returns
+    -------
+    tf : bool
+        True if binary contents of `filename1` is same as binary contents of
+        `filename2`, False otherwise.
+    """
+    with open(filename1, 'rb') as fobj:
+        contents1 = fobj.read()
+    with open(filename2, 'rb') as fobj:
+        contents2 = fobj.read()
+    return contents1 == contents2

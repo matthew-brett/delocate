@@ -6,7 +6,7 @@ from os.path import join as pjoin, split as psplit, abspath, dirname
 import shutil
 
 from ..tools import (back_tick, ensure_writable, zip2dir, dir2zip,
-                     find_package_dirs)
+                     find_package_dirs, cmp_contents)
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -88,3 +88,20 @@ def test_find_package_dirs():
         _write_file(pjoin('to_test', '__init__.py'), "# base package")
         # Also - strips '.' for current directory
         assert_equal(find_package_dirs('.'), set(['to_test']))
+
+
+def test_cmp_contents():
+    # Binary compare of filenames
+    assert_true(cmp_contents(__file__, __file__))
+    with InTemporaryDirectory():
+        with open('first', 'wb') as fobj:
+            fobj.write(b'abc\x00\x10\x13\x10')
+        with open('second', 'wb') as fobj:
+            fobj.write(b'abc\x00\x10\x13\x11')
+        assert_false(cmp_contents('first', 'second'))
+        with open('third', 'wb') as fobj:
+            fobj.write(b'abc\x00\x10\x13\x10')
+        assert_true(cmp_contents('first', 'third'))
+        with open('fourth', 'wb') as fobj:
+            fobj.write(b'abc\x00\x10\x13\x10\x00')
+        assert_false(cmp_contents('first', 'fourth'))

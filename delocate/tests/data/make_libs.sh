@@ -31,8 +31,10 @@ int main(int, char**) { c(); return 0; }
 EOF
 
 $CXX -o liba.dylib -dynamiclib a.cc
+$CXX -m32 -o liba32.dylib -dynamiclib a.cc
 $CXX -o a.o -c a.cc
 ar rcs liba.a a.o
+$CXX -o libb.dylib -dynamiclib b.cc -L. -la
 $CXX -o libb.dylib -dynamiclib b.cc -L. -la
 $CXX -o libc.dylib -dynamiclib c.cc -L. -la -lb
 $CXX -o test-lib d.cc -L. -lc

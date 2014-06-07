@@ -6,12 +6,15 @@ from os.path import join as pjoin, split as psplit, abspath, dirname
 import shutil
 
 from ..tools import (back_tick, ensure_writable, zip2dir, dir2zip,
-                     find_package_dirs, cmp_contents)
+                     find_package_dirs, cmp_contents, get_archs, lipo_fuse)
 
 from ..tmpdirs import InTemporaryDirectory
 
 from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
+DATA_PATH = pjoin(dirname(__file__), 'data')
+LIB32 = pjoin(DATA_PATH, 'liba32.dylib')
+LIB64 = pjoin(DATA_PATH, 'liba.dylib')
 
 def test_back_tick():
     cmd = 'python -c "print(\'Hello\')"'
@@ -105,3 +108,20 @@ def test_cmp_contents():
         with open('fourth', 'wb') as fobj:
             fobj.write(b'abc\x00\x10\x13\x10\x00')
         assert_false(cmp_contents('first', 'fourth'))
+
+
+def test_get_archs_fuse():
+    # Test routine to get architecture types from file
+    assert_equal(get_archs(LIB32), set(('i386',)))
+    assert_equal(get_archs(LIB64), set(('x86_64',)))
+    with InTemporaryDirectory():
+        lipo_fuse(LIB32, LIB64, 'anotherlib')
+        assert_equal(get_archs('anotherlib'), set(('i386', 'x86_64')))
+        lipo_fuse(LIB64, LIB32, 'anotherlib')
+        assert_equal(get_archs('anotherlib'), set(('i386', 'x86_64')))
+        shutil.copyfile(LIB32, 'libcopy32')
+        lipo_fuse('libcopy32', LIB64, 'anotherlib')
+        assert_equal(get_archs('anotherlib'), set(('i386', 'x86_64')))
+        assert_raises(RuntimeError, lipo_fuse, 'libcopy32', LIB32, 'yetanother')
+        shutil.copyfile(LIB64, 'libcopy64')
+        assert_raises(RuntimeError, lipo_fuse, 'libcopy64', LIB64, 'yetanother')

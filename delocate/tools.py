@@ -349,3 +349,49 @@ def cmp_contents(filename1, filename2):
     with open(filename2, 'rb') as fobj:
         contents2 = fobj.read()
     return contents1 == contents2
+
+
+def get_archs(libname):
+    """ Return architecture types from library `libname`
+
+    Parameters
+    ----------
+    libname : str
+        filename of binary for which to return arch codes
+
+    Returns
+    -------
+    arch_names : set
+        Empty set if no arch codes.  If not empty, contains one or more of
+        'ppc', 'ppc64', 'i386', 'x86_64'
+    """
+    try:
+        stdout = back_tick(['lipo', '-info', libname])
+    except RuntimeError:
+        return set()
+    stdout = stdout.strip()
+    for reggie in (
+        'Non-fat file: {0} is architecture: (.*)'.format(libname),
+        'Architectures in the fat file: {0} are: (.*)'.format(libname)):
+        reggie = re.compile(reggie)
+        match = reggie.match(stdout)
+        if not match is None:
+            return set(match.groups()[0].split(' '))
+    raise ValueError("Unexpected output: " + stdout)
+
+
+def lipo_fuse(in_fname1, in_fname2, out_fname):
+    """ Use lipo to merge libs `filename1`, `filename2`, store in `out_fname`
+
+    Parameters
+    ----------
+    in_fname1 : str
+        filename of library
+    in_fname2 : str
+        filename of library
+    out_fname : str
+        filename to which to write new fused library
+    """
+    return back_tick(['lipo', '-create',
+                      in_fname1, in_fname2,
+                      '-output', out_fname])

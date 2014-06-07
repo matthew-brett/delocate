@@ -30,13 +30,15 @@ void c();
 int main(int, char**) { c(); return 0; }
 EOF
 
-$CXX -o liba.dylib -dynamiclib a.cc
-$CXX -m32 -o liba32.dylib -dynamiclib a.cc
-$CXX -o a.o -c a.cc
+CXX_64="$CXX -arch x86_64"
+CXX_32="$CXX -arch i386"
+$CXX_64 -o liba.dylib -dynamiclib a.cc
+$CXX_32 -o liba32.dylib -dynamiclib a.cc
+$CXX_64 -o a.o -c a.cc
 ar rcs liba.a a.o
-$CXX -o libb.dylib -dynamiclib b.cc -L. -la
-$CXX -o libb.dylib -dynamiclib b.cc -L. -la
-$CXX -o libc.dylib -dynamiclib c.cc -L. -la -lb
-$CXX -o test-lib d.cc -L. -lc
+$CXX_64 -o libb.dylib -dynamiclib b.cc -L. -la
+$CXX_64 -o libb.dylib -dynamiclib b.cc -L. -la
+$CXX_64 -o libc.dylib -dynamiclib c.cc -L. -la -lb
+$CXX_64 -o test-lib d.cc -L. -lc
 chmod 444 liba.dylib
 chmod 400 libb.dylib

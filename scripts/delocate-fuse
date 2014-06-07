@@ -15,29 +15,11 @@ import shutil
 from optparse import OptionParser, Option
 
 from delocate import __version__
-from delocate.tools import zip2dir, dir2zip, back_tick, cmp_contents
+from delocate.tools import zip2dir, dir2zip, cmp_contents, lipo_fuse
 from delocate.tmpdirs import InTemporaryDirectory
 from delocate.delocating import rewrite_record
 
 LIB_EXTS = ('.so', '.dylib', '.a')
-
-def fuse_libs(filename1, filename2):
-    """ Use lipo to merge libraries `filename1`, `filename2`
-
-    Overwrites `filename1`
-
-    Parameters
-    ----------
-    filename1 : str
-        filename of library
-    filename2 : str
-        filename of library
-    """
-    return back_tick(['lipo', '-create',
-                      filename1, filename2,
-                      '-output', filename1])
-
-
 
 def main():
     parser = OptionParser(
@@ -77,7 +59,7 @@ def main():
                 wheel1_path = pjoin(dirpath, fname)
                 if cmp_contents(wheel1_path, wheel2_path):
                     continue
-                fuse_libs(wheel1_path, wheel2_path)
+                lipo_fuse(wheel1_path, wheel2_path)
         for dirpath, dirnames, filenames in os.walk('wheel2'):
             wheel1_dirpath = dirpath.replace('wheel2', 'wheel1', 1)
             for fname in filenames:

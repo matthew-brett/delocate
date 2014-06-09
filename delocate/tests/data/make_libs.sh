@@ -5,7 +5,7 @@
 # I ran this on a Snow Leopard machine with CXX=g++ ./make_libs.sh
 
 if [ "$CXX" = "" ]; then
-    CXX=clang++
+    CXX=c++
 fi
 
 cat << EOF > a.cc

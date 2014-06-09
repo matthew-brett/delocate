@@ -16,8 +16,11 @@ from wheel.util import urlsafe_b64encode, open_for_csv, native
 
 from .libsana import tree_libs, stripped_lib_dict
 from .tools import (set_install_name, zip2dir, dir2zip,
-                    find_package_dirs)
+                    find_package_dirs, set_install_id)
 from .tmpdirs import InTemporaryDirectory, InGivenDirectory
+
+# Prefix for install_name_id of copied libraries
+DLC_PREFIX = '/DLC/'
 
 class DelocationError(Exception):
     pass
@@ -411,6 +414,12 @@ def delocate_wheel(in_wheel,
                         '{0} already exists in wheel'.format(lib_path))
                 if len(os.listdir(lib_path)) == 0:
                     shutil.rmtree(lib_path)
+                # Change install ids to be unique within Python space
+                install_id_root = DLC_PREFIX + package_path + '/'
+                for lib in copied_libs:
+                    lib_base = basename(lib)
+                    copied_path = pjoin(lib_path, lib_base)
+                    set_install_id(copied_path, install_id_root + lib_base)
                 _merge_lib_dict(all_copied, copied_libs)
         if len(all_copied):
             rewrite_record('wheel')

@@ -5,9 +5,10 @@ from os.path import (join as pjoin, dirname, basename, relpath, realpath,
                      abspath, exists)
 import shutil
 
-from ..delocating import DelocationError, delocate_wheel, rewrite_record
+from ..delocating import (DelocationError, delocate_wheel, rewrite_record,
+                          DLC_PREFIX)
 from ..tools import (get_install_names, set_install_name, zip2dir,
-                     dir2zip, back_tick)
+                     dir2zip, back_tick, get_install_id)
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
 
@@ -102,6 +103,12 @@ def test_fix_plat():
         assert_equal(delocate_wheel(fixed_wheel),
                      {_rp(stray_lib): {dep_mod: stray_lib}})
         back_tick(['wheel', 'unpack', fixed_wheel])
+        # Check that copied libraries have modified install_name_ids
+        zip2dir(fixed_wheel, 'plat_pkg3')
+        base_stray = basename(stray_lib)
+        the_lib = pjoin('plat_pkg3', 'fakepkg1', '.dylibs', base_stray)
+        inst_id = DLC_PREFIX + 'fakepkg1/' + base_stray
+        assert_equal(get_install_id(the_lib), inst_id)
 
 
 def test_rewrite_record():

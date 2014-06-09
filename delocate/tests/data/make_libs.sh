@@ -46,7 +46,6 @@ fi
 $CXX_64 -o liba.dylib -dynamiclib a.cc
 $CXX_32 -o liba32.dylib -dynamiclib a.cc
 $CXX_64 -o a.o -c a.cc
-libtool -static -o liba64.a a.o
 ar rcs liba.a a.o
 $CXX_64 -o libb.dylib -dynamiclib b.cc -L. -la
 $CXX_64 -o libb.dylib -dynamiclib b.cc -L. -la

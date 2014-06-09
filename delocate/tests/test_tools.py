@@ -15,7 +15,7 @@ from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 DATA_PATH = pjoin(dirname(__file__), 'data')
 LIB32 = pjoin(DATA_PATH, 'liba32.dylib')
 LIB64 = pjoin(DATA_PATH, 'liba.dylib')
-LIB64A = pjoin(DATA_PATH, 'liba64.a')
+LIB64A = pjoin(DATA_PATH, 'liba.a')
 
 def test_back_tick():
     cmd = 'python -c "print(\'Hello\')"'

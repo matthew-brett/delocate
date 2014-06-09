@@ -154,7 +154,7 @@ def test_delocate_tree_libs():
             assert_true(set(new_links) <= set(lib_inames))
 
 
-def test_deloc_lib_reuuse():
+def test_deloc_lib_reuse():
     # Test behavior of dlocate_tree_lib when expected files already present
     with InTemporaryDirectory() as tmpdir:
         # Copy libs into a temporary directory
@@ -174,6 +174,7 @@ def test_deloc_lib_reuuse():
         os.unlink(out_liba)
         _ = delocate_tree_libs(lib_dict, copy_dir, subtree)
         # Remake libs for another shot
+        subtree = pjoin(tmpdir, 'subtree2')
         all_local_libs = _make_libtree(subtree)
         liba, libb, libc, test_lib, slibc, stest_lib = all_local_libs
         copy_dir = 'dynlibs2'

@@ -365,19 +365,28 @@ def get_archs(libname):
         Empty set if no arch codes.  If not empty, contains one or more of
         'ppc', 'ppc64', 'i386', 'x86_64'
     """
+    if not exists(libname):
+        raise RuntimeError(libname + " is not a file")
     try:
         stdout = back_tick(['lipo', '-info', libname])
     except RuntimeError:
         return set()
-    stdout = stdout.strip()
+    lines = [line.strip() for line in stdout.split('\n') if line.strip()]
+    # For some reason, output from lipo -info on .a file generates this line
+    if lines[0] == "input file {0} is not a fat file".format(libname):
+        line = lines[1]
+    else:
+        assert len(lines) == 1
+        line = lines[0]
     for reggie in (
         'Non-fat file: {0} is architecture: (.*)'.format(libname),
         'Architectures in the fat file: {0} are: (.*)'.format(libname)):
         reggie = re.compile(reggie)
-        match = reggie.match(stdout)
+        match = reggie.match(line)
         if not match is None:
             return set(match.groups()[0].split(' '))
-    raise ValueError("Unexpected output: " + stdout)
+    raise ValueError("Unexpected output: '{0}' for {1}".format(
+        stdout, libname))
 
 
 def lipo_fuse(in_fname1, in_fname2, out_fname):

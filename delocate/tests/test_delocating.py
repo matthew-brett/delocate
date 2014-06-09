@@ -111,7 +111,7 @@ def test_delocate_tree_libs():
         # (libc and slibc both named <something>/libc.dylib)
         lib_dict2 = tree_libs(subtree2)
         assert_raises(DelocationError,
-                      delocate_tree_libs, lib_dict2, copy_dir2, '/tmp')
+                      delocate_tree_libs, lib_dict2, copy_dir2, '/fictional')
         # Rename a library to make this work
         new_slibc = pjoin(dirname(slibc), 'libc2.dylib')
         os.rename(slibc, new_slibc)
@@ -123,7 +123,7 @@ def test_delocate_tree_libs():
         back_tick([stest_lib])
         # Delocation now works
         lib_dict2 = tree_libs(subtree2)
-        copied2 = delocate_tree_libs(lib_dict2, copy_dir2, '/tmp')
+        copied2 = delocate_tree_libs(lib_dict2, copy_dir2, '/fictional')
         local_libs = [liba, libb, libc, slibc, test_lib, stest_lib]
         rp_liba, rp_libb, rp_libc, rp_slibc, rp_test_lib, rp_stest_lib = \
                 [realpath(L) for L in local_libs]

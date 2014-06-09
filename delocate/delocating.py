@@ -15,7 +15,7 @@ import glob
 from wheel.util import urlsafe_b64encode, open_for_csv, native
 
 from .libsana import tree_libs, stripped_lib_dict
-from .tools import (add_rpath, set_install_name, zip2dir, dir2zip,
+from .tools import (set_install_name, zip2dir, dir2zip,
                     find_package_dirs)
 from .tmpdirs import InTemporaryDirectory, InGivenDirectory
 
@@ -81,6 +81,10 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
             copied_libs[required] = requirings
             copied_basenames.add(r_ed_base)
         else: # Is local, plan to set relative loader_path
+            out_path = pjoin(lib_path, basename(required))
+            if exists(out_path):
+                raise DelocationError(
+                    'Output {0} already exists'.format(out_path))
             delocated_libs.add(required)
     # Modify in place now that we've checked for errors
     for required in copied_libs:
@@ -224,8 +228,11 @@ def _copy_required(lib_path, copy_filt_func, copied_libs):
             copied_libs[required].update(procd_requirings)
             continue
         # Haven't see this one before, add entry to copied_libs
+        out_path = pjoin(lib_path, basename(required))
+        if exists(out_path):
+            raise DelocationError(out_path + ' already exists')
         shutil.copy2(required, lib_path)
-        copied2orig[pjoin(lib_path, basename(required))] = required
+        copied2orig[out_path] = required
         copied_libs[required] = procd_requirings
 
 

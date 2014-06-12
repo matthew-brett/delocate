@@ -59,7 +59,7 @@ def main():
                 wheel1_path = pjoin(dirpath, fname)
                 if cmp_contents(wheel1_path, wheel2_path):
                     continue
-                lipo_fuse(wheel1_path, wheel2_path)
+                lipo_fuse(wheel1_path, wheel2_path, wheel1_path)
         for dirpath, dirnames, filenames in os.walk('wheel2'):
             wheel1_dirpath = dirpath.replace('wheel2', 'wheel1', 1)
             for fname in filenames:

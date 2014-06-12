@@ -39,6 +39,7 @@ setup(name='delocate',
                        pjoin('data', 'test-lib'),
                        pjoin('data', 'make_libs.sh')]},
       scripts = [pjoin('scripts', f) for f in (
+          'delocate-fuse',
           'delocate-listdeps',
           'delocate-wheel',
           'delocate-path')],

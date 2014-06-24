@@ -18,7 +18,7 @@ from subprocess import Popen, PIPE
 
 from ..tmpdirs import InTemporaryDirectory
 from ..pycompat import string_types
-from ..tools import back_tick, set_install_name, zip2dir
+from ..tools import back_tick, set_install_name, zip2dir, dir2zip
 
 from nose.tools import assert_true, assert_false, assert_equal
 
@@ -26,6 +26,7 @@ from .test_install_names import EXT_LIBS
 from .test_delocating import _make_libtree, _copy_to
 from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
                             STRAY_LIB_DEP)
+from .test_fuse import assert_same_tree
 
 DEBUG_PRINT = os.environ.get('DELOCATE_DEBUG_PRINT', False)
 
@@ -251,3 +252,24 @@ def test_wheel():
                         'Copied to package .dylibs directory:',
                         stray_lib]
         assert_equal(_proc_lines(stdout), wheel_lines1 + wheel_lines2)
+
+
+def test_fuse_wheels():
+    # Some tests for wheel fusing
+    with InTemporaryDirectory():
+        zip2dir(PLAT_WHEEL, 'to_wheel')
+        zip2dir(PLAT_WHEEL, 'from_wheel')
+        dir2zip('to_wheel', 'to_wheel.whl')
+        dir2zip('from_wheel', 'from_wheel.whl')
+        code, stdout, stderr = run_command(
+            ['delocate-fuse', 'to_wheel.whl', 'from_wheel.whl'])
+        assert_equal(code, 0)
+        zip2dir('to_wheel.whl', 'to_wheel_fused')
+        assert_same_tree('to_wheel_fused', 'from_wheel')
+        # Test output argument
+        os.mkdir('wheels')
+        code, stdout, stderr = run_command(
+            ['delocate-fuse', 'to_wheel.whl', 'from_wheel.whl',
+             '-w', 'wheels'])
+        zip2dir(pjoin('wheels', 'to_wheel.whl'), 'to_wheel_refused')
+        assert_same_tree('to_wheel_refused', 'from_wheel')

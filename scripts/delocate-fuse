@@ -6,20 +6,14 @@ Overwrites the first wheel in-place by default
 # vim: ft=python
 from __future__ import division, print_function, absolute_import
 
-import os
-from os.path import (join as pjoin, basename, exists, expanduser, splitext,
-                     isfile, abspath)
+from os.path import (join as pjoin, basename, expanduser, abspath)
 import sys
-import shutil
 
 from optparse import OptionParser, Option
 
 from delocate import __version__
-from delocate.tools import zip2dir, dir2zip, cmp_contents, lipo_fuse
-from delocate.tmpdirs import InTemporaryDirectory
-from delocate.delocating import rewrite_record
+from delocate.fuse import fuse_wheels
 
-LIB_EXTS = ('.so', '.dylib', '.a')
 
 def main():
     parser = OptionParser(
@@ -44,32 +38,7 @@ def main():
     else:
         out_wheel = pjoin(abspath(expanduser(opts.wheel_dir)),
                           basename(wheel1))
-    with InTemporaryDirectory():
-        zip2dir(wheel1, 'wheel1')
-        zip2dir(wheel2, 'wheel2')
-        for dirpath, dirnames, filenames in os.walk('wheel1'):
-            wheel2_dirpath = dirpath.replace('wheel1', 'wheel2', 1)
-            for fname in filenames:
-                root, ext = splitext(fname)
-                if ext not in LIB_EXTS:
-                    continue
-                wheel2_path = pjoin(wheel2_dirpath, fname)
-                if not isfile(wheel2_path):
-                    continue
-                wheel1_path = pjoin(dirpath, fname)
-                if cmp_contents(wheel1_path, wheel2_path):
-                    continue
-                lipo_fuse(wheel1_path, wheel2_path, wheel1_path)
-        for dirpath, dirnames, filenames in os.walk('wheel2'):
-            wheel1_dirpath = dirpath.replace('wheel2', 'wheel1', 1)
-            for fname in filenames:
-                wheel2_path = pjoin(dirpath, fname)
-                wheel1_path = pjoin(wheel1_dirpath, fname)
-                if not exists(wheel1_path):
-                    shutil.copyfile(wheel2_path, wheel1_path)
-        rewrite_record('wheel1')
-        print('Writing', out_wheel)
-        dir2zip('wheel1', out_wheel)
+    fuse_wheels(wheel1, wheel2, out_wheel)
 
 
 if __name__ == '__main__':

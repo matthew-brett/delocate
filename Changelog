@@ -14,7 +14,33 @@ of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
-* 0.3.0 (Monday 5 2014)
+* 0.4.0 (Wednesday June 25 2014)
+
+  Third public release
+
+  * Set ``install_name_id`` for copied libraries to be unique to this package.
+    OSX uses the ``install_name_id`` to identify a library uniquely on the
+    system.  If two libraries have the same ``install_name_id`` when loaded into
+    the process, then OSX will raise an error unless their compatibility number
+    matches.  Delocate now sets the ``install_name_id`` to be more or less
+    unique with a Python process at least.  This means OSX won't raise an error
+    if you have two different libraries in two different packages (e.g hdf5
+    libraries in ``h5py`` and ``pytables``.
+  * Turn on compression for creating wheel zip files. Previously we were zipping
+    without compression (because MB didn't know that was the default).
+  * Raise an error if delocating attempts to copy two different libraries with
+    the same name (therefore overwriting one with the other).
+  * Add command and functions to do architecture fuse between two different
+    wheels. This can be useful when you have to build a 32-bit and 64-bit wheel
+    separately. In that case you can fuse the two wheels making fat (combined)
+    architecture libraries, using ``delocate-fuse``.  Add supporting routines
+    for detecting architecture of libraries and fusing libraries with different
+    architectures.
+  * Add use of ``os.path.expanduser`` to specified output wheel directory for
+    ``delocate-wheel`` script. Now flag input like ``delocate-wheel -w ~/wheels
+    some_wheel.whl`` will correctly output to ``$HOME/wheels``.
+
+* 0.3.0 (Monday May 5 2014)
 
   Second public release
 

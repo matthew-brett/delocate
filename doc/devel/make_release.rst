@@ -84,10 +84,13 @@ to upstream on github.
 * Upload wheels by building in virtualenvs, something like::
 
    workon py27
+   rm -rf build
    python setup.py bdist_wheel upload
    workon py33
+   rm -rf build
    python setup.py bdist_wheel upload
    workon py34
+   rm -rf build
    python setup.py bdist_wheel upload
 
 * Remember you'll need your ``~/.pypirc`` file set up right for this to work.
@@ -108,7 +111,7 @@ to upstream on github.
 * Check how everything looks on pypi - the description, the packages.  If
   necessary delete the release and try again if it doesn't look right.
 
-* Push the tag with ``git push origin 0.3``
+* Push the tag with ``git push origin 0.3.0``
 
 * Announce to the mailing lists.  With fear and trembling.
 

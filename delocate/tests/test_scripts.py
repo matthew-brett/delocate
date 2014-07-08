@@ -20,12 +20,12 @@ from ..tmpdirs import InTemporaryDirectory
 from ..pycompat import string_types
 from ..tools import back_tick, set_install_name, zip2dir, dir2zip
 
-from nose.tools import assert_true, assert_false, assert_equal
+from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
 from .test_install_names import EXT_LIBS
 from .test_delocating import _make_libtree, _copy_to
 from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
-                            STRAY_LIB_DEP)
+                            STRAY_LIB_DEP, WHEEL_PATCH, WHEEL_PATCH_BAD)
 from .test_fuse import assert_same_tree
 
 DEBUG_PRINT = os.environ.get('DELOCATE_DEBUG_PRINT', False)
@@ -273,3 +273,27 @@ def test_fuse_wheels():
              '-w', 'wheels'])
         zip2dir(pjoin('wheels', 'to_wheel.whl'), 'to_wheel_refused')
         assert_same_tree('to_wheel_refused', 'from_wheel')
+
+
+def test_patch_wheel():
+    # Some tests for patching wheel
+    with InTemporaryDirectory():
+        shutil.copyfile(PURE_WHEEL, 'example.whl')
+        # Default is to overwrite input
+        code, stdout, stderr = run_command(
+            ['delocate-patch', 'example.whl', WHEEL_PATCH])
+        zip2dir('example.whl', 'wheel1')
+        with open(pjoin('wheel1', 'fakepkg2', '__init__.py'), 'rt') as fobj:
+            assert_equal(fobj.read(), 'print("Am in init")\n')
+        # Pass output directory
+        shutil.copyfile(PURE_WHEEL, 'example.whl')
+        code, stdout, stderr = run_command(
+            ['delocate-patch', 'example.whl', WHEEL_PATCH, '-w', 'wheels'])
+        zip2dir(pjoin('wheels', 'example.whl'), 'wheel2')
+        with open(pjoin('wheel2', 'fakepkg2', '__init__.py'), 'rt') as fobj:
+            assert_equal(fobj.read(), 'print("Am in init")\n')
+        # Bad patch fails
+        shutil.copyfile(PURE_WHEEL, 'example.whl')
+        assert_raises(RuntimeError,
+                      run_command,
+                      ['delocate-patch', 'example.whl', WHEEL_PATCH_BAD])

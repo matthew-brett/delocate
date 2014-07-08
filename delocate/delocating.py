@@ -361,7 +361,8 @@ def delocate_wheel(in_wheel,
     Create `lib_sdir` in wheel tree only if we are copying one or more
     libraries.
 
-    Overwrite the wheel `wheel_fname` in-place.
+    If `out_wheel` is None (the default), overwrite the wheel `in_wheel`
+    in-place.
 
     Parameters
     ----------

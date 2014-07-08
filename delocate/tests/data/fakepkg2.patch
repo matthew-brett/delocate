@@ -1,0 +1,6 @@
+diff --git a/fakepkg2/__init__.py b/fakepkg2/__init__.py
+index e69de29..627eba7 100644
+--- a/fakepkg2/__init__.py
++++ b/fakepkg2/__init__.py
+@@ -0,0 +1 @@
++print("Am in init")

@@ -1,0 +1,10 @@
+diff --git a/fakepkg2/module1.py b/fakepkg2/module1.py
+index 0f2d010..3837ceb 100644
+--- a/fakepkg2/module1.py
++++ b/fakepkg2/module1.py
+@@ -1,4 +1,4 @@
+ """ First module """
+ 
+ def func1():
+-    return 3
++    return 2

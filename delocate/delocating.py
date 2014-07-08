@@ -11,6 +11,7 @@ import warnings
 import hashlib
 import csv
 import glob
+from subprocess import Popen, PIPE
 
 from wheel.util import urlsafe_b64encode, open_for_csv, native
 
@@ -428,3 +429,43 @@ def delocate_wheel(in_wheel,
             dir2zip('wheel', out_wheel)
     wheel_dir = realpath(pjoin(tmpdir, 'wheel'))
     return stripped_lib_dict(all_copied, wheel_dir + os.path.sep)
+
+
+def patch_wheel(in_wheel, patch_fname, out_wheel=None):
+    """ Apply ``-p1`` style patch in `patch_fname` to contents of `in_wheel`
+
+    If `out_wheel` is None (the default), overwrite the wheel `in_wheel`
+    in-place.
+
+    Parameters
+    ----------
+    in_wheel : str
+        Filename of wheel to process
+    patch_fname : str
+        Filename of patch file.  Will be applied with ``patch -p1 <
+        patch_fname``
+    out_wheel : None or str
+        Filename of patched wheel to write.  If None, overwrite `in_wheel`
+    """
+    in_wheel = abspath(in_wheel)
+    patch_fname = abspath(patch_fname)
+    if out_wheel is None:
+        out_wheel = in_wheel
+    else:
+        out_wheel = abspath(out_wheel)
+    if not exists(patch_fname):
+        raise ValueError("patch file {0} does not exist".format(patch_fname))
+    with InTemporaryDirectory() as tmpdir:
+        zip2dir(in_wheel, 'wheel')
+        with open(patch_fname, 'rb') as fobj:
+            patch_proc = Popen(['patch', '-p1'],
+                               cwd='wheel',
+                               stdin = fobj,
+                               stdout = PIPE,
+                               stderr = PIPE)
+            stdout, stderr = patch_proc.communicate()
+            if patch_proc.returncode != 0:
+                raise RuntimeError("Patch failed with stdout:\n" +
+                                   stdout.decode('latin1'))
+        rewrite_record('wheel')
+        dir2zip('wheel', out_wheel)

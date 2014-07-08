@@ -6,7 +6,7 @@ from os.path import (join as pjoin, dirname, basename, relpath, realpath,
 import shutil
 
 from ..delocating import (DelocationError, delocate_wheel, rewrite_record,
-                          DLC_PREFIX)
+                          patch_wheel, DLC_PREFIX)
 from ..tools import (get_install_names, set_install_name, zip2dir,
                      dir2zip, back_tick, get_install_id)
 
@@ -23,6 +23,8 @@ STRAY_LIB = pjoin(DATA_PATH, 'libextfunc.dylib')
 # The install_name in the wheel for the stray library
 STRAY_LIB_DEP = ('/Users/mb312/dev_trees/delocate/wheel_makers/'
                  'fakepkg1/libs/libextfunc.dylib')
+WHEEL_PATCH = pjoin(DATA_PATH, 'fakepkg2.patch')
+WHEEL_PATCH_BAD = pjoin(DATA_PATH, 'fakepkg2.bad_patch')
 
 # This import below constants to avoid circular import errors
 from .test_delocating import EXT_LIBS
@@ -137,3 +139,30 @@ def test_rewrite_record():
         shutil.copytree(pjoin('wheel', dist_info_sdir),
                         pjoin('wheel', 'anotherpkg-2.0.dist-info'))
         assert_raises(DelocationError, rewrite_record, 'wheel')
+
+
+def test_patch_wheel():
+    # Check patching of wheel
+    with InTemporaryDirectory():
+        # First wheel needs proper wheel filename for later unpack test
+        out_fname = basename(PURE_WHEEL)
+        patch_wheel(PURE_WHEEL, WHEEL_PATCH, out_fname)
+        zip2dir(out_fname, 'wheel1')
+        with open(pjoin('wheel1', 'fakepkg2', '__init__.py'), 'rt') as fobj:
+            assert_equal(fobj.read(), 'print("Am in init")\n')
+        # Check that wheel unpack works
+        back_tick(['wheel', 'unpack', out_fname])
+        # Copy the original, check it doesn't have patch
+        shutil.copyfile(PURE_WHEEL, 'copied.whl')
+        zip2dir('copied.whl', 'wheel2')
+        with open(pjoin('wheel2', 'fakepkg2', '__init__.py'), 'rt') as fobj:
+            assert_equal(fobj.read(), '')
+        # Overwrite input wheel (the default)
+        patch_wheel('copied.whl', WHEEL_PATCH)
+        # Patched
+        zip2dir('copied.whl', 'wheel3')
+        with open(pjoin('wheel3', 'fakepkg2', '__init__.py'), 'rt') as fobj:
+            assert_equal(fobj.read(), 'print("Am in init")\n')
+        # Check bad patch raises error
+        assert_raises(RuntimeError,
+                      patch_wheel, PURE_WHEEL, WHEEL_PATCH_BAD, 'out.whl')

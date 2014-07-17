@@ -16,7 +16,7 @@ from nose.tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
 
 from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
-                                 EXT_LIBS)
+                                 EXT_LIBS, LIBSYSTEMB)
 from .test_wheelies import PLAT_WHEEL, PURE_WHEEL, STRAY_LIB_DEP
 
 
@@ -143,10 +143,9 @@ def test_wheel_libs():
     # Test routine to list dependencies from wheels
     assert_equal(wheel_libs(PURE_WHEEL), {})
     mod2 = pjoin('fakepkg1', 'subpkg', 'module2.so')
-    sys_b = '/usr/lib/libSystem.B.dylib'
     assert_equal(wheel_libs(PLAT_WHEEL),
                  {STRAY_LIB_DEP: {mod2: STRAY_LIB_DEP},
-                  realpath(sys_b): {mod2: sys_b}})
+                  realpath(LIBSYSTEMB): {mod2: LIBSYSTEMB}})
     def filt(fname):
         return not fname.endswith(mod2)
     assert_equal(wheel_libs(PLAT_WHEEL, filt), {})

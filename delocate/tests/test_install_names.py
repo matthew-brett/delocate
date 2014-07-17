@@ -16,7 +16,9 @@ from nose.tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
 
 # External libs linked from test data
-EXT_LIBS = ('/usr/lib/libstdc++.6.dylib', '/usr/lib/libSystem.B.dylib')
+LIBSTDCXX='/usr/lib/libstdc++.6.dylib'
+LIBSYSTEMB='/usr/lib/libSystem.B.dylib'
+EXT_LIBS = (LIBSTDCXX, LIBSYSTEMB)
 
 DATA_PATH = pjoin(dirname(__file__), 'data')
 LIBA = pjoin(DATA_PATH, 'liba.dylib')

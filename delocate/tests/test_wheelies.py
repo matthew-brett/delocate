@@ -15,7 +15,7 @@ from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
 from nose.tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
 
-from .test_install_names import DATA_PATH
+from .test_install_names import DATA_PATH, EXT_LIBS
 
 PLAT_WHEEL = pjoin(DATA_PATH, 'fakepkg1-1.0-cp27-none-macosx_10_6_intel.whl')
 PURE_WHEEL = pjoin(DATA_PATH, 'fakepkg2-1.0-py27-none-any.whl')
@@ -25,9 +25,6 @@ STRAY_LIB_DEP = ('/Users/mb312/dev_trees/delocate/wheel_makers/'
                  'fakepkg1/libs/libextfunc.dylib')
 WHEEL_PATCH = pjoin(DATA_PATH, 'fakepkg2.patch')
 WHEEL_PATCH_BAD = pjoin(DATA_PATH, 'fakepkg2.bad_patch')
-
-# This import below constants to avoid circular import errors
-from .test_delocating import EXT_LIBS
 
 
 def test_fix_pure_python():

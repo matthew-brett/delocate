@@ -279,8 +279,10 @@ def delocate_path(tree_path, lib_path,
         dict containing the (key, value) pairs of (``copied_lib_path``,
         ``dependings_dict``), where ``copied_lib_path`` is a library real path
         that was copied into `lib_sdir` of the wheel packages, and
-        ``dependings_dict`` is a dictionary giving the files in the wheel
-        depending on ``copied_lib_path``.
+        ``dependings_dict`` is a dictionary with key, value pairs where the key
+        is a file in the path depending on ``copied_lib_path``, and the value
+        is the ``install_name`` of ``copied_lib_path`` in the depending
+        library.
     """
     if not exists(lib_path):
         os.makedirs(lib_path)
@@ -392,9 +394,10 @@ def delocate_wheel(in_wheel,
         dict containing the (key, value) pairs of (``copied_lib_path``,
         ``dependings_dict``), where ``copied_lib_path`` is a library real path
         that was copied into `lib_sdir` of the wheel packages, and
-        ``dependings_dict`` is a dictionary giving the files in the wheel
-        depending on ``copied_lib_path``.  The files are relative to the wheel
-        root path.
+        ``dependings_dict`` is a dictionary with key, value pairs where the key
+        is a path in the wheel depending on ``copied_lib_path``, and the value
+        is the ``install_name`` of ``copied_lib_path`` in the depending
+        library. The filenames in the keys are relative to the wheel root path.
     """
     in_wheel = abspath(in_wheel)
     if out_wheel is None:

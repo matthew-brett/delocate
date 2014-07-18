@@ -15,7 +15,11 @@ from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 DATA_PATH = pjoin(dirname(__file__), 'data')
 LIB32 = pjoin(DATA_PATH, 'liba32.dylib')
 LIB64 = pjoin(DATA_PATH, 'liba.dylib')
+LIBBOTH = pjoin(DATA_PATH, 'liba_both.dylib')
 LIB64A = pjoin(DATA_PATH, 'liba.a')
+ARCH_64 = set(['x86_64'])
+ARCH_32 = set(['i386'])
+ARCH_BOTH = ARCH_64 | ARCH_32
 
 def test_back_tick():
     cmd = 'python -c "print(\'Hello\')"'
@@ -113,18 +117,19 @@ def test_cmp_contents():
 
 def test_get_archs_fuse():
     # Test routine to get architecture types from file
-    assert_equal(get_archs(LIB32), set(('i386',)))
-    assert_equal(get_archs(LIB64), set(('x86_64',)))
-    assert_equal(get_archs(LIB64A), set(('x86_64',)))
+    assert_equal(get_archs(LIB32), ARCH_32)
+    assert_equal(get_archs(LIB64), ARCH_64)
+    assert_equal(get_archs(LIB64A), ARCH_64)
+    assert_equal(get_archs(LIBBOTH), ARCH_BOTH)
     assert_raises(RuntimeError, get_archs, 'not_a_file')
     with InTemporaryDirectory():
         lipo_fuse(LIB32, LIB64, 'anotherlib')
-        assert_equal(get_archs('anotherlib'), set(('i386', 'x86_64')))
+        assert_equal(get_archs('anotherlib'), ARCH_BOTH)
         lipo_fuse(LIB64, LIB32, 'anotherlib')
-        assert_equal(get_archs('anotherlib'), set(('i386', 'x86_64')))
+        assert_equal(get_archs('anotherlib'), ARCH_BOTH)
         shutil.copyfile(LIB32, 'libcopy32')
         lipo_fuse('libcopy32', LIB64, 'anotherlib')
-        assert_equal(get_archs('anotherlib'), set(('i386', 'x86_64')))
+        assert_equal(get_archs('anotherlib'), ARCH_BOTH)
         assert_raises(RuntimeError, lipo_fuse, 'libcopy32', LIB32, 'yetanother')
         shutil.copyfile(LIB64, 'libcopy64')
         assert_raises(RuntimeError, lipo_fuse, 'libcopy64', LIB64, 'yetanother')

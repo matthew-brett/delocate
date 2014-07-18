@@ -52,6 +52,9 @@ $CXX_64 -o libb.dylib -dynamiclib b.cc -L. -la
 $CXX_64 -o libc.dylib -dynamiclib c.cc -L. -la -lb
 $CXX_64 -o test-lib d.cc -L. -lc
 
+# Make a dual-arch library
+lipo -create liba.dylib liba32.dylb -output liba_both.dylib
+
 # Change permissions in nasty way to test working with permissions
 chmod 444 liba.dylib
 chmod 400 libb.dylib

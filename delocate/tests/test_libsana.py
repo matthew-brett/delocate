@@ -20,7 +20,10 @@ from nose.tools import (assert_true, assert_false, assert_raises,
 
 from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
                                  EXT_LIBS, LIBSYSTEMB)
-from .test_wheelies import PLAT_WHEEL, PURE_WHEEL, STRAY_LIB_DEP
+from .test_wheelies import (PLAT_WHEEL, PURE_WHEEL, STRAY_LIB_DEP,
+                            _fixed_wheel)
+from .test_tools import (LIB32, LIB64, LIB64A, LIBBOTH, ARCH_64, ARCH_32,
+                         ARCH_BOTH)
 
 
 def get_ext_dict(local_libs):

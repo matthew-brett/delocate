@@ -361,16 +361,16 @@ def get_archs(libname):
 
     Returns
     -------
-    arch_names : set
-        Empty set if no arch codes.  If not empty, contains one or more of
-        'ppc', 'ppc64', 'i386', 'x86_64'
+    arch_names : frozenset
+        Empty (frozen)set if no arch codes.  If not empty, contains one or more
+        of 'ppc', 'ppc64', 'i386', 'x86_64'
     """
     if not exists(libname):
         raise RuntimeError(libname + " is not a file")
     try:
         stdout = back_tick(['lipo', '-info', libname])
     except RuntimeError:
-        return set()
+        return frozenset()
     lines = [line.strip() for line in stdout.split('\n') if line.strip()]
     # For some reason, output from lipo -info on .a file generates this line
     if lines[0] == "input file {0} is not a fat file".format(libname):
@@ -384,7 +384,7 @@ def get_archs(libname):
         reggie = re.compile(reggie)
         match = reggie.match(line)
         if not match is None:
-            return set(match.groups()[0].split(' '))
+            return frozenset(match.groups()[0].split(' '))
     raise ValueError("Unexpected output: '{0}' for {1}".format(
         stdout, libname))
 

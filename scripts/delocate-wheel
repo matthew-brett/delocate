@@ -30,7 +30,11 @@ def main():
     parser.add_option(
         Option("-v", "--verbose",
                action="store_true",
-               help="Show libraries copied during fix"))
+               help="Show more verbose report of progress and failure"))
+    parser.add_option(
+        Option("-k", "--check-archs",
+               action="store_true",
+               help="Check architectures of depended libraries"))
     (opts, wheels) = parser.parse_args()
     if len(wheels) < 1:
         parser.print_help()
@@ -49,7 +53,9 @@ def main():
             out_wheel = pjoin(wheel_dir, basename(wheel))
         else:
             out_wheel = wheel
-        copied = delocate_wheel(wheel, out_wheel, lib_sdir=opts.lib_sdir)
+        copied = delocate_wheel(wheel, out_wheel, lib_sdir=opts.lib_sdir,
+                                check_copied_archs=opts.check_archs,
+                                check_verbose=opts.verbose)
         if opts.verbose and len(copied):
             print("Copied to package {0} directory:".format(opts.lib_sdir))
             copy_lines = ['  ' + name for name in sorted(copied)]

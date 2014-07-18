@@ -7,8 +7,11 @@ import os
 from os.path import (join as pjoin, split as psplit, abspath, dirname,
                      realpath, basename, relpath)
 
-from ..libsana import tree_libs, stripped_lib_dict, wheel_libs
-from ..tools import set_install_name
+from ..libsana import (tree_libs, get_prefix_stripper, get_rp_stripper,
+                       stripped_lib_dict, wheel_libs)
+from ..delocating import delocate_wheel
+
+from ..tools import set_install_name, lipo_fuse
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -91,6 +94,29 @@ def test_tree_libs():
             rp_libb: {rp_libc: 'libb.dylib',
                       realpath(slibc): 'libb.dylib'}})
         assert_equal(tree_libs(tmpdir, filt), sl_exp_dict)
+
+
+def test_get_prefix_stripper():
+    # Test function factory to strip prefixes
+    f = get_prefix_stripper('')
+    assert_equal(f('a string'), 'a string')
+    f = get_prefix_stripper('a ')
+    assert_equal(f('a string'), 'string')
+    assert_equal(f('b string'), 'b string')
+    assert_equal(f('b a string'), 'b a string')
+
+
+def test_get_rp_stripper():
+    # realpath prefix stripper
+    # Just does realpath and adds path sep
+    cwd = realpath(os.getcwd())
+    f = get_rp_stripper('') # pwd
+    test_path = pjoin('test', 'path')
+    assert_equal(f(test_path), test_path)
+    rp_test_path = pjoin(cwd, test_path)
+    assert_equal(f(rp_test_path), test_path)
+    f = get_rp_stripper(pjoin(cwd, 'test'))
+    assert_equal(f(rp_test_path), 'path')
 
 
 def get_ext_dict_stripped(local_libs, start_path):

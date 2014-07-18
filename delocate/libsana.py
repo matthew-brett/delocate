@@ -61,6 +61,44 @@ def tree_libs(start_path, filt_func = None):
     return lib_dict
 
 
+def get_prefix_stripper(strip_prefix):
+    """ Return function to strip `strip_prefix` prefix from string if present
+
+    Parameters
+    ----------
+    prefix : str
+        Prefix to strip from the beginning of string if present
+
+    Returns
+    -------
+    stripper : func
+        function such that ``stripper(a_string)`` will strip `prefix` from
+        ``a_string`` if present, otherwise pass ``a_string`` unmodified
+    """
+    n = len(strip_prefix)
+    def stripper(path):
+        return path if not path.startswith(strip_prefix) else path[n:]
+    return stripper
+
+
+def get_rp_stripper(strip_path):
+    """ Return function to strip ``realpath`` of `strip_path` from string
+
+    Parameters
+    ----------
+    strip_path : str
+        path to strip from beginning of strings. Processed to ``strip_prefix``
+        by ``realpath(strip_path) + os.path.sep``.
+
+    Returns
+    -------
+    stripper : func
+        function such that ``stripper(a_string)`` will strip ``strip_prefix``
+        from ``a_string`` if present, otherwise pass ``a_string`` unmodified
+    """
+    return get_prefix_stripper(realpath(strip_path) + os.path.sep)
+
+
 def stripped_lib_dict(lib_dict, strip_prefix):
     """ Return `lib_dict` with `strip_prefix` removed from start of paths
 
@@ -84,16 +122,13 @@ def stripped_lib_dict(lib_dict, strip_prefix):
         and depending library paths.
     """
     relative_dict = {}
-    n = len(strip_prefix)
-
-    def stripped(path):
-        return path if not path.startswith(strip_prefix) else path[n:]
+    stripper = get_prefix_stripper(strip_prefix)
 
     for lib_path, dependings_dict in lib_dict.items():
         ding_dict = {}
         for depending_libpath, install_name in dependings_dict.items():
-            ding_dict[stripped(depending_libpath)] = install_name
-        relative_dict[stripped(lib_path)] = ding_dict
+            ding_dict[stripper(depending_libpath)] = install_name
+        relative_dict[stripper(lib_path)] = ding_dict
     return relative_dict
 
 

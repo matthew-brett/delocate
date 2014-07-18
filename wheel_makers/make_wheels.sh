@@ -3,6 +3,7 @@
 # Need cython and wheel installed to run this script
 cd fakepkg1
 rm -rf build dist fakepkg1*info
+# Uses python default compile flags
 python setup.py bdist_wheel
 cp dist/fakepkg1*.whl ../../delocate/tests/data
 cp libs/libextfunc.dylib ../../delocate/tests/data

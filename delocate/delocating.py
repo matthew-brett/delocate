@@ -15,9 +15,9 @@ from subprocess import Popen, PIPE
 
 from wheel.util import urlsafe_b64encode, open_for_csv, native
 
-from .libsana import tree_libs, stripped_lib_dict
+from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
 from .tools import (set_install_name, zip2dir, dir2zip,
-                    find_package_dirs, set_install_id)
+                    find_package_dirs, set_install_id, get_archs)
 from .tmpdirs import InTemporaryDirectory, InGivenDirectory
 
 # Prefix for install_name_id of copied libraries
@@ -472,3 +472,77 @@ def patch_wheel(in_wheel, patch_fname, out_wheel=None):
                                    stdout.decode('latin1'))
         rewrite_record('wheel')
         dir2zip('wheel', out_wheel)
+
+
+def check_archs(copied_libs, stop_fast=False):
+    """ Check compatibility of archs in `copied_libs` dict
+
+    Parameters
+    ----------
+    copied_libs : dict
+        dict containing the (key, value) pairs of (``copied_lib_path``,
+        ``dependings_dict``), where ``copied_lib_path`` is a library real path
+        that has been copied during delocation, and ``dependings_dict`` is a
+        dictionary with key, value pairs where the key is a path in the target
+        being delocated (a wheel or path) depending on ``copied_lib_path``, and
+        the value is the ``install_name`` of ``copied_lib_path`` in the
+        depending library.
+    stop_fast : bool, optional
+        Whether to give up collecting errors after the first
+
+    Returns
+    -------
+    bads : set
+        Empty if no missing architectures
+        If not empty, set of 3 tuples each giving ``(depended_lib,
+        depending_lib, missing_archs)`` where ``depended_lib`` is the filename
+        of the library depended on, ``depending_lib`` is the library depending
+        on ``depending_lib`` and ``missing_archs`` is a set of missing
+        architecture strings giving architectures present in ``depending_lib``
+        and missing in ``depended_lib``
+    """
+    bads = []
+    for depended_lib, dep_dict in copied_libs.items():
+        depended_archs = get_archs(depended_lib)
+        for depending_lib, install_name in dep_dict.items():
+            depending_archs = get_archs(depending_lib)
+            missing_archs = depending_archs.difference(depended_archs)
+            if len(missing_archs) == 0:
+                continue
+            bads.append((depended_lib, depending_lib, missing_archs))
+            if stop_fast:
+                return set(bads)
+    return set(bads)
+
+
+def bads_report(bads, path_prefix=None):
+    """ Return a nice report of bad architectures in `bads`
+
+    Parameters
+    ----------
+    bads : set
+        set of 3 tuples each giving ``(depended_lib, depending_lib,
+        missing_archs)`` where ``depended_lib`` is the filename of the library
+        depended on, ``depending_lib`` is the library depending on
+        ``depending_lib`` and ``missing_archs`` is a set of missing
+        architecture strings giving architectures present in ``depending_lib``
+        and missing in ``depended_lib``
+    path_prefix : None or str, optional
+        Path prefix to strip from ``depended_lib`` and ``depending_lib``. None
+        means do not strip anything.
+
+    Returns
+    -------
+    report : str
+        A nice report for printing
+    """
+    path_processor = ((lambda x : x) if path_prefix is None
+                      else get_rp_stripper(path_prefix))
+    reports = []
+    for depended_lib, depending_lib, missing_archs in bads:
+        reports.append("{0} needs {1} {2} missing from {3}".format(
+            path_processor(depending_lib),
+            'archs' if len(missing_archs) > 1 else 'arch',
+            ', '.join(sorted(missing_archs)),
+            path_processor(depended_lib)))
+    return '\n'.join(sorted(reports))

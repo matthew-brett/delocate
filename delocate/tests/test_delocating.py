@@ -7,7 +7,7 @@ from os.path import (join as pjoin, dirname, basename, relpath, realpath)
 import shutil
 
 from ..delocating import (DelocationError, delocate_tree_libs, copy_recurse,
-                          delocate_path)
+                          delocate_path, check_archs, bads_report)
 from ..libsana import tree_libs
 from ..tools import (get_install_names, get_rpaths, set_install_name,
                      back_tick)
@@ -19,6 +19,7 @@ from nose.tools import (assert_true, assert_false, assert_raises,
 
 from .test_install_names import (DATA_PATH, LIBA, LIBB, LIBC, TEST_LIB,
                                  _copy_libs, EXT_LIBS)
+from .test_tools import LIB32, LIB64, LIB64A, LIBBOTH, ARCH_64, ARCH_32
 from .test_libsana import get_ext_dict
 
 def _make_libtree(out_path):
@@ -376,3 +377,77 @@ def test_delocate_path():
             realpath('subtree5'))
         assert_equal(delocate_path('subtree5', 'deplibs5'), {})
         assert_equal(len(os.listdir('deplibs5')), 0)
+
+
+def test_check_archs():
+    # Test utility to check architectures in copied_libs dict
+    # No libs always OK
+    s0 = set()
+    assert_equal(check_archs({}), s0)
+    # One lib to itself OK
+    assert_equal(check_archs({LIB32: {LIB32: 'install_name'}}), s0)
+    assert_equal(check_archs({LIB64: {LIB64: 'install_name'}}), s0)
+    # Or to another lib of same arch
+    assert_equal(check_archs({LIB64A: {LIB64: 'install_name'}}), s0)
+    # Or two libs
+    assert_equal(check_archs(
+        {LIB64A: {LIB64: 'install_name'},
+         LIB32: {LIB32: 'install_name'}}),
+        s0)
+    # Libs must match architecture
+    assert_equal(check_archs(
+        {LIB64: {LIB32: 'install_name'}}),
+        set([(LIB64, LIB32, ARCH_32)]))
+    assert_equal(check_archs(
+        {LIB64A: {LIB64: 'install_name'},
+         LIB32: {LIB32: 'install_name'},
+         LIB64: {LIB32: 'install_name'}}),
+        set([(LIB64, LIB32, ARCH_32)]))
+    # For single archs depending, dual archs in depended is OK
+    assert_equal(check_archs(
+        {LIBBOTH: {LIB64A: 'install_name'}}),
+         s0)
+    # For dual archs in depending, both must be present
+    assert_equal(check_archs(
+        {LIBBOTH: {LIBBOTH: 'install_name'}}),
+        s0)
+    assert_equal(check_archs(
+        {LIB64A: {LIBBOTH: 'install_name'}}),
+        set([(LIB64A, LIBBOTH, ARCH_32)]))
+    # More than one bad
+    in_dict = {LIB64A: {LIBBOTH: 'install_name'},
+               LIB64: {LIB32: 'install_name'}}
+    exp_res = set([(LIB64A, LIBBOTH, ARCH_32),
+                   (LIB64, LIB32, ARCH_32)])
+    assert_equal(check_archs(in_dict), exp_res)
+    # Check stop_fast flag; can't predict return, but there should only be one
+    stopped = check_archs(in_dict, True)
+    assert_equal(len(stopped), 1)
+    # More than one bad in dependings
+    assert_equal(check_archs(
+        {LIB64A: {LIBBOTH: 'install_name',
+                  LIB32: 'install_name'},
+         LIB64: {LIB32: 'install_name'}}),
+        set([(LIB64A, LIBBOTH, ARCH_32),
+             (LIB64A, LIB32, ARCH_32),
+             (LIB64, LIB32, ARCH_32)]))
+
+
+def test_bads_report():
+    # Test bads_report of architecture errors
+    # No bads, no report
+    assert_equal(bads_report([]), '')
+    fmt_str = '{0} needs arch i386 missing from {1}'
+    # One line report
+    assert_equal(bads_report(set([(LIB64, LIB32, ARCH_32)])),
+                 fmt_str.format(LIB32, LIB64))
+    # One line report applying path stripper
+    assert_equal(bads_report(set([(LIB64, LIB32, ARCH_32)]), dirname(LIB64)),
+                 fmt_str.format(basename(LIB32), basename(LIB64)))
+    # Multi-line report
+    assert_equal(bads_report(set([(LIB64A, LIBBOTH, ARCH_32),
+                                  (LIB64A, LIB32, ARCH_32),
+                                  (LIB64, LIB32, ARCH_32)])),
+                 '\n'.join([fmt_str.format(LIB32, LIB64A),
+                            fmt_str.format(LIB32, LIB64),
+                            fmt_str.format(LIBBOTH, LIB64A)]))

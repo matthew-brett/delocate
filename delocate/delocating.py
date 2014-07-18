@@ -358,7 +358,10 @@ def delocate_wheel(in_wheel,
                    out_wheel = None,
                    lib_sdir = '.dylibs',
                    lib_filt_func = _dylibs_only,
-                   copy_filt_func = filter_system_libs):
+                   copy_filt_func = filter_system_libs,
+                   check_copied_archs = False,
+                   check_verbose = False,
+                  ):
     """ Update wheel by copying required libraries to `lib_sdir` in wheel
 
     Create `lib_sdir` in wheel tree only if we are copying one or more
@@ -387,6 +390,10 @@ def delocate_wheel(in_wheel,
         Default is callable rejecting only libraries beginning with
         ``/usr/lib`` or ``/System``.  None means copy all libraries. This will
         usually end up copying large parts of the system run-time.
+    check_copied_archs : bool, optional
+        If True, check architectures and raise error if check fails
+    check_verbose : bool, optional
+        If True, print warning messages about bad architectures
 
     Returns
     -------
@@ -419,6 +426,14 @@ def delocate_wheel(in_wheel,
                         '{0} already exists in wheel'.format(lib_path))
                 if len(os.listdir(lib_path)) == 0:
                     shutil.rmtree(lib_path)
+                # Check architectures
+                if check_copied_archs:
+                    bads = check_archs(copied_libs, not check_verbose)
+                    if len(bads) != 0:
+                        if check_verbose:
+                            print(bads_report(bads, pjoin(tmpdir, 'wheel')))
+                        raise DelocationError(
+                            "Some missing architectures in wheel")
                 # Change install ids to be unique within Python space
                 install_id_root = DLC_PREFIX + package_path + '/'
                 for lib in copied_libs:

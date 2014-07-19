@@ -4,10 +4,10 @@ Analyze library dependencies in paths and wheel files
 """
 
 import os
-from os.path import join as pjoin, abspath, realpath
+from os.path import join as pjoin, realpath
 
-from .tools import get_install_names, zip2dir, find_package_dirs
-from .tmpdirs import TemporaryDirectory, InTemporaryDirectory
+from .tools import get_install_names, zip2dir, get_archs
+from .tmpdirs import TemporaryDirectory
 
 def tree_libs(start_path, filt_func = None):
     """ Return analysis of library dependencies within `start_path`

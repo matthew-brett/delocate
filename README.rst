@@ -43,7 +43,7 @@ wheel::
 By default, this does not include libraries in ``/usr/lib`` and ``/System``.
 See those too with::
 
-    $ delocate-listdeps --all scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
+    $ delocate-listdeps --all scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
     /System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate
     /usr/lib/libSystem.B.dylib
     /usr/lib/libstdc++.6.dylib
@@ -63,7 +63,7 @@ installation of ``gfortran`` (as well as the system libs).
 You can get a listing of the files depending on each of the libraries,
 using the ``--depending`` flag::
 
-    $ delocate-listdeps --depending scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
+    $ delocate-listdeps --depending scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgcc_s.1.dylib:
         scipy/interpolate/dfitpack.so
         scipy/special/specfun.so
@@ -76,12 +76,12 @@ A solution
 
 We can fix like this::
 
-    $ delocate-wheel -w fixed_wheels -v scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
-    Fixing: scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
+    $ delocate-wheel -w fixed_wheels -v scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
+    Fixing: scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
     Copied to package .dylibs directory:
-    /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgcc_s.1.dylib
-    /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgfortran.3.dylib
-    /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libquadmath.0.dylib
+        /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgcc_s.1.dylib
+        /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgfortran.3.dylib
+        /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libquadmath.0.dylib
 
 The ``-w`` flag tells delocate-wheel to output to a new wheel directory instead
 of overwriting the old wheel.  ``-v`` (verbose) tells you what delocate-wheel is
@@ -93,12 +93,24 @@ extensions in the wheel to use these copies instead of looking in
 
 Check the links again to confirm::
 
-    $ delocate-listdeps fixed_wheels/scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
+    $ delocate-listdeps --all fixed_wheels/scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
+    /System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate
+    /usr/lib/libSystem.B.dylib
+    /usr/lib/libstdc++.6.0.9.dylib
+    @loader_path/../../../../.dylibs/libgcc_s.1.dylib
+    @loader_path/../../../../.dylibs/libgfortran.3.dylib
+    @loader_path/../../../../.dylibs/libquadmath.0.dylib
+    @loader_path/../../../.dylibs/libgcc_s.1.dylib
+    @loader_path/../../../.dylibs/libgfortran.3.dylib
+    @loader_path/../../../.dylibs/libquadmath.0.dylib
+    @loader_path/../../.dylibs/libgcc_s.1.dylib
+    @loader_path/../../.dylibs/libgfortran.3.dylib
+    @loader_path/../../.dylibs/libquadmath.0.dylib
+    @loader_path/../.dylibs/libgcc_s.1.dylib
+    @loader_path/../.dylibs/libgfortran.3.dylib
+    @loader_path/../.dylibs/libquadmath.0.dylib
     @loader_path/libgcc_s.1.dylib
     @loader_path/libquadmath.0.dylib
-    @rpath/libgcc_s.1.dylib
-    @rpath/libgfortran.3.dylib
-    @rpath/libquadmath.0.dylib
 
 So - system dylibs the same, but the others moved into the wheel tree.
 

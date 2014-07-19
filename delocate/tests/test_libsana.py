@@ -6,9 +6,10 @@ Utilities for analyzing library dependencies in trees and wheels
 import os
 from os.path import (join as pjoin, split as psplit, abspath, dirname,
                      realpath, basename, relpath)
+from shutil import copyfile
 
 from ..libsana import (tree_libs, get_prefix_stripper, get_rp_stripper,
-                       stripped_lib_dict, wheel_libs)
+                       stripped_lib_dict, wheel_libs, tree_archs, wheel_archs)
 from ..delocating import delocate_wheel
 
 from ..tools import set_install_name, lipo_fuse
@@ -20,7 +21,7 @@ from nose.tools import (assert_true, assert_false, assert_raises,
 
 from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
                                  EXT_LIBS, LIBSYSTEMB)
-from .test_wheelies import (PLAT_WHEEL, PURE_WHEEL, STRAY_LIB_DEP,
+from .test_wheelies import (PLAT_WHEEL, PURE_WHEEL, STRAY_LIB, STRAY_LIB_DEP,
                             _fixed_wheel)
 from .test_tools import (LIB32, LIB64, LIB64A, LIBBOTH, ARCH_64, ARCH_32,
                          ARCH_BOTH)
@@ -178,3 +179,67 @@ def test_wheel_libs():
     def filt(fname):
         return not fname.endswith(mod2)
     assert_equal(wheel_libs(PLAT_WHEEL, filt), {})
+
+
+def test_tree_archs():
+    # Test fetch of archs from all libs in tree
+    with InTemporaryDirectory():
+        os.mkdir('tree1')
+        assert_equal(tree_archs('tree1'), {})
+        lib64 = pjoin('tree1', basename(LIB64))
+        copyfile(LIB64, lib64)
+        assert_equal(tree_archs('tree1'), {realpath(lib64): ARCH_64})
+        subd = pjoin('tree1', 'subd')
+        os.mkdir(subd)
+        lib32 = pjoin(subd, basename(LIB32))
+        copyfile(LIB32, lib32)
+        assert_equal(tree_archs('tree1'),
+                     {realpath(lib64): ARCH_64,
+                      realpath(lib32): ARCH_32})
+        fused = pjoin('tree1', 'fused.dylib')
+        lipo_fuse(lib32, lib64, fused)
+        assert_equal(tree_archs('tree1'),
+                     {realpath(lib64): ARCH_64,
+                      realpath(lib32): ARCH_32,
+                      realpath(fused): ARCH_BOTH,
+                     })
+        # Add non-library file, no change in output
+        some_fname = pjoin('tree1', 'afile.txt')
+        with open(some_fname, 'wt') as fobj:
+            fobj.write("Not a library of any sort")
+        lipo_fuse(lib32, lib64, fused)
+        assert_equal(tree_archs('tree1'),
+                     {realpath(lib64): ARCH_64,
+                      realpath(lib32): ARCH_32,
+                      realpath(fused): ARCH_BOTH,
+                     })
+        # Filter out fused, don't see it in output
+        def ff(fname):
+            return not 'fused' in fname
+        assert_equal(tree_archs('tree1', filt_func=ff),
+                     {realpath(lib64): ARCH_64,
+                      realpath(lib32): ARCH_32})
+
+
+def test_wheel_archs():
+    # Test fetch of archs from all libs in wheel
+    arch_dict = wheel_archs(PURE_WHEEL)
+    assert_equal(arch_dict, {})
+    arch_dict = wheel_archs(PLAT_WHEEL)
+    mod2 = pjoin('fakepkg1', 'subpkg', 'module2.so')
+    assert_equal(arch_dict, {mod2: ARCH_BOTH})
+    arch_dict = wheel_archs(PLAT_WHEEL, filt_func = lambda x : False)
+    assert_equal(arch_dict, {})
+    with InTemporaryDirectory() as tmpdir:
+        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
+        delocate_wheel(fixed_wheel, 'test.whl')
+        arch_dict = wheel_archs('test.whl')
+        new_lib = pjoin('fakepkg1', '.dylibs', basename(STRAY_LIB))
+        assert_equal(arch_dict,
+                     {mod2: ARCH_BOTH,
+                      new_lib: ARCH_64
+                     })
+        def ff(fname):
+            return fname.endswith('.so')
+        arch_dict = wheel_archs('test.whl', filt_func=ff)
+        assert_equal(arch_dict, {mod2: ARCH_BOTH})

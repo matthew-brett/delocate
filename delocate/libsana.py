@@ -160,3 +160,65 @@ def wheel_libs(wheel_fname, filt_func = None):
         zip2dir(wheel_fname, tmpdir)
         lib_dict = tree_libs(tmpdir, filt_func)
     return stripped_lib_dict(lib_dict, realpath(tmpdir) + os.path.sep)
+
+
+def tree_archs(start_path, filt_func = None):
+    """ Return analysis of architectures of libs within `start_path`
+
+    Parameters
+    ----------
+    wheel_fname : str
+        Filename of wheel
+    filt_func : None or callable, optional
+        If None, inspect all files for architectures. If callable,
+        accepts filename as argument, returns True if we should inspect the
+        file, False otherwise.
+
+    Returns
+    -------
+    arch_dict : dict
+        dictionary with (key, value) pairs of (``libpath``, ``arch``) where
+        ``libpath`` is canonical (``os.path.realpath``) filename of library,
+        and ``archs`` is the output from :func:`delocate.tools.get_archs`.
+        We omit files returning empty archs.
+    """
+    arch_dict = {}
+    for dirpath, dirnames, basenames in os.walk(start_path):
+        for base in basenames:
+            libpath = realpath(pjoin(dirpath, base))
+            if not filt_func is None and not filt_func(libpath):
+                continue
+            archs = get_archs(libpath)
+            if len(archs):
+                arch_dict[libpath] = archs
+    return arch_dict
+
+
+def wheel_archs(wheel_fname, filt_func = None):
+    """ Return analysis of architectures of libs within wheel `wheel_fname`
+
+    Parameters
+    ----------
+    wheel_fname : str
+        root path of tree to search for libraries
+    filt_func : None or callable, optional
+        If None, inspect all files for architectures. If callable,
+        accepts filename as argument, returns True if we should inspect the
+        file, False otherwise.
+
+    Returns
+    -------
+    arch_dict : dict
+        dictionary with (key, value) pairs of (``libpath``, ``arch``) where
+        ``libpath`` is relative path within wheel of found library, and
+        ``archs`` is the output from :func:`delocate.tools.get_archs`
+    """
+    with TemporaryDirectory() as tmpdir:
+        zip2dir(wheel_fname, tmpdir)
+        in_arch_dict = tree_archs(tmpdir, filt_func)
+    # Strip wheel directory prefix from paths
+    out_arch_dict = {}
+    stripper = get_rp_stripper(tmpdir)
+    for key, value in in_arch_dict.items():
+        out_arch_dict[stripper(key)] = value
+    return out_arch_dict

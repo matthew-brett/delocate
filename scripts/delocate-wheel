@@ -35,6 +35,11 @@ def main():
         Option("-k", "--check-archs",
                action="store_true",
                help="Check architectures of depended libraries"))
+    parser.add_option(
+        Option("--require-archs",
+               action="store", type='string',
+               help="Architectures that all wheel libraries should "
+               "have (from 'intel', 'i386', 'x86_64', 'i386,x86_64')"))
     (opts, wheels) = parser.parse_args()
     if len(wheels) < 1:
         parser.print_help()
@@ -46,7 +51,12 @@ def main():
             os.makedirs(wheel_dir)
     else:
         wheel_dir = None
-    require_archs = () if opts.check_archs else None
+    if opts.require_archs is None:
+        require_archs = [] if opts.check_archs else None
+    elif ',' in opts.require_archs:
+        require_archs = [s.strip() for s in opts.require_archs.split(',')]
+    else:
+        require_archs = opts.require_archs
     for wheel in wheels:
         if multi or opts.verbose:
             print('Fixing: ' + wheel)

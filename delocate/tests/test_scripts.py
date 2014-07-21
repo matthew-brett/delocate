@@ -26,7 +26,7 @@ from .test_install_names import EXT_LIBS
 from .test_delocating import _make_libtree, _copy_to
 from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
                             STRAY_LIB_DEP, WHEEL_PATCH, WHEEL_PATCH_BAD,
-                            _thin_lib)
+                            _thin_lib, _thin_mod)
 from .test_fuse import assert_same_tree
 
 DEBUG_PRINT = os.environ.get('DELOCATE_DEBUG_PRINT', False)
@@ -268,16 +268,21 @@ def test_fix_wheel_archs():
         # But if we check, raise error
         fmt_str = 'Fixing: {0}\n{1} needs arch {2} missing from {3}'
         archs = set(('x86_64', 'i386'))
-        for arch in archs:
-            # Not checked
+        def _fix_break(arch):
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
+        def _fix_break_fix(arch):
+            _fixed_wheel(tmpdir)
+            _thin_lib(stray_lib, arch)
+            _thin_mod(fixed_wheel, arch)
+        for arch in archs:
+            # Not checked
+            _fix_break(arch)
             code, stdout, stderr = run_command(
                 ['delocate-wheel', fixed_wheel])
             _check_wheel(fixed_wheel, '.dylibs')
             # Checked
-            _fixed_wheel(tmpdir)
-            _thin_lib(stray_lib, arch)
+            _fix_break(arch)
             code, stdout, stderr = run_command(
                 ['delocate-wheel', fixed_wheel, '--check-archs'],
                 check_code=False)
@@ -287,8 +292,7 @@ def test_fix_wheel_archs():
                 "Some missing architectures in wheel"))
             assert_equal(stdout.strip(), '')
             # Checked, verbose
-            _fixed_wheel(tmpdir)
-            _thin_lib(stray_lib, arch)
+            _fix_break(arch)
             code, stdout, stderr = run_command(
                 ['delocate-wheel', fixed_wheel, '--check-archs', '-v'],
                 check_code=False)
@@ -302,6 +306,21 @@ def test_fix_wheel_archs():
                              'fakepkg1/subpkg/module2.so',
                              archs.difference([arch]).pop(),
                              stray_lib))
+            # Require particular architectures
+        both_archs = 'i386,x86_64'
+        for ok in ('intel', 'i386', 'x86_64', both_archs):
+            _fixed_wheel(tmpdir)
+            code, stdout, stderr = run_command(
+                ['delocate-wheel', fixed_wheel, '--require-archs=' + ok])
+        for arch in archs:
+            other_arch = archs.difference([arch]).pop()
+            for not_ok in ('intel', both_archs, other_arch):
+                _fix_break_fix(arch)
+                code, stdout, stderr = run_command(
+                    ['delocate-wheel', fixed_wheel,
+                     '--require-archs=' + not_ok],
+                check_code=False)
+                assert_false(code == 0)
 
 
 def test_fuse_wheels():

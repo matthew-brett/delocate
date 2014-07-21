@@ -21,7 +21,8 @@ from nose.tools import (assert_true, assert_false, assert_raises,
 
 from .test_install_names import (DATA_PATH, LIBA, LIBB, LIBC, TEST_LIB,
                                  _copy_libs, EXT_LIBS)
-from .test_tools import LIB32, LIB64, LIB64A, LIBBOTH, ARCH_64, ARCH_32
+from .test_tools import (LIB32, LIB64, LIB64A, LIBBOTH, ARCH_64, ARCH_32,
+                         ARCH_BOTH)
 from .test_libsana import get_ext_dict
 from .test_wheelies import PURE_WHEEL
 
@@ -408,16 +409,43 @@ def test_check_archs():
     s0 = set()
     assert_equal(check_archs({}), s0)
     # One lib to itself OK
-    assert_equal(check_archs({LIB32: {LIB32: 'install_name'}}), s0)
-    assert_equal(check_archs({LIB64: {LIB64: 'install_name'}}), s0)
-    # Or to another lib of same arch
+    lib_32_32 = {LIB32: {LIB32: 'install_name'}}
+    lib_64_64 = {LIB64: {LIB64: 'install_name'}}
+    assert_equal(check_archs(lib_32_32), s0)
+    assert_equal(check_archs(lib_64_64), s0)
+    # OK matching to another static lib of same arch
     assert_equal(check_archs({LIB64A: {LIB64: 'install_name'}}), s0)
     # Or two libs
-    assert_equal(check_archs(
-        {LIB64A: {LIB64: 'install_name'},
-         LIB32: {LIB32: 'install_name'}}),
-        s0)
-    # Libs must match architecture
+    two_libs = {LIB64A: {LIB64: 'install_name'},
+                LIB32: {LIB32: 'install_name'}}
+    assert_equal(check_archs(two_libs), s0)
+    # Same as empty sequence required_args argument
+    assert_equal(check_archs(lib_32_32, ()), s0)
+    assert_equal(check_archs(lib_64_64, ()), s0)
+    assert_equal(check_archs(two_libs, ()), s0)
+    assert_equal(check_archs(two_libs, []), s0)
+    assert_equal(check_archs(two_libs, set()), s0)
+    # bads if we require more archs than present
+    for in_libs, exp_arch, missing in ((lib_32_32, ARCH_64, ARCH_64),
+                                       (lib_32_32, ARCH_BOTH, ARCH_64),
+                                       (lib_32_32, 'x86_64', ARCH_64),
+                                       (lib_32_32, 'intel', ARCH_64),
+                                       (lib_64_64, ARCH_32, ARCH_32),
+                                       (lib_64_64, ARCH_BOTH, ARCH_32),
+                                       (lib_64_64, 'i386', ARCH_32),
+                                       (lib_64_64, 'intel', ARCH_32)):
+        ded, value = list(in_libs.items())[0]
+        ding, _ = list(value.items())[0]
+        assert_equal(check_archs(in_libs, exp_arch),
+                     set([(ded, ding, missing)]))
+    # Two libs
+    assert_equal(check_archs(two_libs, ARCH_32),
+                 set([(LIB64A, LIB64, ARCH_32)]))
+    assert_equal(check_archs(two_libs, ARCH_64),
+                 set([(LIB32, LIB32, ARCH_64)]))
+    assert_equal(check_archs(two_libs, ARCH_BOTH),
+                 set([(LIB64A, LIB64, ARCH_32), (LIB32, LIB32, ARCH_64)]))
+    # Libs must match architecture with second arg of None
     assert_equal(check_archs(
         {LIB64: {LIB32: 'install_name'}}),
         set([(LIB64, LIB32, ARCH_32)]))
@@ -444,7 +472,7 @@ def test_check_archs():
                    (LIB64, LIB32, ARCH_32)])
     assert_equal(check_archs(in_dict), exp_res)
     # Check stop_fast flag; can't predict return, but there should only be one
-    stopped = check_archs(in_dict, True)
+    stopped = check_archs(in_dict, (), True)
     assert_equal(len(stopped), 1)
     # More than one bad in dependings
     assert_equal(check_archs(

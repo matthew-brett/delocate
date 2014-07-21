@@ -15,6 +15,7 @@ from subprocess import Popen, PIPE
 
 from wheel.util import urlsafe_b64encode, open_for_csv, native
 
+from .pycompat import string_types
 from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
 from .tools import (set_install_name, zip2dir, dir2zip,
                     find_package_dirs, set_install_id, get_archs)
@@ -461,7 +462,7 @@ def delocate_wheel(in_wheel,
                     shutil.rmtree(lib_path)
                 # Check architectures
                 if check_copied_archs:
-                    bads = check_archs(copied_libs, not check_verbose)
+                    bads = check_archs(copied_libs, (), not check_verbose)
                     if len(bads) != 0:
                         if check_verbose:
                             print(bads_report(bads, pjoin(tmpdir, 'wheel')))
@@ -522,7 +523,7 @@ def patch_wheel(in_wheel, patch_fname, out_wheel=None):
         dir2zip('wheel', out_wheel)
 
 
-def check_archs(copied_libs, stop_fast=False):
+def check_archs(copied_libs, require_archs=(), stop_fast=False):
     """ Check compatibility of archs in `copied_libs` dict
 
     Parameters
@@ -535,6 +536,15 @@ def check_archs(copied_libs, stop_fast=False):
         being delocated (a wheel or path) depending on ``copied_lib_path``, and
         the value is the ``install_name`` of ``copied_lib_path`` in the
         depending library.
+    require_archs : str or sequence, optional
+        Architectures we require to be present in all library files in wheel.
+        If an empty sequence, just check that depended libraries do have the
+        architectures of the depending libraries, with no constraints on what
+        these architectures are. If a sequence, then a set of required
+        architectures e.g. ``['i386', 'x86_64']`` to specify dual Intel
+        architectures.  If a string, then a standard architecture name as
+        returned by ``lipo -info`` or the string "intel", corresponding to the
+        sequence ``['i386', 'x86_64']``
     stop_fast : bool, optional
         Whether to give up collecting errors after the first
 
@@ -549,12 +559,17 @@ def check_archs(copied_libs, stop_fast=False):
         architecture strings giving architectures present in ``depending_lib``
         and missing in ``depended_lib``
     """
+    if isinstance(require_archs, string_types):
+        require_archs = (['i386', 'x86_64'] if require_archs == 'intel'
+                         else [require_archs])
+    require_archs = set(require_archs)
     bads = []
     for depended_lib, dep_dict in copied_libs.items():
         depended_archs = get_archs(depended_lib)
         for depending_lib, install_name in dep_dict.items():
             depending_archs = get_archs(depending_lib)
-            missing_archs = depending_archs.difference(depended_archs)
+            all_required = depending_archs | require_archs
+            missing_archs = all_required.difference(depended_archs)
             if len(missing_archs) == 0:
                 continue
             bads.append((depended_lib, depending_lib, missing_archs))

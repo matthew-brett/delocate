@@ -7,7 +7,7 @@ import shutil
 from subprocess import check_call
 
 from ..delocating import (DelocationError, delocate_wheel, rewrite_record,
-                          patch_wheel, DLC_PREFIX)
+                          patch_wheel, DLC_PREFIX, InWheel)
 from ..tools import (get_install_names, set_install_name, zip2dir,
                      dir2zip, back_tick, get_install_id)
 
@@ -111,12 +111,14 @@ def test_fix_plat():
         assert_equal(get_install_id(the_lib), inst_id)
 
 
-def _fix_break(tmpdir, arch):
-    fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-    # Strip to single architecture
-    check_call(['lipo', '-thin', arch, stray_lib,
-                '-output', stray_lib])
-    return fixed_wheel, stray_lib
+def _thin_lib(stray_lib, arch):
+    check_call(['lipo', '-thin', arch, stray_lib, '-output', stray_lib])
+
+
+def _think_mod(wheel):
+    with InWheel(wheel, wheel):
+        mod_fname = pjoin('fakepkg1', 'subpkg', 'module2.so')
+        check_call(['lipo', '-thin', arch, mod_fname, '-output', mod_fname])
 
 
 def test_check_plat_archs():
@@ -124,23 +126,26 @@ def test_check_plat_archs():
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         dep_mod = pjoin('fakepkg1', 'subpkg', 'module2.so')
-        # Works correctly for stored / fixed wheel
+        # No complaint for stored / fixed wheel
         assert_equal(delocate_wheel(fixed_wheel, check_copied_archs=True),
                      {realpath(stray_lib): {dep_mod: stray_lib}})
         # Make a new copy and break it
         # Delocate still works by default
         for arch in ('x86_64', 'i386'):
-            _fix_break(tmpdir, arch)
+            _fixed_wheel(tmpdir)
+            _thin_lib(stray_lib, arch)
             assert_equal(
                 delocate_wheel(fixed_wheel, check_copied_archs=False),
                 {realpath(stray_lib): {dep_mod: stray_lib}})
         # Unless we check architectures
         for arch in ('x86_64', 'i386'):
-            _fix_break(tmpdir, arch)
+            _fixed_wheel(tmpdir)
+            _thin_lib(stray_lib, arch)
             assert_raises(DelocationError, delocate_wheel, fixed_wheel,
                           check_copied_archs=True)
         # Can be verbose (we won't check output though)
-        _fix_break(tmpdir, 'x86_64')
+        _fixed_wheel(tmpdir)
+        _thin_lib(stray_lib, 'x86_64')
         assert_raises(DelocationError, delocate_wheel, fixed_wheel,
                       check_copied_archs=True, check_verbose=True)
 

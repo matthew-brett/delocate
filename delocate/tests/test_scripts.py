@@ -26,7 +26,7 @@ from .test_install_names import EXT_LIBS
 from .test_delocating import _make_libtree, _copy_to
 from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
                             STRAY_LIB_DEP, WHEEL_PATCH, WHEEL_PATCH_BAD,
-                            _fix_break)
+                            _thin_lib)
 from .test_fuse import assert_same_tree
 
 DEBUG_PRINT = os.environ.get('DELOCATE_DEBUG_PRINT', False)
@@ -270,12 +270,14 @@ def test_fix_wheel_archs():
         archs = set(('x86_64', 'i386'))
         for arch in archs:
             # Not checked
-            _fix_break(tmpdir, arch)
+            _fixed_wheel(tmpdir)
+            _thin_lib(stray_lib, arch)
             code, stdout, stderr = run_command(
                 ['delocate-wheel', fixed_wheel])
             _check_wheel(fixed_wheel, '.dylibs')
             # Checked
-            _fix_break(tmpdir, arch)
+            _fixed_wheel(tmpdir)
+            _thin_lib(stray_lib, arch)
             code, stdout, stderr = run_command(
                 ['delocate-wheel', fixed_wheel, '--check-archs'],
                 check_code=False)
@@ -285,7 +287,8 @@ def test_fix_wheel_archs():
                 "Some missing architectures in wheel"))
             assert_equal(stdout.strip(), '')
             # Checked, verbose
-            _fix_break(tmpdir, arch)
+            _fixed_wheel(tmpdir)
+            _thin_lib(stray_lib, arch)
             code, stdout, stderr = run_command(
                 ['delocate-wheel', fixed_wheel, '--check-archs', '-v'],
                 check_code=False)

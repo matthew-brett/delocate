@@ -508,3 +508,15 @@ def test_bads_report():
                  '\n'.join([fmt_str_3.format(LIBBOTH, LIB64A),
                             fmt_str_2.format(LIB64),
                             fmt_str_2.format(LIB32)]))
+    # Tuples must be length 2 or 3
+    assert_raises(ValueError,
+                  bads_report,
+                  set([(LIB64A, LIBBOTH, ARCH_32),
+                       (LIB64,),
+                       (LIB32, ARCH_32)]))
+    # Tuples must be length 2 or 3
+    assert_raises(ValueError,
+                  bads_report,
+                  set([(LIB64A, LIBBOTH, ARCH_32),
+                       (LIB64, LIB64, ARCH_32, ARCH_64),
+                       (LIB32, ARCH_32)]))

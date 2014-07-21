@@ -554,28 +554,35 @@ def check_archs(copied_libs, require_archs=(), stop_fast=False):
     Returns
     -------
     bads : set
-        Empty if no missing architectures
-        If not empty, set of 3 tuples each giving ``(depended_lib,
-        depending_lib, missing_archs)`` where ``depended_lib`` is the filename
-        of the library depended on, ``depending_lib`` is the library depending
-        on ``depending_lib`` and ``missing_archs`` is a set of missing
-        architecture strings giving architectures present in ``depending_lib``
-        and missing in ``depended_lib``
+        set of length 2 or 3 tuples. A length 2 tuple is of form
+        ``(depending_lib, missing_archs)`` meaning that an arch in
+        `require_archs` was missing from ``depending_lib``.  A length 3 tuple
+        is of form ``(depended_lib, depending_lib, missing_archs)`` where
+        ``depended_lib`` is the filename of the library depended on,
+        ``depending_lib`` is the library depending on ``depending_lib`` and
+        ``missing_archs`` is a set of missing architecture strings giving
+        architectures present in ``depending_lib`` and missing in
+        ``depended_lib``.  An empty set means all architectures were present as
+        required.
     """
     if isinstance(require_archs, string_types):
         require_archs = (['i386', 'x86_64'] if require_archs == 'intel'
                          else [require_archs])
-    require_archs = set(require_archs)
+    require_archs = frozenset(require_archs)
     bads = []
     for depended_lib, dep_dict in copied_libs.items():
         depended_archs = get_archs(depended_lib)
         for depending_lib, install_name in dep_dict.items():
             depending_archs = get_archs(depending_lib)
             all_required = depending_archs | require_archs
-            missing_archs = all_required.difference(depended_archs)
-            if len(missing_archs) == 0:
+            all_missing = all_required.difference(depended_archs)
+            if len(all_missing) == 0:
                 continue
-            bads.append((depended_lib, depending_lib, missing_archs))
+            required_missing = require_archs.difference(depended_archs)
+            if len(required_missing):
+                bads.append((depending_lib, required_missing))
+            else:
+                bads.append((depended_lib, depending_lib, all_missing))
             if stop_fast:
                 return set(bads)
     return set(bads)
@@ -587,12 +594,16 @@ def bads_report(bads, path_prefix=None):
     Parameters
     ----------
     bads : set
-        set of 3 tuples each giving ``(depended_lib, depending_lib,
-        missing_archs)`` where ``depended_lib`` is the filename of the library
-        depended on, ``depending_lib`` is the library depending on
-        ``depending_lib`` and ``missing_archs`` is a set of missing
-        architecture strings giving architectures present in ``depending_lib``
-        and missing in ``depended_lib``
+        set of length 2 or 3 tuples. A length 2 tuple is of form
+        ``(depending_lib, missing_archs)`` meaning that an arch in
+        `require_archs` was missing from ``depending_lib``.  A length 3 tuple
+        is of form ``(depended_lib, depending_lib, missing_archs)`` where
+        ``depended_lib`` is the filename of the library depended on,
+        ``depending_lib`` is the library depending on ``depending_lib`` and
+        ``missing_archs`` is a set of missing architecture strings giving
+        architectures present in ``depending_lib`` and missing in
+        ``depended_lib``.  An empty set means all architectures were present as
+        required.
     path_prefix : None or str, optional
         Path prefix to strip from ``depended_lib`` and ``depending_lib``. None
         means do not strip anything.
@@ -605,10 +616,20 @@ def bads_report(bads, path_prefix=None):
     path_processor = ((lambda x : x) if path_prefix is None
                       else get_rp_stripper(path_prefix))
     reports = []
-    for depended_lib, depending_lib, missing_archs in bads:
-        reports.append("{0} needs {1} {2} missing from {3}".format(
-            path_processor(depending_lib),
-            'archs' if len(missing_archs) > 1 else 'arch',
-            ', '.join(sorted(missing_archs)),
-            path_processor(depended_lib)))
+    for result in bads:
+        if len(result) == 3:
+            depended_lib, depending_lib, missing_archs = result
+            reports.append("{0} needs {1} {2} missing from {3}".format(
+                path_processor(depending_lib),
+                'archs' if len(missing_archs) > 1 else 'arch',
+                ', '.join(sorted(missing_archs)),
+                path_processor(depended_lib)))
+        elif len(result) == 2:
+            depending_lib, missing_archs = result
+            reports.append("Required {0} {1} missing from {2}".format(
+                'archs' if len(missing_archs) > 1 else 'arch',
+                ', '.join(sorted(missing_archs)),
+                path_processor(depending_lib)))
+        else:
+            raise ValueError('Report tuple should be length 2 or 3')
     return '\n'.join(sorted(reports))

@@ -437,14 +437,14 @@ def test_check_archs():
         ded, value = list(in_libs.items())[0]
         ding, _ = list(value.items())[0]
         assert_equal(check_archs(in_libs, exp_arch),
-                     set([(ded, ding, missing)]))
+                     set([(ding, missing)]))
     # Two libs
     assert_equal(check_archs(two_libs, ARCH_32),
-                 set([(LIB64A, LIB64, ARCH_32)]))
+                 set([(LIB64, ARCH_32)]))
     assert_equal(check_archs(two_libs, ARCH_64),
-                 set([(LIB32, LIB32, ARCH_64)]))
+                 set([(LIB32, ARCH_64)]))
     assert_equal(check_archs(two_libs, ARCH_BOTH),
-                 set([(LIB64A, LIB64, ARCH_32), (LIB32, LIB32, ARCH_64)]))
+                 set([(LIB64, ARCH_32), (LIB32, ARCH_64)]))
     # Libs must match architecture with second arg of None
     assert_equal(check_archs(
         {LIB64: {LIB32: 'install_name'}}),
@@ -488,17 +488,25 @@ def test_bads_report():
     # Test bads_report of architecture errors
     # No bads, no report
     assert_equal(bads_report([]), '')
-    fmt_str = '{0} needs arch i386 missing from {1}'
+    fmt_str_2 = 'Required arch i386 missing from {0}'
+    fmt_str_3 = '{0} needs arch i386 missing from {1}'
     # One line report
     assert_equal(bads_report(set([(LIB64, LIB32, ARCH_32)])),
-                 fmt_str.format(LIB32, LIB64))
+                 fmt_str_3.format(LIB32, LIB64))
     # One line report applying path stripper
     assert_equal(bads_report(set([(LIB64, LIB32, ARCH_32)]), dirname(LIB64)),
-                 fmt_str.format(basename(LIB32), basename(LIB64)))
+                 fmt_str_3.format(basename(LIB32), basename(LIB64)))
     # Multi-line report
     assert_equal(bads_report(set([(LIB64A, LIBBOTH, ARCH_32),
                                   (LIB64A, LIB32, ARCH_32),
                                   (LIB64, LIB32, ARCH_32)])),
-                 '\n'.join([fmt_str.format(LIB32, LIB64A),
-                            fmt_str.format(LIB32, LIB64),
-                            fmt_str.format(LIBBOTH, LIB64A)]))
+                 '\n'.join([fmt_str_3.format(LIB32, LIB64A),
+                            fmt_str_3.format(LIB32, LIB64),
+                            fmt_str_3.format(LIBBOTH, LIB64A)]))
+    # Two tuples and three tuples
+    assert_equal(bads_report(set([(LIB64A, LIBBOTH, ARCH_32),
+                                  (LIB64, ARCH_32),
+                                  (LIB32, ARCH_32)])),
+                 '\n'.join([fmt_str_3.format(LIBBOTH, LIB64A),
+                            fmt_str_2.format(LIB64),
+                            fmt_str_2.format(LIB32)]))

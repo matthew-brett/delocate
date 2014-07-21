@@ -1,8 +1,7 @@
 """ Direct tests of fixes to wheels """
 
 import os
-from os.path import (join as pjoin, dirname, basename, relpath, realpath,
-                     abspath, exists)
+from os.path import (join as pjoin, basename, realpath, abspath, exists)
 import shutil
 from subprocess import check_call
 
@@ -13,11 +12,10 @@ from ..tools import (get_install_names, set_install_name, zip2dir,
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
 
-from nose.tools import (assert_true, assert_false, assert_raises,
-                        assert_equal, assert_not_equal)
+from nose.tools import (assert_true, assert_false, assert_raises, assert_equal)
 
 from .test_install_names import DATA_PATH, EXT_LIBS
-from .test_tools import (ARCH_64, ARCH_32, ARCH_BOTH)
+from .test_tools import (ARCH_32, ARCH_BOTH)
 
 PLAT_WHEEL = pjoin(DATA_PATH, 'fakepkg1-1.0-cp27-none-macosx_10_6_intel.whl')
 PURE_WHEEL = pjoin(DATA_PATH, 'fakepkg2-1.0-py27-none-any.whl')

@@ -11,16 +11,14 @@ from ..delocating import (DelocationError, InWheel, delocate_tree_libs,
                           copy_recurse, delocate_path, check_archs,
                           bads_report)
 from ..libsana import tree_libs
-from ..tools import (get_install_names, get_rpaths, set_install_name,
-                     back_tick)
+from ..tools import (get_install_names, set_install_name, back_tick)
 
 from ..tmpdirs import InTemporaryDirectory
 
-from nose.tools import (assert_true, assert_false, assert_raises,
-                        assert_equal, assert_not_equal)
+from nose.tools import (assert_true, assert_false, assert_raises, assert_equal)
 
-from .test_install_names import (DATA_PATH, LIBA, LIBB, LIBC, TEST_LIB,
-                                 _copy_libs, EXT_LIBS)
+from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
+                                 EXT_LIBS)
 from .test_tools import (LIB32, LIB64, LIB64A, LIBBOTH, ARCH_64, ARCH_32,
                          ARCH_BOTH)
 from .test_libsana import get_ext_dict

@@ -253,6 +253,11 @@ def test_wheel():
                         'Copied to package .dylibs directory:',
                         stray_lib]
         assert_equal(_proc_lines(stdout), wheel_lines1 + wheel_lines2)
+
+
+def test_fix_wheel_archs():
+    # Some tests for wheel fixing
+    with InTemporaryDirectory() as tmpdir:
         # Test check of architectures
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         # Fixed wheel, architectures are OK

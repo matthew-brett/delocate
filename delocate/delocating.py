@@ -354,6 +354,39 @@ def _merge_lib_dict(d1, d2):
     return None
 
 
+class InWheel(InTemporaryDirectory):
+    """ Context manager for doing things inside wheels
+
+    On entering, you'll find yourself in the root tree of the wheel.  If you've
+    asked for an output wheel, then on exit we'll rewrite the wheel record and
+    pack stuff up for you.
+    """
+    def __init__(self, in_wheel, out_wheel=None):
+        """ Initialize in-wheel context manager
+
+        Parameters
+        ----------
+        in_wheel : str
+            filename of wheel to unpack and work inside
+        out_wheel : None or str:
+            filename of wheel to write after exiting.  If None, don't write and
+            discard
+        """
+        self.in_wheel = abspath(in_wheel)
+        self.out_wheel = None if out_wheel is None else abspath(out_wheel)
+        super(InWheel, self).__init__()
+
+    def __enter__(self):
+        zip2dir(self.in_wheel, self.name)
+        return super(InWheel, self).__enter__()
+
+    def __exit__(self, exc, value, tb):
+        if not self.out_wheel is None:
+            rewrite_record(self.name)
+            dir2zip(self.name, self.out_wheel)
+        return super(InWheel, self).__exit__(exc, value, tb)
+
+
 def delocate_wheel(in_wheel,
                    out_wheel = None,
                    lib_sdir = '.dylibs',

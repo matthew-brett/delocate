@@ -507,11 +507,9 @@ def patch_wheel(in_wheel, patch_fname, out_wheel=None):
         out_wheel = abspath(out_wheel)
     if not exists(patch_fname):
         raise ValueError("patch file {0} does not exist".format(patch_fname))
-    with InTemporaryDirectory() as tmpdir:
-        zip2dir(in_wheel, 'wheel')
+    with InWheel(in_wheel, out_wheel):
         with open(patch_fname, 'rb') as fobj:
             patch_proc = Popen(['patch', '-p1'],
-                               cwd='wheel',
                                stdin = fobj,
                                stdout = PIPE,
                                stderr = PIPE)
@@ -519,8 +517,6 @@ def patch_wheel(in_wheel, patch_fname, out_wheel=None):
             if patch_proc.returncode != 0:
                 raise RuntimeError("Patch failed with stdout:\n" +
                                    stdout.decode('latin1'))
-        rewrite_record('wheel')
-        dir2zip('wheel', out_wheel)
 
 
 def check_archs(copied_libs, require_archs=(), stop_fast=False):

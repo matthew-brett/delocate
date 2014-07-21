@@ -117,6 +117,47 @@ So - system dylibs the same, but the others moved into the wheel tree.
 This makes the wheel more likely to work on another machine which does not have
 the same version of gfortran installed - in this example.
 
+Checking required architectures
+===============================
+
+Current Python.org Python and the OSX system Python (``/usr/bin/python``) are
+both dual Intel architecture binaries.  For example::
+
+    $ lipo -info /usr/bin/python
+    Architectures in the fat file: /usr/bin/python are: x86_64 i386
+
+This means that wheels built for Python.org Python or system Python should
+also have i386 and x86_64 versions of the Python extensions and their
+libraries.  It is easy to link Python extensions against single architecture
+libraries by mistake, and therefore get single architecture extensions and /
+or libraries. In fact my scipy wheel is one such example, because I
+inadvertently linked against the homebrew libraries, which are x86_64 only.
+To check this you can use the ``--require-archs`` flag::
+
+    $ delocate-wheel --require-archs=intel scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
+    Traceback (most recent call last):
+    File "/Users/mb312/.virtualenvs/delocate/bin/delocate-wheel", line 77, in <module>
+        main()
+    File "/Users/mb312/.virtualenvs/delocate/bin/delocate-wheel", line 69, in main
+        check_verbose=opts.verbose)
+    File "/Users/mb312/.virtualenvs/delocate/lib/python2.7/site-packages/delocate/delocating.py", line 477, in delocate_wheel
+        "Some missing architectures in wheel")
+    delocate.delocating.DelocationError: Some missing architectures in wheel
+
+The "intel" argument requires dual architecture extensions and libraries. You
+can see which extensions are at fault by adding the ``-v`` (verbose) flag::
+
+    $ delocate-wheel -w fixed_wheels --require-archs=intel -v scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
+    Fixing: scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
+    Required arch i386 missing from /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgfortran.3.dylib
+    Required arch i386 missing from /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libquadmath.0.dylib
+    Required arch i386 missing from scipy/fftpack/_fftpack.so
+    Required arch i386 missing from scipy/fftpack/convolve.so
+    Required arch i386 missing from scipy/integrate/_dop.so
+    ...
+
+I need to rebuild this wheel to link with dual-architecture libraries.
+
 ****
 Code
 ****

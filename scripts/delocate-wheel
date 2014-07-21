@@ -46,6 +46,7 @@ def main():
             os.makedirs(wheel_dir)
     else:
         wheel_dir = None
+    require_archs = () if opts.check_archs else None
     for wheel in wheels:
         if multi or opts.verbose:
             print('Fixing: ' + wheel)
@@ -54,7 +55,7 @@ def main():
         else:
             out_wheel = wheel
         copied = delocate_wheel(wheel, out_wheel, lib_sdir=opts.lib_sdir,
-                                check_copied_archs=opts.check_archs,
+                                require_archs=require_archs,
                                 check_verbose=opts.verbose)
         if opts.verbose and len(copied):
             print("Copied to package {0} directory:".format(opts.lib_sdir))

@@ -9,7 +9,7 @@ from subprocess import check_call
 from ..delocating import (DelocationError, delocate_wheel, rewrite_record,
                           patch_wheel, DLC_PREFIX, InWheel)
 from ..tools import (get_install_names, set_install_name, zip2dir,
-                     dir2zip, back_tick, get_install_id)
+                     dir2zip, back_tick, get_install_id, get_archs)
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
 
@@ -17,6 +17,7 @@ from nose.tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
 
 from .test_install_names import DATA_PATH, EXT_LIBS
+from .test_tools import (ARCH_64, ARCH_32, ARCH_BOTH)
 
 PLAT_WHEEL = pjoin(DATA_PATH, 'fakepkg1-1.0-cp27-none-macosx_10_6_intel.whl')
 PURE_WHEEL = pjoin(DATA_PATH, 'fakepkg2-1.0-py27-none-any.whl')
@@ -115,10 +116,24 @@ def _thin_lib(stray_lib, arch):
     check_call(['lipo', '-thin', arch, stray_lib, '-output', stray_lib])
 
 
-def _think_mod(wheel):
+def _thin_mod(wheel, arch):
     with InWheel(wheel, wheel):
         mod_fname = pjoin('fakepkg1', 'subpkg', 'module2.so')
         check_call(['lipo', '-thin', arch, mod_fname, '-output', mod_fname])
+
+
+def test__thinning():
+    with InTemporaryDirectory() as tmpdir:
+        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
+        mod_fname = pjoin('fakepkg1', 'subpkg', 'module2.so')
+        assert_equal(get_archs(stray_lib), ARCH_BOTH)
+        with InWheel(fixed_wheel):
+            assert_equal(get_archs(mod_fname), ARCH_BOTH)
+        _thin_lib(stray_lib, 'i386')
+        _thin_mod(fixed_wheel, 'i386')
+        assert_equal(get_archs(stray_lib), ARCH_32)
+        with InWheel(fixed_wheel):
+            assert_equal(get_archs(mod_fname), ARCH_32)
 
 
 def test_check_plat_archs():
@@ -127,27 +142,42 @@ def test_check_plat_archs():
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         dep_mod = pjoin('fakepkg1', 'subpkg', 'module2.so')
         # No complaint for stored / fixed wheel
-        assert_equal(delocate_wheel(fixed_wheel, check_copied_archs=True),
+        assert_equal(delocate_wheel(fixed_wheel, require_archs=()),
                      {realpath(stray_lib): {dep_mod: stray_lib}})
-        # Make a new copy and break it
-        # Delocate still works by default
-        for arch in ('x86_64', 'i386'):
+        # Make a new copy and break it and fix it again
+        def _fix_break(arch):
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
+        def _fix_break_fix(arch):
+            _fixed_wheel(tmpdir)
+            _thin_lib(stray_lib, arch)
+            _thin_mod(fixed_wheel, arch)
+        for arch in ('x86_64', 'i386'):
+            # OK unless we check
+            _fix_break(arch)
             assert_equal(
-                delocate_wheel(fixed_wheel, check_copied_archs=False),
+                delocate_wheel(fixed_wheel, require_archs=None),
                 {realpath(stray_lib): {dep_mod: stray_lib}})
-        # Unless we check architectures
-        for arch in ('x86_64', 'i386'):
-            _fixed_wheel(tmpdir)
-            _thin_lib(stray_lib, arch)
+            # Now we check, and error raised
+            _fix_break(arch)
             assert_raises(DelocationError, delocate_wheel, fixed_wheel,
-                          check_copied_archs=True)
+                          require_archs=())
+            # We can fix again by thinning the module too
+            _fix_break_fix(arch)
+            assert_equal(
+                delocate_wheel(fixed_wheel, require_archs=()),
+                {realpath(stray_lib): {dep_mod: stray_lib}})
+            # But if we require the arch we don't have, it breaks
+            for req_arch in ('intel',
+                             ARCH_BOTH,
+                             ARCH_BOTH.difference([arch])):
+                _fix_break_fix(arch)
+                assert_raises(DelocationError, delocate_wheel, fixed_wheel,
+                              require_archs=req_arch)
         # Can be verbose (we won't check output though)
-        _fixed_wheel(tmpdir)
-        _thin_lib(stray_lib, 'x86_64')
+        _fix_break('x86_64')
         assert_raises(DelocationError, delocate_wheel, fixed_wheel,
-                      check_copied_archs=True, check_verbose=True)
+                      require_archs=(), check_verbose=True)
 
 
 def test_rewrite_record():

@@ -393,7 +393,7 @@ def delocate_wheel(in_wheel,
                    lib_sdir = '.dylibs',
                    lib_filt_func = _dylibs_only,
                    copy_filt_func = filter_system_libs,
-                   check_copied_archs = False,
+                   require_archs = None,
                    check_verbose = False,
                   ):
     """ Update wheel by copying required libraries to `lib_sdir` in wheel
@@ -424,10 +424,16 @@ def delocate_wheel(in_wheel,
         Default is callable rejecting only libraries beginning with
         ``/usr/lib`` or ``/System``.  None means copy all libraries. This will
         usually end up copying large parts of the system run-time.
-    check_copied_archs : bool, optional
-        If True, check architectures and raise error if check fails
+    require_archs : None or str or sequence, optional
+        If None, do no checks of architectures in libraries.  If sequence,
+        sequence of architectures (output from ``lipo -info``) that every
+        library in the wheels should have (e.g. ``['x86_64, 'i386']``). An
+        empty sequence results in checks that depended libraries have the same
+        archs as depending libraries.  If string, either "intel" (corresponds
+        to sequence ``['x86_64, 'i386']``) or name of required architecture
+        (e.g "i386" or "x86_64").
     check_verbose : bool, optional
-        If True, print warning messages about bad architectures
+        If True, print warning messages about missing required architectures
 
     Returns
     -------
@@ -461,8 +467,9 @@ def delocate_wheel(in_wheel,
                 if len(os.listdir(lib_path)) == 0:
                     shutil.rmtree(lib_path)
                 # Check architectures
-                if check_copied_archs:
-                    bads = check_archs(copied_libs, (), not check_verbose)
+                if not require_archs is None:
+                    stop_fast = not check_verbose
+                    bads = check_archs(copied_libs, require_archs, stop_fast)
                     if len(bads) != 0:
                         if check_verbose:
                             print(bads_report(bads, pjoin(tmpdir, 'wheel')))

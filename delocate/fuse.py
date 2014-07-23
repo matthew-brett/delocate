@@ -19,7 +19,7 @@ from os.path import (join as pjoin, exists, splitext, relpath, abspath)
 
 from .tools import zip2dir, dir2zip, cmp_contents, lipo_fuse
 from .tmpdirs import InTemporaryDirectory
-from .delocating import rewrite_record
+from .wheeltools import rewrite_record
 
 
 def fuse_trees(to_tree, from_tree, lib_exts=('.so', '.dylib', '.a')):

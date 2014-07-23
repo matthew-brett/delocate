@@ -5,10 +5,11 @@ from os.path import (join as pjoin, basename, realpath, abspath, exists)
 import shutil
 from subprocess import check_call
 
-from ..delocating import (DelocationError, delocate_wheel, rewrite_record,
-                          patch_wheel, DLC_PREFIX, InWheel)
+from ..delocating import (DelocationError, delocate_wheel, patch_wheel,
+                          DLC_PREFIX)
 from ..tools import (get_install_names, set_install_name, zip2dir,
                      dir2zip, back_tick, get_install_id, get_archs)
+from ..wheeltools import InWheel
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
 
@@ -176,34 +177,6 @@ def test_check_plat_archs():
         _fix_break('x86_64')
         assert_raises(DelocationError, delocate_wheel, fixed_wheel,
                       require_archs=(), check_verbose=True)
-
-
-def test_rewrite_record():
-    dist_info_sdir = 'fakepkg2-1.0.dist-info'
-    with InTemporaryDirectory():
-        zip2dir(PURE_WHEEL, 'wheel')
-        record_fname = pjoin('wheel', dist_info_sdir, 'RECORD')
-        with open(record_fname, 'rt') as fobj:
-            record_orig = fobj.read()
-        # Test we get the same record by rewriting
-        os.unlink(record_fname)
-        rewrite_record('wheel')
-        with open(record_fname, 'rt') as fobj:
-            record_new = fobj.read()
-        assert_equal(record_orig, record_new)
-        # Test that signature gets deleted
-        sig_fname = pjoin('wheel', dist_info_sdir, 'RECORD.jws')
-        with open(sig_fname, 'wt') as fobj:
-            fobj.write('something')
-        rewrite_record('wheel')
-        with open(record_fname, 'rt') as fobj:
-            record_new = fobj.read()
-        assert_equal(record_orig, record_new)
-        assert_false(exists(sig_fname))
-        # Test error for too many dist-infos
-        shutil.copytree(pjoin('wheel', dist_info_sdir),
-                        pjoin('wheel', 'anotherpkg-2.0.dist-info'))
-        assert_raises(DelocationError, rewrite_record, 'wheel')
 
 
 def test_patch_wheel():

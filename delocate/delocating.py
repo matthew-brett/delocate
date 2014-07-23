@@ -8,18 +8,14 @@ from os.path import (join as pjoin, dirname, basename, exists, abspath,
                      relpath, realpath)
 import shutil
 import warnings
-import hashlib
-import csv
-import glob
 from subprocess import Popen, PIPE
-
-from wheel.util import urlsafe_b64encode, open_for_csv, native
 
 from .pycompat import string_types
 from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
 from .tools import (set_install_name, zip2dir, dir2zip,
                     find_package_dirs, set_install_id, get_archs)
 from .tmpdirs import InTemporaryDirectory, InGivenDirectory
+from .wheeltools import rewrite_record, InWheel
 
 # Prefix for install_name_id of copied libraries
 DLC_PREFIX = '/DLC/'
@@ -295,55 +291,6 @@ def delocate_path(tree_path, lib_path,
     return copy_recurse(lib_path, copy_filt_func, copied)
 
 
-def rewrite_record(bdist_dir):
-    """ Rewrite RECORD file with hashes for all files in `wheel_sdir`
-
-    Copied from :method:`wheel.bdist_wheel.bdist_wheel.write_record`
-
-    Will also unsign wheel
-
-    Parameters
-    ----------
-    bdist_dir : str
-        Path of unpacked wheel file
-    """
-    info_dirs = glob.glob(pjoin(bdist_dir, '*.dist-info'))
-    if len(info_dirs) != 1:
-        raise DelocationError("Should be exactly one `*.dist_info` directory")
-    record_path = os.path.join(info_dirs[0], 'RECORD')
-    record_relpath = os.path.relpath(record_path, bdist_dir)
-    # Unsign wheel - because we're invalidating the record hash
-    sig_path = os.path.join(info_dirs[0], 'RECORD.jws')
-    if exists(sig_path):
-        os.unlink(sig_path)
-
-    def walk():
-        for dir, dirs, files in os.walk(bdist_dir):
-            for f in files:
-                yield os.path.join(dir, f)
-
-    def skip(path):
-        """Wheel hashes every possible file."""
-        return (path == record_relpath)
-
-    with open_for_csv(record_path, 'w+') as record_file:
-        writer = csv.writer(record_file)
-        for path in walk():
-            relpath = os.path.relpath(path, bdist_dir)
-            if skip(relpath):
-                hash = ''
-                size = ''
-            else:
-                with open(path, 'rb') as f:
-                    data = f.read()
-                digest = hashlib.sha256(data).digest()
-                hash = 'sha256=' + native(urlsafe_b64encode(digest))
-                size = len(data)
-            record_path = os.path.relpath(
-                path, bdist_dir).replace(os.path.sep, '/')
-            writer.writerow((record_path, hash, size))
-
-
 def _merge_lib_dict(d1, d2):
     """ Merges lib_dict `d2` into lib_dict `d1`
     """
@@ -353,39 +300,6 @@ def _merge_lib_dict(d1, d2):
         else:
             d1[required] = requirings
     return None
-
-
-class InWheel(InTemporaryDirectory):
-    """ Context manager for doing things inside wheels
-
-    On entering, you'll find yourself in the root tree of the wheel.  If you've
-    asked for an output wheel, then on exit we'll rewrite the wheel record and
-    pack stuff up for you.
-    """
-    def __init__(self, in_wheel, out_wheel=None):
-        """ Initialize in-wheel context manager
-
-        Parameters
-        ----------
-        in_wheel : str
-            filename of wheel to unpack and work inside
-        out_wheel : None or str:
-            filename of wheel to write after exiting.  If None, don't write and
-            discard
-        """
-        self.in_wheel = abspath(in_wheel)
-        self.out_wheel = None if out_wheel is None else abspath(out_wheel)
-        super(InWheel, self).__init__()
-
-    def __enter__(self):
-        zip2dir(self.in_wheel, self.name)
-        return super(InWheel, self).__enter__()
-
-    def __exit__(self, exc, value, tb):
-        if not self.out_wheel is None:
-            rewrite_record(self.name)
-            dir2zip(self.name, self.out_wheel)
-        return super(InWheel, self).__exit__(exc, value, tb)
 
 
 def delocate_wheel(in_wheel,

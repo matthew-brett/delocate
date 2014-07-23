@@ -3,26 +3,23 @@
 from __future__ import division, print_function
 
 import os
-from os.path import (join as pjoin, dirname, basename, relpath, realpath,
-                     isfile)
+from os.path import (join as pjoin, dirname, basename, relpath, realpath)
 import shutil
 
-from ..delocating import (DelocationError, InWheel, delocate_tree_libs,
-                          copy_recurse, delocate_path, check_archs,
-                          bads_report)
+from ..delocating import (DelocationError, delocate_tree_libs, copy_recurse,
+                          delocate_path, check_archs, bads_report)
 from ..libsana import tree_libs
 from ..tools import (get_install_names, set_install_name, back_tick)
 
 from ..tmpdirs import InTemporaryDirectory
 
-from nose.tools import (assert_true, assert_false, assert_raises, assert_equal)
+from nose.tools import (assert_true, assert_raises, assert_equal)
 
 from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
                                  EXT_LIBS)
 from .test_tools import (LIB32, LIB64, LIB64A, LIBBOTH, ARCH_64, ARCH_32,
                          ARCH_BOTH)
 from .test_libsana import get_ext_dict
-from .test_wheelies import PURE_WHEEL
 
 def _make_libtree(out_path):
     liba, libb, libc, test_lib = _copy_libs(
@@ -50,26 +47,6 @@ def _make_libtree(out_path):
     back_tick([test_lib])
     back_tick([stest_lib])
     return liba, libb, libc, test_lib, slibc, stest_lib
-
-
-def test_in_wheel():
-    # Test in-wheel decorator
-    with InWheel(PURE_WHEEL): # No output wheel
-        shutil.rmtree('fakepkg2')
-        res = sorted(os.listdir('.'))
-    assert_equal(res, ['fakepkg2-1.0.dist-info'])
-    # The original wheel unchanged
-    with InWheel(PURE_WHEEL): # No output wheel
-        res = sorted(os.listdir('.'))
-    assert_equal(res, ['fakepkg2', 'fakepkg2-1.0.dist-info'])
-    # Make an output wheel file in a temporary directory
-    with InTemporaryDirectory():
-        mod_path = pjoin('fakepkg2', 'module1.py')
-        with InWheel(PURE_WHEEL, 'mungled.whl'):
-            assert_true(isfile(mod_path))
-            os.unlink(mod_path)
-        with InWheel('mungled.whl'):
-            assert_false(isfile(mod_path))
 
 
 def test_delocate_tree_libs():

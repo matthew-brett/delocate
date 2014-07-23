@@ -9,7 +9,7 @@ import shutil
 from ..tools import cmp_contents, get_archs, zip2dir, dir2zip, back_tick
 from ..fuse import fuse_trees, fuse_wheels
 from ..tmpdirs import InTemporaryDirectory
-from ..delocating import rewrite_record
+from ..wheeltools import rewrite_record
 
 from nose.tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)

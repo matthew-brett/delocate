@@ -18,11 +18,11 @@ Release checklist
 * Review and update the release notes.  Review and update the :file:`Changelog`
   file.  Get a partial list of contributors with something like::
 
-      git shortlog -ns 0.2.0..
+      git shortlog -ns 0.4.0..
 
-  where ``0.2.0`` was the last release tag name.
+  where ``0.4.0`` was the last release tag name.
 
-  Then manually go over ``git shortlog 0.2.0..`` to make sure the release notes
+  Then manually go over ``git shortlog 0.4.0..`` to make sure the release notes
   are as complete as possible and that every contributor was recognized.
 
 * Use the opportunity to update the ``.mailmap`` file if there are any duplicate
@@ -68,9 +68,9 @@ You might want to make tag the release commit on your local machine, push to
 pypi_, review, fix, rebase, until all is good.  Then and only then do you push
 to upstream on github.
 
-* Make an annotated tag for the release with tag of form ``0.3.0``::
+* Make an annotated tag for the release with tag of form ``0.5.0``::
 
-    git tag -am 'Second public release' 0.3.0
+    git tag -am 'Second public release' 0.5.0
 
   Because we're using `versioneer`_ it is the tag which sets the package
   version.
@@ -111,7 +111,7 @@ to upstream on github.
 * Check how everything looks on pypi - the description, the packages.  If
   necessary delete the release and try again if it doesn't look right.
 
-* Push the tag with ``git push origin 0.3.0``
+* Push the tag with ``git push origin 0.5.0``
 
 * Announce to the mailing lists.  With fear and trembling.
 

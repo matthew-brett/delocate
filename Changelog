@@ -14,6 +14,15 @@ of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* 0.5.0 (Tuesday July 22 2014)
+
+  Fourth public release
+
+  * Add utilities and script to apply a patch to a wheel
+  * Add utilities and script to test for architectures in libraries and
+    require named architectures
+  * Docstring fixes and refactoring
+
 * 0.4.0 (Wednesday June 25 2014)
 
   Third public release

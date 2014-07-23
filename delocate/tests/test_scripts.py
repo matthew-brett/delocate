@@ -287,20 +287,23 @@ def test_fix_wheel_archs():
                 ['delocate-wheel', fixed_wheel, '--check-archs'],
                 check_code=False)
             assert_false(code == 0)
+            stderr = stderr.decode('latin1').strip()
             assert_true(stderr.startswith('Traceback'))
-            assert_true(stderr.strip().endswith(
+            assert_true(stderr.endswith(
                 "Some missing architectures in wheel"))
-            assert_equal(stdout.strip(), '')
+            assert_equal(stdout.strip(), b'')
             # Checked, verbose
             _fix_break(arch)
             code, stdout, stderr = run_command(
                 ['delocate-wheel', fixed_wheel, '--check-archs', '-v'],
                 check_code=False)
             assert_false(code == 0)
+            stderr = stderr.decode('latin1').strip()
             assert_true(stderr.startswith('Traceback'))
-            assert_true(stderr.strip().endswith(
+            assert_true(stderr.endswith(
                 "Some missing architectures in wheel"))
-            assert_equal(stdout.strip(),
+            stdout = stdout.decode('latin1').strip()
+            assert_equal(stdout,
                          fmt_str.format(
                              fixed_wheel,
                              'fakepkg1/subpkg/module2.so',

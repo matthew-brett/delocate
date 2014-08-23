@@ -2,7 +2,7 @@
 """
 
 import os
-from os.path import join as pjoin, exists, isfile
+from os.path import join as pjoin, exists, isfile, basename, realpath
 import shutil
 
 from ..wheeltools import rewrite_record, InWheel, WheelToolsError
@@ -44,13 +44,15 @@ def test_rewrite_record():
 
 def test_in_wheel():
     # Test in-wheel decorator
-    with InWheel(PURE_WHEEL): # No output wheel
+    with InWheel(PURE_WHEEL) as wheel_path: # No output wheel
         shutil.rmtree('fakepkg2')
         res = sorted(os.listdir('.'))
+        assert_equal(realpath(wheel_path), realpath(os.getcwd()))
     assert_equal(res, ['fakepkg2-1.0.dist-info'])
     # The original wheel unchanged
-    with InWheel(PURE_WHEEL): # No output wheel
+    with InWheel(PURE_WHEEL, ret_self=True) as ctx: # No output wheel
         res = sorted(os.listdir('.'))
+        assert_equal(realpath(ctx.wheel_path), realpath(os.getcwd()))
     assert_equal(res, ['fakepkg2', 'fakepkg2-1.0.dist-info'])
     # Make an output wheel file in a temporary directory
     with InTemporaryDirectory():
@@ -58,5 +60,15 @@ def test_in_wheel():
         with InWheel(PURE_WHEEL, 'mungled.whl'):
             assert_true(isfile(mod_path))
             os.unlink(mod_path)
+        with InWheel('mungled.whl'):
+            assert_false(isfile(mod_path))
+    # Do the same, but set wheel name post-hoc
+    with InTemporaryDirectory() as tmpdir:
+        mod_path = pjoin('fakepkg2', 'module1.py')
+        with InWheel(PURE_WHEEL, ret_self=True) as ctx:
+            assert_true(isfile(mod_path))
+            os.unlink(mod_path)
+            # Set output name in context manager, so write on output
+            ctx.out_wheel = pjoin(tmpdir, 'mungled.whl')
         with InWheel('mungled.whl'):
             assert_false(isfile(mod_path))

@@ -74,7 +74,7 @@ class InWheel(InTemporaryDirectory):
     asked for an output wheel, then on exit we'll rewrite the wheel record and
     pack stuff up for you.
     """
-    def __init__(self, in_wheel, out_wheel=None):
+    def __init__(self, in_wheel, out_wheel=None, ret_self=False):
         """ Initialize in-wheel context manager
 
         Parameters
@@ -84,14 +84,20 @@ class InWheel(InTemporaryDirectory):
         out_wheel : None or str:
             filename of wheel to write after exiting.  If None, don't write and
             discard
+        ret_self : bool, optional
+            If True, return ``self`` from ``__enter__``, otherwise return the
+            directory path.
         """
         self.in_wheel = abspath(in_wheel)
         self.out_wheel = None if out_wheel is None else abspath(out_wheel)
+        self.ret_self = ret_self
+        self.wheel_path = None
         super(InWheel, self).__init__()
 
     def __enter__(self):
         zip2dir(self.in_wheel, self.name)
-        return super(InWheel, self).__enter__()
+        self.wheel_path = super(InWheel, self).__enter__()
+        return self if self.ret_self else self.wheel_path
 
     def __exit__(self, exc, value, tb):
         if not self.out_wheel is None:

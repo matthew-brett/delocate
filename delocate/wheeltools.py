@@ -4,12 +4,16 @@ Tools that aren't specific to delocation
 """
 
 import os
-from os.path import join as pjoin, abspath, relpath, exists, sep as psep
+from os.path import (join as pjoin, abspath, relpath, exists, sep as psep,
+                     splitext, basename, dirname)
 import glob
 import hashlib
 import csv
+from itertools import product
 
 from wheel.util import urlsafe_b64encode, open_for_csv, native
+from wheel.pkginfo import read_pkg_info, write_pkg_info
+from wheel.install import WheelFile
 
 from .tmpdirs import InTemporaryDirectory
 from .tools import zip2dir, dir2zip
@@ -104,3 +108,57 @@ class InWheel(InTemporaryDirectory):
             rewrite_record(self.name)
             dir2zip(self.name, self.out_wheel)
         return super(InWheel, self).__exit__(exc, value, tb)
+
+
+def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
+    """ Add platform tags `platforms` to `in_wheel` filename and WHEEL tags
+
+    Add any platform tags in `platforms` that are missing from `in_wheel`
+    filename.
+
+    Add any platform tags in `platforms` that are missing from `in_wheel`
+    ``WHEEL`` file.
+
+    Parameters
+    ----------
+    in_wheel : str
+        Filename of wheel to which to add platform tags
+    platforms : iterable
+        platform tags to add to wheel filename and WHEEL tags - e.g.
+        ``('macosx_10_9_intel', 'macosx_10_9_x96_64')
+    out_path : None or str, optional
+        Directory to which to write new wheel.  Default is directory containing
+        `in_wheel`
+    clobber : bool, optional
+        If True, overwrite existing output filename, otherwise raise error
+    """
+    in_wheel = abspath(in_wheel)
+    out_path = dirname(in_wheel) if out_path is None else abspath(out_path)
+    platforms = list(platforms)
+    wf = WheelFile(in_wheel)
+    info_fname = wf.wheelinfo_name
+    # Check what tags we have
+    in_fname_tags = wf.parsed_filename.groupdict()['plat'].split('.')
+    extra_fname_tags = [tag for tag in platforms if tag not in in_fname_tags]
+    in_wheel_base, ext = splitext(basename(in_wheel))
+    out_wheel_base = '.'.join([in_wheel_base] + list(extra_fname_tags))
+    out_wheel = pjoin(out_path, out_wheel_base + ext)
+    if exists(out_wheel) and not clobber:
+        raise WheelToolsError('Not overwriting {0}; set clobber=True '
+                              'to overwrite'.format(out_wheel))
+    with InWheel(in_wheel, ret_self=True) as ctx:
+        info = read_pkg_info(info_fname)
+        if info['Root-Is-Purelib'] == 'true':
+            raise WheelToolsError('Cannot add platforms to pure wheel')
+        in_info_tags = [tag for name, tag in info.items() if name == 'Tag']
+        py_apis = ['-'.join(tag.split('-')[:2]) for tag in in_info_tags]
+        required_tags = ['-'.join(tup) for tup in product(py_apis, platforms)]
+        needs_write = False
+        for req_tag in required_tags:
+            if req_tag in in_info_tags: continue
+            needs_write = True
+            info.add_header('Tag', req_tag)
+        if needs_write:
+            write_pkg_info(info_fname, info)
+            ctx.out_wheel = out_wheel
+    return ctx.out_wheel

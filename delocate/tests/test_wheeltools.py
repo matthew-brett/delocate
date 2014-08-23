@@ -5,13 +5,16 @@ import os
 from os.path import join as pjoin, exists, isfile, basename, realpath
 import shutil
 
-from ..wheeltools import rewrite_record, InWheel, WheelToolsError
+from wheel.install import WheelFile
+
+from ..wheeltools import (rewrite_record, InWheel, WheelToolsError,
+                          add_platforms)
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import zip2dir
 
 from nose.tools import (assert_true, assert_false, assert_raises, assert_equal)
 
-from .test_wheelies import PURE_WHEEL
+from .test_wheelies import PURE_WHEEL, PLAT_WHEEL
 
 
 def test_rewrite_record():
@@ -72,3 +75,63 @@ def test_in_wheel():
             ctx.out_wheel = pjoin(tmpdir, 'mungled.whl')
         with InWheel('mungled.whl'):
             assert_false(isfile(mod_path))
+
+
+def test_add_platforms():
+    # Check adding platform to wheel name and tag section
+    wf = WheelFile(PLAT_WHEEL)
+    exp_items = [('Generator', 'bdist_wheel (0.23.0)'),
+                 ('Root-Is-Purelib', 'false'),
+                 ('Tag', 'cp27-none-macosx_10_6_intel'),
+                 ('Wheel-Version', '1.0')]
+    assert_equal(sorted(wf.parsed_wheel_info.items()), exp_items)
+    with InTemporaryDirectory() as tmpdir:
+        # First wheel needs proper wheel filename for later unpack test
+        out_fname = basename(PURE_WHEEL)
+        plats = ('macosx_10_9_intel', 'macosx_10_9_x86_64')
+        # Can't add platforms to a pure wheel
+        assert_raises(WheelToolsError,
+                      add_platforms, PURE_WHEEL, plats, tmpdir)
+        assert_false(exists(out_fname))
+        out_fname = ('fakepkg1-1.0-cp27-none-macosx_10_6_intel.'
+                     'macosx_10_9_intel.macosx_10_9_x86_64.whl')
+        assert_equal(realpath(add_platforms(PLAT_WHEEL, plats, tmpdir)),
+                     realpath(out_fname))
+        assert_true(isfile(out_fname))
+        # Expected output minus wheel-version (that might change)
+        extra_exp = [('Generator', 'bdist_wheel (0.23.0)'),
+                      ('Root-Is-Purelib', 'false'),
+                      ('Tag', 'cp27-none-macosx_10_6_intel'),
+                      ('Tag', 'cp27-none-macosx_10_9_intel'),
+                      ('Tag', 'cp27-none-macosx_10_9_x86_64')]
+        wf = WheelFile(out_fname)
+        # Omit wheel version in comparison
+        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)
+        # If wheel exists (as it does) then raise error
+        assert_raises(WheelToolsError,
+                      add_platforms, PLAT_WHEEL, plats, tmpdir)
+        # Unless clobber is set
+        add_platforms(PLAT_WHEEL, plats, tmpdir, clobber=True)
+        # Default is to write into directory of wheel
+        os.mkdir('wheels')
+        shutil.copy2(PLAT_WHEEL, 'wheels')
+        local_plat = pjoin('wheels', basename(PLAT_WHEEL))
+        local_out = pjoin('wheels', out_fname)
+        add_platforms(local_plat, plats)
+        assert_true(exists(local_out))
+        assert_raises(WheelToolsError, add_platforms, local_plat, plats)
+        add_platforms(local_plat, plats, clobber=True)
+        # If platforms already present, don't write more
+        res = sorted(os.listdir('wheels'))
+        assert_equal(add_platforms(local_out, plats, clobber=True), None)
+        assert_equal(sorted(os.listdir('wheels')), res)
+        wf = WheelFile(local_out)
+        # Omit wheel version in comparison
+        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)
+        # But WHEEL tags if missing, even if file name is OK
+        shutil.copy2(local_plat, local_out)
+        add_platforms(local_out, plats, clobber=True)
+        assert_equal(sorted(os.listdir('wheels')), res)
+        wf = WheelFile(local_out)
+        # Omit wheel version in comparison
+        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)

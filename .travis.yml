@@ -4,6 +4,7 @@ language:
 env:
   matrix:
     - VERSION="2.7.7"
+    - VERSION=3.2.5
     - VERSION="3.3.5"
     - VERSION="3.4.1"
 

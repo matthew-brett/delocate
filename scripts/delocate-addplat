@@ -1,0 +1,60 @@
+#!python
+""" Add platform tags to wheel filename and WHEEL file
+"""
+# vim: ft=python
+from __future__ import division, print_function, absolute_import
+
+import sys
+import os
+from os.path import join as pjoin, basename, exists, expanduser
+from optparse import OptionParser, Option
+
+from delocate import __version__
+from delocate.wheeltools import add_platforms
+
+
+def main():
+    parser = OptionParser(
+        usage="%s WHEEL_FILENAME\n\n" % sys.argv[0] + __doc__,
+        version="%prog " + __version__)
+    parser.add_option(
+        Option("-p", "--plat-tag", action="append", type='string',
+               help="Platform tag to add (can be specified multiple times"))
+    parser.add_option(
+        Option("-w", "--wheel-dir",
+               action="store", type='string',
+               help="Directory to store delocated wheels (default is to "
+               "overwrite input)"))
+    parser.add_option(
+        Option("-c", "--clobber",
+               action="store_true",
+               help="Overwrite pre-existing wheels"))
+    parser.add_option(
+        Option("-v", "--verbose",
+               action="store_true",
+               help="Show more verbose report of progress and failure"))
+    (opts, wheels) = parser.parse_args()
+    if len(wheels) < 1:
+        parser.print_help()
+        sys.exit(1)
+    multi = len(wheels) > 1
+    if opts.wheel_dir:
+        wheel_dir = expanduser(opts.wheel_dir)
+        if not exists(wheel_dir):
+            os.makedirs(wheel_dir)
+    else:
+        wheel_dir = None
+    if len(opts.plat_tag) == 0:
+        raise RuntimeError('Need at least one --plat-tag')
+    for wheel in wheels:
+        if multi or opts.verbose:
+            print('Setting platform tags {0} for wheel {1}'.format(
+                wheel, ','.join(opts.plat_tag)))
+        fname = add_platforms(wheel, opts.plat_tag,
+                              wheel_dir, clobber=opts.clobber)
+        if opts.verbose and not fname is None:
+            print("Wrote {0}".format(fname))
+
+
+if __name__ == '__main__':
+    main()

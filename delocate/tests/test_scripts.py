@@ -16,6 +16,8 @@ import shutil
 
 from subprocess import Popen, PIPE
 
+from wheel.install import WheelFile
+
 from ..tmpdirs import InTemporaryDirectory
 from ..pycompat import string_types
 from ..tools import back_tick, set_install_name, zip2dir, dir2zip
@@ -369,3 +371,70 @@ def test_patch_wheel():
         assert_raises(RuntimeError,
                       run_command,
                       ['delocate-patch', 'example.whl', WHEEL_PATCH_BAD])
+
+
+def test_add_platforms():
+    # Check adding platform to wheel name and tag section
+    wf = WheelFile(PLAT_WHEEL)
+    exp_items = [('Generator', 'bdist_wheel (0.23.0)'),
+                 ('Root-Is-Purelib', 'false'),
+                 ('Tag', 'cp27-none-macosx_10_6_intel'),
+                 ('Wheel-Version', '1.0')]
+    assert_equal(sorted(wf.parsed_wheel_info.items()), exp_items)
+    with InTemporaryDirectory() as tmpdir:
+        # First wheel needs proper wheel filename for later unpack test
+        out_fname = basename(PURE_WHEEL)
+        # Need to specify at least one platform
+        assert_raises(RuntimeError, run_command,
+            ['delocate-addplat', PURE_WHEEL, '-w', tmpdir])
+        plat_args = ['-p', 'macosx_10_9_intel',
+                    '--plat-tag', 'macosx_10_9_x86_64']
+        # Can't add platforms to a pure wheel
+        assert_raises(RuntimeError, run_command,
+            ['delocate-addplat', PURE_WHEEL, '-w', tmpdir] + plat_args)
+        assert_false(exists(out_fname))
+        # Works for plat_wheel
+        out_fname = ('fakepkg1-1.0-cp27-none-macosx_10_6_intel.'
+                     'macosx_10_9_intel.macosx_10_9_x86_64.whl')
+        code, stdout, stderr = run_command(
+            ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir] + plat_args)
+        assert_true(isfile(out_fname))
+        # Expected output minus wheel-version (that might change)
+        extra_exp = [('Generator', 'bdist_wheel (0.23.0)'),
+                      ('Root-Is-Purelib', 'false'),
+                      ('Tag', 'cp27-none-macosx_10_6_intel'),
+                      ('Tag', 'cp27-none-macosx_10_9_intel'),
+                      ('Tag', 'cp27-none-macosx_10_9_x86_64')]
+        wf = WheelFile(out_fname)
+        # Omit wheel version in comparison
+        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)
+        # If wheel exists (as it does) then raise error
+        assert_raises(RuntimeError, run_command,
+            ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir] + plat_args)
+        # Unless clobber is set
+        code, stdout, stderr = run_command(
+            ['delocate-addplat', PLAT_WHEEL, '-c', '-w', tmpdir] + plat_args)
+        # Default is to write into directory of wheel
+        os.mkdir('wheels')
+        shutil.copy2(PLAT_WHEEL, 'wheels')
+        local_plat = pjoin('wheels', basename(PLAT_WHEEL))
+        local_out = pjoin('wheels', out_fname)
+        code, stdout, stderr = run_command(
+            ['delocate-addplat', local_plat]  + plat_args)
+        assert_true(exists(local_out))
+        # If platforms already present, don't write more
+        res = sorted(os.listdir('wheels'))
+        code, stdout, stderr = run_command(
+            ['delocate-addplat', local_plat, '--clobber']  + plat_args)
+        assert_equal(sorted(os.listdir('wheels')), res)
+        wf = WheelFile(local_out)
+        # Omit wheel version in comparison
+        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)
+        # But WHEEL tags if missing, even if file name is OK
+        shutil.copy2(local_plat, local_out)
+        code, stdout, stderr = run_command(
+            ['delocate-addplat', local_plat, '--clobber']  + plat_args)
+        assert_equal(sorted(os.listdir('wheels')), res)
+        wf = WheelFile(local_out)
+        # Omit wheel version in comparison
+        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)

@@ -16,7 +16,7 @@ from wheel.pkginfo import read_pkg_info, write_pkg_info
 from wheel.install import WheelFile
 
 from .tmpdirs import InTemporaryDirectory
-from .tools import zip2dir, dir2zip
+from .tools import unique_by_index, zip2dir, dir2zip
 
 class WheelToolsError(Exception):
     pass
@@ -165,7 +165,6 @@ def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
     """
     in_wheel = abspath(in_wheel)
     out_path = dirname(in_wheel) if out_path is None else abspath(out_path)
-    platforms = list(platforms)
     wf = WheelFile(in_wheel)
     info_fname = wf.wheelinfo_name
     # Check what tags we have
@@ -182,8 +181,12 @@ def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
         if info['Root-Is-Purelib'] == 'true':
             raise WheelToolsError('Cannot add platforms to pure wheel')
         in_info_tags = [tag for name, tag in info.items() if name == 'Tag']
-        py_apis = ['-'.join(tag.split('-')[:2]) for tag in in_info_tags]
-        required_tags = ['-'.join(tup) for tup in product(py_apis, platforms)]
+        # Python version, C-API version combinations
+        pyc_apis = ['-'.join(tag.split('-')[:2]) for tag in in_info_tags]
+        # unique Python version, C-API version combinations
+        pyc_apis = unique_by_index(pyc_apis)
+        # Add new platform tags for each Python version, C-API combination
+        required_tags = ['-'.join(tup) for tup in product(pyc_apis, platforms)]
         needs_write = False
         for req_tag in required_tags:
             if req_tag in in_info_tags: continue
@@ -191,5 +194,6 @@ def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
             info.add_header('Tag', req_tag)
         if needs_write:
             write_pkg_info(info_fname, info)
+            # Tell context manager to write wheel on exit by setting filename
             ctx.out_wheel = out_wheel
     return ctx.out_wheel

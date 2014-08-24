@@ -2,7 +2,7 @@
 """
 
 import os
-from os.path import join as pjoin, exists, isfile, basename, realpath
+from os.path import join as pjoin, exists, isfile, basename, realpath, splitext
 import shutil
 
 from wheel.install import WheelFile
@@ -82,14 +82,26 @@ def test_in_wheel():
             assert_false(isfile(mod_path))
 
 
+def get_winfo(info_fname, drop_version=True):
+    """ Get wheel info from WHEEL file
+
+    Drop "Wheel-Version" by default in case this changes in the future
+    """
+    wf = WheelFile(info_fname)
+    info = sorted(wf.parsed_wheel_info.items())
+    if drop_version:
+        info = [(name, value) for (name, value) in info
+                if name != "Wheel-Version"]
+    return info
+
+
 def test_add_platforms():
     # Check adding platform to wheel name and tag section
-    wf = WheelFile(PLAT_WHEEL)
     exp_items = [('Generator', 'bdist_wheel (0.23.0)'),
                  ('Root-Is-Purelib', 'false'),
                  ('Tag', 'cp27-none-macosx_10_6_intel'),
                  ('Wheel-Version', '1.0')]
-    assert_equal(sorted(wf.parsed_wheel_info.items()), exp_items)
+    assert_equal(get_winfo(PLAT_WHEEL, drop_version=False), exp_items)
     with InTemporaryDirectory() as tmpdir:
         # First wheel needs proper wheel filename for later unpack test
         out_fname = basename(PURE_WHEEL)
@@ -109,14 +121,22 @@ def test_add_platforms():
                       ('Tag', 'cp27-none-macosx_10_6_intel'),
                       ('Tag', 'cp27-none-macosx_10_9_intel'),
                       ('Tag', 'cp27-none-macosx_10_9_x86_64')]
-        wf = WheelFile(out_fname)
-        # Omit wheel version in comparison
-        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)
+        assert_equal(get_winfo(out_fname), extra_exp)
         # If wheel exists (as it does) then raise error
         assert_raises(WheelToolsError,
                       add_platforms, PLAT_WHEEL, plats, tmpdir)
-        # Unless clobber is set
+        # Unless clobber is set, no error
         add_platforms(PLAT_WHEEL, plats, tmpdir, clobber=True)
+        # Assemble platform tags in two waves to check tags are not being
+        # multiplied
+        out_1 = 'fakepkg1-1.0-cp27-none-macosx_10_6_intel.macosx_10_9_intel.whl'
+        assert_equal(realpath(add_platforms(PLAT_WHEEL, plats[0:1], tmpdir)),
+                     realpath(out_1))
+        assert_equal(get_winfo(out_1), extra_exp[:-1])
+        out_2 = splitext(out_1)[0] + '.macosx_10_9_x86_64.whl'
+        assert_equal(realpath(add_platforms(out_1, plats[1:], tmpdir, True)),
+                     realpath(out_2))
+        assert_equal(get_winfo(out_2), extra_exp)
         # Default is to write into directory of wheel
         os.mkdir('wheels')
         shutil.copy2(PLAT_WHEEL, 'wheels')
@@ -130,13 +150,9 @@ def test_add_platforms():
         res = sorted(os.listdir('wheels'))
         assert_equal(add_platforms(local_out, plats, clobber=True), None)
         assert_equal(sorted(os.listdir('wheels')), res)
-        wf = WheelFile(local_out)
-        # Omit wheel version in comparison
-        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)
+        assert_equal(get_winfo(out_fname), extra_exp)
         # But WHEEL tags if missing, even if file name is OK
         shutil.copy2(local_plat, local_out)
         add_platforms(local_out, plats, clobber=True)
         assert_equal(sorted(os.listdir('wheels')), res)
-        wf = WheelFile(local_out)
-        # Omit wheel version in comparison
-        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)
+        assert_equal(get_winfo(out_fname), extra_exp)

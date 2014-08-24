@@ -44,7 +44,7 @@ def main():
             os.makedirs(wheel_dir)
     else:
         wheel_dir = None
-    if len(opts.plat_tag) == 0:
+    if opts.plat_tag is None:
         raise RuntimeError('Need at least one --plat-tag')
     for wheel in wheels:
         if multi or opts.verbose:

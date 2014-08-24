@@ -52,8 +52,12 @@ def main():
                 wheel, ','.join(opts.plat_tag)))
         fname = add_platforms(wheel, opts.plat_tag,
                               wheel_dir, clobber=opts.clobber)
-        if opts.verbose and not fname is None:
-            print("Wrote {0}".format(fname))
+        if opts.verbose:
+            if fname is None:
+                print('{0} already has tags {1}'.format(
+                    wheel, ', '.join(opts.plat_tag)))
+            else:
+                print("Wrote {0}".format(fname))
 
 
 if __name__ == '__main__':

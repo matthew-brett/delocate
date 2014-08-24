@@ -7,7 +7,7 @@ import shutil
 
 from wheel.install import WheelFile
 
-from ..wheeltools import (rewrite_record, InWheel, WheelToolsError,
+from ..wheeltools import (rewrite_record, InWheel, InWheelCtx, WheelToolsError,
                           add_platforms)
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import zip2dir
@@ -46,29 +46,34 @@ def test_rewrite_record():
 
 
 def test_in_wheel():
-    # Test in-wheel decorator
-    with InWheel(PURE_WHEEL) as wheel_path: # No output wheel
-        shutil.rmtree('fakepkg2')
-        res = sorted(os.listdir('.'))
+    # Test in-wheel context managers
+    # Stuff they share
+    for ctx_mgr in InWheel, InWheelCtx:
+        with ctx_mgr(PURE_WHEEL): # No output wheel
+            shutil.rmtree('fakepkg2')
+            res = sorted(os.listdir('.'))
+        assert_equal(res, ['fakepkg2-1.0.dist-info'])
+        # The original wheel unchanged
+        with ctx_mgr(PURE_WHEEL): # No output wheel
+            res = sorted(os.listdir('.'))
+        assert_equal(res, ['fakepkg2', 'fakepkg2-1.0.dist-info'])
+        # Make an output wheel file in a temporary directory
+        with InTemporaryDirectory():
+            mod_path = pjoin('fakepkg2', 'module1.py')
+            with ctx_mgr(PURE_WHEEL, 'mungled.whl'):
+                assert_true(isfile(mod_path))
+                os.unlink(mod_path)
+            with ctx_mgr('mungled.whl'):
+                assert_false(isfile(mod_path))
+    # Different return from context manager
+    with InWheel(PURE_WHEEL) as wheel_path:
         assert_equal(realpath(wheel_path), realpath(os.getcwd()))
-    assert_equal(res, ['fakepkg2-1.0.dist-info'])
-    # The original wheel unchanged
-    with InWheel(PURE_WHEEL, ret_self=True) as ctx: # No output wheel
-        res = sorted(os.listdir('.'))
+    with InWheelCtx(PURE_WHEEL) as ctx:
         assert_equal(realpath(ctx.wheel_path), realpath(os.getcwd()))
-    assert_equal(res, ['fakepkg2', 'fakepkg2-1.0.dist-info'])
-    # Make an output wheel file in a temporary directory
-    with InTemporaryDirectory():
-        mod_path = pjoin('fakepkg2', 'module1.py')
-        with InWheel(PURE_WHEEL, 'mungled.whl'):
-            assert_true(isfile(mod_path))
-            os.unlink(mod_path)
-        with InWheel('mungled.whl'):
-            assert_false(isfile(mod_path))
-    # Do the same, but set wheel name post-hoc
+    # Set the output wheel inside the with block
     with InTemporaryDirectory() as tmpdir:
         mod_path = pjoin('fakepkg2', 'module1.py')
-        with InWheel(PURE_WHEEL, ret_self=True) as ctx:
+        with InWheelCtx(PURE_WHEEL) as ctx:
             assert_true(isfile(mod_path))
             os.unlink(mod_path)
             # Set output name in context manager, so write on output

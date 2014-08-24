@@ -94,20 +94,51 @@ class InWheel(InTemporaryDirectory):
         """
         self.in_wheel = abspath(in_wheel)
         self.out_wheel = None if out_wheel is None else abspath(out_wheel)
-        self.ret_self = ret_self
-        self.wheel_path = None
         super(InWheel, self).__init__()
 
     def __enter__(self):
         zip2dir(self.in_wheel, self.name)
-        self.wheel_path = super(InWheel, self).__enter__()
-        return self if self.ret_self else self.wheel_path
+        return super(InWheel, self).__enter__()
 
     def __exit__(self, exc, value, tb):
         if not self.out_wheel is None:
             rewrite_record(self.name)
             dir2zip(self.name, self.out_wheel)
         return super(InWheel, self).__exit__(exc, value, tb)
+
+
+class InWheelCtx(InWheel):
+    """ Context manager for doing things inside wheels
+
+    On entering, you'll find yourself in the root tree of the wheel.  If you've
+    asked for an output wheel, then on exit we'll rewrite the wheel record and
+    pack stuff up for you.
+
+    The context manager returns itself from the __enter__ method, so you can
+    set things like ``out_wheel``.  This is useful when processing in the wheel
+    will dicate what the output wheel name is, or whether you want to save at
+    all.
+
+    The current path of the wheel contents is set in the attribute
+    ``wheel_path``.
+    """
+    def __init__(self, in_wheel, out_wheel=None):
+        """ Init in-wheel context manager returning self from enter
+
+        Parameters
+        ----------
+        in_wheel : str
+            filename of wheel to unpack and work inside
+        out_wheel : None or str:
+            filename of wheel to write after exiting.  If None, don't write and
+            discard
+        """
+        super(InWheelCtx, self).__init__(in_wheel, out_wheel)
+        self.wheel_path = None
+
+    def __enter__(self):
+        self.wheel_path = super(InWheelCtx, self).__enter__()
+        return self
 
 
 def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
@@ -146,7 +177,7 @@ def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
     if exists(out_wheel) and not clobber:
         raise WheelToolsError('Not overwriting {0}; set clobber=True '
                               'to overwrite'.format(out_wheel))
-    with InWheel(in_wheel, ret_self=True) as ctx:
+    with InWheelCtx(in_wheel) as ctx:
         info = read_pkg_info(info_fname)
         if info['Root-Is-Purelib'] == 'true':
             raise WheelToolsError('Cannot add platforms to pure wheel')

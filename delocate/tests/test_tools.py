@@ -2,7 +2,7 @@
 from __future__ import division, print_function
 
 import os
-from os.path import join as pjoin, split as psplit, abspath, dirname
+from os.path import join as pjoin, dirname
 import shutil
 
 from ..tools import (back_tick, unique_by_index, ensure_writable, zip2dir,

@@ -6,7 +6,7 @@ from __future__ import division, print_function, absolute_import
 
 import sys
 import os
-from os.path import join as pjoin, basename, exists, expanduser
+from os.path import join as exists, expanduser
 from optparse import OptionParser, Option
 
 from delocate import __version__

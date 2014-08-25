@@ -6,7 +6,7 @@ Analyze library dependencies in paths and wheel files
 import os
 from os.path import join as pjoin, realpath
 
-from .tools import get_install_names, zip2dir, get_archs
+from .tools import get_install_names, zip2dir
 from .tmpdirs import TemporaryDirectory
 
 def tree_libs(start_path, filt_func = None):

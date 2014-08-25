@@ -2,8 +2,7 @@
 """
 
 import os
-from os.path import (join as pjoin, split as psplit, relpath, isdir, dirname,
-                     basename)
+from os.path import (join as pjoin, relpath, isdir, dirname, basename)
 import shutil
 
 from ..tools import cmp_contents, get_archs, zip2dir, dir2zip, back_tick

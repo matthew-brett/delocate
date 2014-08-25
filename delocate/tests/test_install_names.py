@@ -1,8 +1,7 @@
 """ Tests for install name utilities """
 
 import os
-from os.path import (join as pjoin, split as psplit, abspath, dirname,
-                     basename, exists)
+from os.path import (join as pjoin, exists, dirname, basename)
 
 import shutil
 

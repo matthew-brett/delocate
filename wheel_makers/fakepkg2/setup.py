@@ -3,7 +3,6 @@
 fakepkg2 is a - fake package - with Python only. We use it to build a wheel,
 then test we can delocate it.
 """
-from os.path import join as pjoin, abspath, dirname
 import setuptools # for wheel builds
 from distutils.core import setup
 

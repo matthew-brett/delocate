@@ -4,14 +4,12 @@ Utilities for analyzing library dependencies in trees and wheels
 """
 
 import os
-from os.path import (join as pjoin, split as psplit, abspath, dirname,
-                     realpath, basename, relpath)
+from os.path import (join as pjoin, dirname, realpath, relpath)
 
 from ..libsana import (tree_libs, get_prefix_stripper, get_rp_stripper,
                        stripped_lib_dict, wheel_libs)
-from ..delocating import delocate_wheel
 
-from ..tools import set_install_name, lipo_fuse
+from ..tools import set_install_name
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -20,10 +18,7 @@ from nose.tools import (assert_true, assert_false, assert_raises,
 
 from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
                                  EXT_LIBS, LIBSYSTEMB)
-from .test_wheelies import (PLAT_WHEEL, PURE_WHEEL, STRAY_LIB_DEP,
-                            _fixed_wheel)
-from .test_tools import (LIB32, LIB64, LIB64A, LIBBOTH, ARCH_64, ARCH_32,
-                         ARCH_BOTH)
+from .test_wheelies import (PLAT_WHEEL, PURE_WHEEL, STRAY_LIB_DEP)
 
 
 def get_ext_dict(local_libs):

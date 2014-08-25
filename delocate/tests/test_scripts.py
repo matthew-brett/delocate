@@ -16,8 +16,6 @@ import shutil
 
 from subprocess import Popen, PIPE
 
-from wheel.install import WheelFile
-
 from ..tmpdirs import InTemporaryDirectory
 from ..pycompat import string_types
 from ..tools import back_tick, set_install_name, zip2dir, dir2zip
@@ -30,6 +28,7 @@ from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
                             STRAY_LIB_DEP, WHEEL_PATCH, WHEEL_PATCH_BAD,
                             _thin_lib, _thin_mod)
 from .test_fuse import assert_same_tree
+from .test_wheeltools import get_winfo
 
 DEBUG_PRINT = os.environ.get('DELOCATE_DEBUG_PRINT', False)
 
@@ -375,12 +374,11 @@ def test_patch_wheel():
 
 def test_add_platforms():
     # Check adding platform to wheel name and tag section
-    wf = WheelFile(PLAT_WHEEL)
     exp_items = [('Generator', 'bdist_wheel (0.23.0)'),
                  ('Root-Is-Purelib', 'false'),
                  ('Tag', 'cp27-none-macosx_10_6_intel'),
                  ('Wheel-Version', '1.0')]
-    assert_equal(sorted(wf.parsed_wheel_info.items()), exp_items)
+    assert_equal(get_winfo(PLAT_WHEEL, drop_version=False), exp_items)
     with InTemporaryDirectory() as tmpdir:
         # First wheel needs proper wheel filename for later unpack test
         out_fname = basename(PURE_WHEEL)
@@ -405,9 +403,7 @@ def test_add_platforms():
                       ('Tag', 'cp27-none-macosx_10_6_intel'),
                       ('Tag', 'cp27-none-macosx_10_9_intel'),
                       ('Tag', 'cp27-none-macosx_10_9_x86_64')]
-        wf = WheelFile(out_fname)
-        # Omit wheel version in comparison
-        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)
+        assert_equal(get_winfo(out_fname), extra_exp)
         # If wheel exists (as it does) then raise error
         assert_raises(RuntimeError, run_command,
             ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir] + plat_args)
@@ -427,14 +423,10 @@ def test_add_platforms():
         code, stdout, stderr = run_command(
             ['delocate-addplat', local_plat, '--clobber']  + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
-        wf = WheelFile(local_out)
-        # Omit wheel version in comparison
-        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)
+        assert_equal(get_winfo(local_out), extra_exp)
         # But WHEEL tags if missing, even if file name is OK
         shutil.copy2(local_plat, local_out)
         code, stdout, stderr = run_command(
             ['delocate-addplat', local_plat, '--clobber']  + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
-        wf = WheelFile(local_out)
-        # Omit wheel version in comparison
-        assert_equal(sorted(wf.parsed_wheel_info.items())[:-1], extra_exp)
+        assert_equal(get_winfo(local_out), extra_exp)

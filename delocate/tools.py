@@ -67,6 +67,26 @@ def back_tick(cmd, ret_err=False, as_str=True, raise_err=None):
     return out, err
 
 
+def unique_by_index(sequence):
+    """ unique elements in `sequence` in the order in which they occur
+
+    Parameters
+    ----------
+    sequence : iterable
+
+    Returns
+    -------
+    uniques : list
+        unique elements of sequence, ordered by the order in which the element
+        occurs in `sequence`
+    """
+    uniques = []
+    for element in sequence:
+        if element not in uniques:
+            uniques.append(element)
+    return uniques
+
+
 def ensure_writable(f):
     """decorator to ensure a filename is writable before modifying it
 

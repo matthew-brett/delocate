@@ -5,8 +5,9 @@ import os
 from os.path import join as pjoin, split as psplit, abspath, dirname
 import shutil
 
-from ..tools import (back_tick, ensure_writable, zip2dir, dir2zip,
-                     find_package_dirs, cmp_contents, get_archs, lipo_fuse)
+from ..tools import (back_tick, unique_by_index, ensure_writable, zip2dir,
+                     dir2zip, find_package_dirs, cmp_contents, get_archs,
+                     lipo_fuse)
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -28,6 +29,21 @@ def test_back_tick():
     assert_equal(back_tick(cmd, True, False), (b"Hello", b""))
     cmd = 'python -c "raise ValueError()"'
     assert_raises(RuntimeError, back_tick, cmd)
+
+
+def test_uniqe_by_index():
+    assert_equal(unique_by_index([1, 2, 3, 4]),
+                 [1, 2, 3, 4])
+    assert_equal(unique_by_index([1, 2, 2, 4]),
+                 [1, 2, 4])
+    assert_equal(unique_by_index([4, 2, 2, 1]),
+                 [4, 2, 1])
+    def gen():
+        yield 4
+        yield 2
+        yield 2
+        yield 1
+    assert_equal(unique_by_index(gen()), [4, 2, 1])
 
 
 def test_ensure_writable():

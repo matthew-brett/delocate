@@ -8,17 +8,14 @@ path
 """
 from __future__ import division, print_function, absolute_import
 
-import sys
 import os
-from os.path import (dirname, join as pjoin, isfile, isdir, abspath, realpath,
-                     pathsep, basename, exists)
+from os.path import (dirname, join as pjoin, isfile, abspath, realpath,
+                     basename, exists)
 import shutil
 
-from subprocess import Popen, PIPE
-
 from ..tmpdirs import InTemporaryDirectory
-from ..pycompat import string_types
 from ..tools import back_tick, set_install_name, zip2dir, dir2zip
+from .scriptrunner import ScriptRunner
 
 from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
@@ -30,123 +27,58 @@ from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
 from .test_fuse import assert_same_tree
 from .test_wheeltools import get_winfo
 
-DEBUG_PRINT = os.environ.get('DELOCATE_DEBUG_PRINT', False)
 
-DATA_PATH = abspath(pjoin(dirname(__file__), 'data'))
+def _proc_lines(in_str):
+    """ Decode `in_string` to str, split lines, strip whitespace
 
-def local_script_dir(script_sdir):
-    # Check for presence of scripts in development directory.  ``realpath``
-    # checks for the situation where the development directory has been linked
-    # into the path.
-    below_us_2 = realpath(pjoin(dirname(__file__), '..', '..'))
-    devel_script_dir = pjoin(below_us_2, script_sdir)
-    if isfile(pjoin(below_us_2, 'setup.py')) and isdir(devel_script_dir):
-        return devel_script_dir
-    return None
-
-LOCAL_SCRIPT_DIR = local_script_dir('scripts')
-
-def local_module_dir(module_name):
-    mod = __import__(module_name)
-    containing_path = dirname(dirname(realpath(mod.__file__)))
-    if containing_path == realpath(os.getcwd()):
-        return containing_path
-    return None
-
-LOCAL_MODULE_DIR = local_module_dir('delocate')
-
-
-def run_command(cmd, check_code=True):
-    """ Run command sequence `cmd` returning exit code, stdout, stderr
+    Remove any empty lines.
 
     Parameters
     ----------
-    cmd : str or sequence
-        string with command name or sequence of strings defining command
-    check_code : {True, False}, optional
-        If True, raise error for non-zero return code
+    in_str : bytes
+        Input bytes for splitting, stripping
 
     Returns
     -------
-    returncode : int
-        return code from execution of `cmd`
-    stdout : bytes (python 3) or str (python 2)
-        stdout from `cmd`
-    stderr : bytes (python 3) or str (python 2)
-        stderr from `cmd`
+    out_lines : list
+        List of line ``str`` where each line has been stripped of leading and
+        trailing whitespace and empty lines have been removed.
     """
-    if isinstance(cmd, string_types):
-        cmd = [cmd]
-    else:
-        cmd = list(cmd)
-    if os.name == 'nt': # Need .bat file extension for windows
-        cmd[0] += '.bat'
-    if not LOCAL_SCRIPT_DIR is None:
-        # Windows can't run script files without extensions natively so we need
-        # to run local scripts (no extensions) via the Python interpreter.  On
-        # Unix, we might have the wrong incantation for the Python interpreter
-        # in the hash bang first line in the source file.  So, either way, run
-        # the script through the Python interpreter
-        cmd = [sys.executable, pjoin(LOCAL_SCRIPT_DIR, cmd[0])] + cmd[1:]
-    if DEBUG_PRINT:
-        print("Running command '%s'" % cmd)
-    env = os.environ
-    if not LOCAL_MODULE_DIR is None:
-        # module likely comes from the current working directory. We might need
-        # that directory on the path if we're running the scripts from a
-        # temporary directory
-        env = env.copy()
-        pypath = env.get('PYTHONPATH', None)
-        if pypath is None:
-            env['PYTHONPATH'] = LOCAL_MODULE_DIR
-        else:
-            env['PYTHONPATH'] = LOCAL_MODULE_DIR + pathsep + pypath
-    proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=env)
-    stdout, stderr = proc.communicate()
-    if proc.poll() == None:
-        proc.terminate()
-    if check_code and proc.returncode != 0:
-        raise RuntimeError(
-            """Command "{0}" failed with
-            stdout
-            ------
-            {1}
-            stderr
-            ------
-            {2}
-            """.format(cmd, stdout, stderr))
-    return proc.returncode, stdout, stderr
-
-
-def _proc_lines(in_str):
-    lines = in_str.decode('latin1').split('\n') # bytes in py3
+    lines = in_str.decode('latin1').splitlines()
     return [line.strip() for line in lines if line.strip() != '']
 
+
+lines_runner = ScriptRunner(output_processor = _proc_lines)
+run_command = lines_runner.run_command
+bytes_runner = ScriptRunner()
+
+
+DATA_PATH = abspath(pjoin(dirname(__file__), 'data'))
 
 def test_listdeps():
     # smokey tests of list dependencies command
     local_libs = set(['liba.dylib', 'libb.dylib', 'libc.dylib'])
     # single path, with libs
     code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH])
-    assert_equal(set(_proc_lines(stdout)), local_libs)
+    assert_equal(set(stdout), local_libs)
     assert_equal(code, 0)
     # single path, no libs
     with InTemporaryDirectory():
         zip2dir(PURE_WHEEL, 'pure')
         code, stdout, stderr = run_command(['delocate-listdeps', 'pure'])
-        assert_equal(set(_proc_lines(stdout)), set())
+        assert_equal(set(stdout), set())
         assert_equal(code, 0)
         # Multiple paths one with libs
         zip2dir(PLAT_WHEEL, 'plat')
         code, stdout, stderr = run_command(
             ['delocate-listdeps', 'pure', 'plat'])
-        assert_equal(_proc_lines(stdout),
+        assert_equal(stdout,
                     ['pure:', 'plat:', STRAY_LIB_DEP])
         assert_equal(code, 0)
         # With -d flag, get list of dependending modules
         code, stdout, stderr = run_command(
             ['delocate-listdeps', '-d', 'pure', 'plat'])
-        assert_equal(_proc_lines(stdout),
+        assert_equal(stdout,
                      ['pure:', 'plat:', STRAY_LIB_DEP + ':',
                       pjoin('plat', 'fakepkg1', 'subpkg', 'module2.so')])
         assert_equal(code, 0)
@@ -154,27 +86,27 @@ def test_listdeps():
     code, stdout, stderr = run_command(
         ['delocate-listdeps', '--all', DATA_PATH])
     rp_ext_libs = set(realpath(L) for L in EXT_LIBS)
-    assert_equal(set(_proc_lines(stdout)), local_libs | rp_ext_libs)
+    assert_equal(set(stdout), local_libs | rp_ext_libs)
     assert_equal(code, 0)
     # Works on wheels as well
     code, stdout, stderr = run_command(
         ['delocate-listdeps', PURE_WHEEL])
-    assert_equal(set(_proc_lines(stdout)), set())
+    assert_equal(set(stdout), set())
     code, stdout, stderr = run_command(
         ['delocate-listdeps', PURE_WHEEL, PLAT_WHEEL])
-    assert_equal(_proc_lines(stdout),
+    assert_equal(stdout,
                  [PURE_WHEEL + ':', PLAT_WHEEL + ':', STRAY_LIB_DEP])
     # -d flag (is also --dependency flag)
     m2 = pjoin('fakepkg1', 'subpkg', 'module2.so')
     code, stdout, stderr = run_command(
         ['delocate-listdeps', '--depending', PURE_WHEEL, PLAT_WHEEL])
-    assert_equal(_proc_lines(stdout),
+    assert_equal(stdout,
                  [PURE_WHEEL + ':', PLAT_WHEEL + ':', STRAY_LIB_DEP + ':',
                   m2])
     # Can be used with --all
     code, stdout, stderr = run_command(
         ['delocate-listdeps', '--all', '--depending', PURE_WHEEL, PLAT_WHEEL])
-    assert_equal(_proc_lines(stdout),
+    assert_equal(stdout,
                  [PURE_WHEEL + ':', PLAT_WHEEL + ':',
                   STRAY_LIB_DEP + ':', m2,
                   EXT_LIBS[1] + ':', m2])
@@ -234,7 +166,7 @@ def test_wheel():
         shutil.copy2(fixed_wheel, 'wheel_copy.ext')
         code, stdout, stderr = run_command(
             ['delocate-wheel', '-w', 'fixed2', fixed_wheel, 'wheel_copy.ext'])
-        assert_equal(_proc_lines(stdout),
+        assert_equal(stdout,
                      ['Fixing: ' + name
                       for name in (fixed_wheel, 'wheel_copy.ext')])
         _check_wheel(pjoin('fixed2', basename(fixed_wheel)), '.dylibs')
@@ -246,14 +178,14 @@ def test_wheel():
         wheel_lines1 = ['Fixing: ' + fixed_wheel,
                         'Copied to package .dylibs directory:',
                         stray_lib]
-        assert_equal(_proc_lines(stdout), wheel_lines1)
+        assert_equal(stdout, wheel_lines1)
         code, stdout, stderr = run_command(
             ['delocate-wheel', '-v', '--wheel-dir', 'fixed4',
              fixed_wheel, 'wheel_copy.ext'])
         wheel_lines2 = ['Fixing: wheel_copy.ext',
                         'Copied to package .dylibs directory:',
                         stray_lib]
-        assert_equal(_proc_lines(stdout), wheel_lines1 + wheel_lines2)
+        assert_equal(stdout, wheel_lines1 + wheel_lines2)
 
 
 def test_fix_wheel_archs():
@@ -284,7 +216,7 @@ def test_fix_wheel_archs():
             _check_wheel(fixed_wheel, '.dylibs')
             # Checked
             _fix_break(arch)
-            code, stdout, stderr = run_command(
+            code, stdout, stderr = bytes_runner.run_command(
                 ['delocate-wheel', fixed_wheel, '--check-archs'],
                 check_code=False)
             assert_false(code == 0)
@@ -295,7 +227,7 @@ def test_fix_wheel_archs():
             assert_equal(stdout.strip(), b'')
             # Checked, verbose
             _fix_break(arch)
-            code, stdout, stderr = run_command(
+            code, stdout, stderr = bytes_runner.run_command(
                 ['delocate-wheel', fixed_wheel, '--check-archs', '-v'],
                 check_code=False)
             assert_false(code == 0)

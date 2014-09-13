@@ -7,12 +7,20 @@
 Delocate change log
 ###################
 
-`Matthew Brett` (MB) wrote most of the code.  Min Ragan-Kelley (MinRK) did a lot
-of work discussing OSX things with MB, and contributes fixes too.
+`Matthew Brett` (MB) wrote most of the code.  Min Ragan-Kelley (MinRK) did a
+lot of work discussing OSX things with MB, and contributes fixes too.
 
 ********
 Releases
 ********
+
+* 0.6.0 (Saturday September 13 2014)
+
+  Fifth public release
+
+  * Add utility to add platform tags to wheel contents and name
+  * Add more general wheel context manager
+  * Some refactoring for neatness
 
 * 0.5.0 (Tuesday July 22 2014)
 

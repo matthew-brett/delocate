@@ -18,15 +18,15 @@ Release checklist
 * Review and update the release notes.  Review and update the :file:`Changelog`
   file.  Get a partial list of contributors with something like::
 
-      git shortlog -ns 0.4.0..
+      git shortlog -ns 0.6.0..
 
-  where ``0.4.0`` was the last release tag name.
+  where ``0.6.0`` was the last release tag name.
 
-  Then manually go over ``git shortlog 0.4.0..`` to make sure the release notes
+  Then manually go over ``git shortlog 0.6.0..`` to make sure the release notes
   are as complete as possible and that every contributor was recognized.
 
-* Use the opportunity to update the ``.mailmap`` file if there are any duplicate
-  authors listed from ``git shortlog -ns``.
+* Use the opportunity to update the ``.mailmap`` file if there are any
+  duplicate authors listed from ``git shortlog -ns``.
 
 * Add any new authors to the ``AUTHORS`` file.  Add any new entries to the
   ``THANKS`` file.
@@ -50,6 +50,17 @@ Release checklist
 
   Do this on a Python 2 and Python 3 setup.
 
+* Run the same tests after installing into a virtualenv, to test that
+  installing works correctly::
+
+    mkvirtualenv delocate-test
+    pip install nose wheel
+    git clean -fxd
+    python setup.py install
+    mkdir for_test
+    cd for_test
+    nosetests --with-doctest delocate
+
 * Check the documentation doctests::
 
     cd doc
@@ -61,16 +72,13 @@ Release checklist
 Doing the release
 =================
 
-The trick here is to get all the testing, pushing to upstream done *before* you
-do the final release commit.
-
 You might want to make tag the release commit on your local machine, push to
 pypi_, review, fix, rebase, until all is good.  Then and only then do you push
 to upstream on github.
 
-* Make an annotated tag for the release with tag of form ``0.5.0``::
+* Make an annotated tag for the release with tag of form ``0.6.0``::
 
-    git tag -am 'Second public release' 0.5.0
+    git tag -am 'Fifth public release' 0.6.0
 
   Because we're using `versioneer`_ it is the tag which sets the package
   version.
@@ -111,7 +119,7 @@ to upstream on github.
 * Check how everything looks on pypi - the description, the packages.  If
   necessary delete the release and try again if it doesn't look right.
 
-* Push the tag with ``git push origin 0.5.0``
+* Push the tag with ``git push origin 0.6.0``
 
 * Announce to the mailing lists.  With fear and trembling.
 

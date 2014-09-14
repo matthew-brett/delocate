@@ -156,7 +156,7 @@ def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
         Filename of wheel to which to add platform tags
     platforms : iterable
         platform tags to add to wheel filename and WHEEL tags - e.g.
-        ``('macosx_10_9_intel', 'macosx_10_9_x96_64')
+        ``('macosx_10_9_intel', 'macosx_10_9_x86_64')
     out_path : None or str, optional
         Directory to which to write new wheel.  Default is directory containing
         `in_wheel`

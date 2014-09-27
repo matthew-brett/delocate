@@ -377,7 +377,8 @@ def delocate_wheel(in_wheel,
                                             lib_filt_func, copy_filt_func)
                 if copied_libs and lib_path_exists:
                     raise DelocationError(
-                        '{0} already exists in wheel'.format(lib_path))
+                        '{0} already exists in wheel but need to copy '
+                        '{1}'.format(lib_path, '; '.join(copied_libs)))
                 if len(os.listdir(lib_path)) == 0:
                     shutil.rmtree(lib_path)
                 # Check architectures

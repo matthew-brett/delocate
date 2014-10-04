@@ -162,6 +162,11 @@ def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
         `in_wheel`
     clobber : bool, optional
         If True, overwrite existing output filename, otherwise raise error
+
+    Returns
+    -------
+    out_wheel : None or str
+        Absolute path of wheel file written, or None if no wheel file written.
     """
     in_wheel = abspath(in_wheel)
     out_path = dirname(in_wheel) if out_path is None else abspath(out_path)

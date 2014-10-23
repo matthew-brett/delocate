@@ -17,7 +17,8 @@ from ..tmpdirs import InTemporaryDirectory
 from ..tools import back_tick, set_install_name, zip2dir, dir2zip
 from .scriptrunner import ScriptRunner
 
-from nose.tools import assert_true, assert_false, assert_equal, assert_raises
+from nose.tools import (assert_true, assert_false, assert_equal, assert_raises,
+                        assert_not_equal)
 
 from .test_install_names import EXT_LIBS
 from .test_delocating import _make_libtree, _copy_to
@@ -323,6 +324,11 @@ def test_add_platforms():
         assert_raises(RuntimeError, run_command,
             ['delocate-addplat', PURE_WHEEL, '-w', tmpdir] + plat_args)
         assert_false(exists(out_fname))
+        # Error raised (as above) unless ``--skip-error`` flag set
+        code, stdout, stderr = run_command(
+            ['delocate-addplat', PURE_WHEEL, '-w', tmpdir, '-k'] + plat_args)
+        # Still doesn't do anything though
+        assert_false(exists(out_fname))
         # Works for plat_wheel
         out_fname = ('fakepkg1-1.0-cp27-none-macosx_10_6_intel.'
                      'macosx_10_9_intel.macosx_10_9_x86_64.whl')
@@ -342,6 +348,25 @@ def test_add_platforms():
         # Unless clobber is set
         code, stdout, stderr = run_command(
             ['delocate-addplat', PLAT_WHEEL, '-c', '-w', tmpdir] + plat_args)
+        # Can also specify platform tags via --osx-ver flags
+        code, stdout, stderr = run_command(
+            ['delocate-addplat', PLAT_WHEEL, '-c', '-w', tmpdir, '-x', '10_9'])
+        assert_equal(get_winfo(out_fname), extra_exp)
+        # Can mix plat_tag and osx_ver
+        out_big_fname = ('fakepkg1-1.0-cp27-none-macosx_10_6_intel.'
+                         'macosx_10_9_intel.macosx_10_9_x86_64.'
+                         'macosx_10_10_intel.macosx_10_10_x86_64.whl')
+        extra_big_exp = [('Generator', 'bdist_wheel (0.23.0)'),
+                         ('Root-Is-Purelib', 'false'),
+                         ('Tag', 'cp27-none-macosx_10_10_intel'),
+                         ('Tag', 'cp27-none-macosx_10_10_x86_64'),
+                         ('Tag', 'cp27-none-macosx_10_6_intel'),
+                         ('Tag', 'cp27-none-macosx_10_9_intel'),
+                         ('Tag', 'cp27-none-macosx_10_9_x86_64')]
+        code, stdout, stderr = run_command(
+            ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir, '-x', '10_10']
+            + plat_args)
+        assert_equal(get_winfo(out_big_fname), extra_big_exp)
         # Default is to write into directory of wheel
         os.mkdir('wheels')
         shutil.copy2(PLAT_WHEEL, 'wheels')
@@ -350,15 +375,29 @@ def test_add_platforms():
         code, stdout, stderr = run_command(
             ['delocate-addplat', local_plat]  + plat_args)
         assert_true(exists(local_out))
+        # With rm_orig flag, delete original unmodified wheel
+        os.unlink(local_out)
+        code, stdout, stderr = run_command(
+            ['delocate-addplat', '-r', local_plat]  + plat_args)
+        assert_false(exists(local_plat))
+        assert_true(exists(local_out))
+        # Copy original back again
+        shutil.copy2(PLAT_WHEEL, 'wheels')
         # If platforms already present, don't write more
         res = sorted(os.listdir('wheels'))
+        assert_equal(get_winfo(local_out), extra_exp)
         code, stdout, stderr = run_command(
-            ['delocate-addplat', local_plat, '--clobber']  + plat_args)
+            ['delocate-addplat', local_out, '--clobber']  + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
         assert_equal(get_winfo(local_out), extra_exp)
-        # But WHEEL tags if missing, even if file name is OK
-        shutil.copy2(local_plat, local_out)
+        # The wheel doesn't get deleted output name same as input, as here
         code, stdout, stderr = run_command(
-            ['delocate-addplat', local_plat, '--clobber']  + plat_args)
+            ['delocate-addplat', local_out, '-r', '--clobber']  + plat_args)
+        assert_equal(sorted(os.listdir('wheels')), res)
+        # But adds WHEEL tags if missing, even if file name is OK
+        shutil.copy2(local_plat, local_out)
+        assert_not_equal(get_winfo(local_out), extra_exp)
+        code, stdout, stderr = run_command(
+            ['delocate-addplat', local_out, '--clobber']  + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
         assert_equal(get_winfo(local_out), extra_exp)

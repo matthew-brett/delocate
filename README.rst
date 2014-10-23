@@ -158,6 +158,47 @@ can see which extensions are at fault by adding the ``-v`` (verbose) flag::
 
 I need to rebuild this wheel to link with dual-architecture libraries.
 
+Troubleshooting
+===============
+
+When running ``delocate-wheel`` or its sister command ``delocate-path``, you
+may get errors like this::
+
+    delocate.delocating.DelocationError: library "<long temporary path>/wheel/libme.dylib" does not exist
+
+This happens when one of your libraries gives a library dependency with a
+relative path.  For example, let's say that some file in my wheel has this for
+the output of ``otool -L myext.so``::
+
+    myext.so:
+        libme.dylib (compatibility version 10.0.0, current version 10.0.0)
+        /usr/lib/libstdc++.6.dylib (compatibility version 7.0.0, current version 60.0.0)
+        /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1197.1.1)
+
+The first line means that ``myext.so`` expects to find ``libme.dylib`` at
+exactly the path ``./libme.dylib`` - the current working directory from which
+you ran the executable.  The output *should* be something like::
+
+    myext.so:
+        /path/to/libme.dylib (compatibility version 10.0.0, current version 10.0.0)
+        /usr/lib/libstdc++.6.dylib (compatibility version 7.0.0, current version 60.0.0)
+        /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1197.1.1)
+
+To set the path to the library, the linker is using the `install name id`_ of
+the linked library.  In this bad case, then ``otool -L libme.dylib`` will give
+something like::
+
+    libme.dylib (compatibility version 10.0.0, current version 10.0.0)
+    /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1197.1.1)
+
+where the first line is the `install name id`_ that the linker picked up when
+linking ``myext.so`` to ``libme.dylib``.  You job is to fix the build process
+so that ``libme.dylib`` has install name id ``/path/to/libme.dylib``.
+This is not a problem specific to ``delocate``; you will need to do this to
+make sure that ``myext.so`` can load ``libme.dylib`` without ``libme.dylib``
+being in the current working directory.  For ``CMAKE`` builds you may want to
+check out CMAKE_INSTALL_NAME_DIR_.
+
 ****
 Code
 ****
@@ -178,3 +219,8 @@ Support
 
 Please put up issues on the `delocate issue tracker
 <https://github.com/matthew-brett/delocate/issues>`_.
+
+.. _install name id:
+   http://matthew-brett.github.io/docosx/mac_runtime_link.html#the-install-name
+.. _CMAKE_INSTALL_NAME_DIR:
+   http://www.cmake.org/cmake/help/v3.0/variable/CMAKE_INSTALL_NAME_DIR.html

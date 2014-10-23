@@ -14,9 +14,12 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
-* 0.6.0 (Saturday September 13 2014)
+* 0.6.1 (Thursday October 23 2014)
 
-  Fifth public release
+  * Add some useful flags to ``delocate-add-platform``
+  * Refactoring
+
+* 0.6.0 (Saturday September 13 2014)
 
   * Add utility to add platform tags to wheel contents and name
   * Add more general wheel context manager
@@ -24,16 +27,12 @@ Releases
 
 * 0.5.0 (Tuesday July 22 2014)
 
-  Fourth public release
-
   * Add utilities and script to apply a patch to a wheel
   * Add utilities and script to test for architectures in libraries and
     require named architectures
   * Docstring fixes and refactoring
 
 * 0.4.0 (Wednesday June 25 2014)
-
-  Third public release
 
   * Set ``install_name_id`` for copied libraries to be unique to this package.
     OSX uses the ``install_name_id`` to identify a library uniquely on the
@@ -58,8 +57,6 @@ Releases
     some_wheel.whl`` will correctly output to ``$HOME/wheels``.
 
 * 0.3.0 (Monday May 5 2014)
-
-  Second public release
 
   * Switch to using just ``@loader_path`` rather than a combination of
     ``@loader_path`` and ``@rpath`` for pointing to relocated libraries.  Using

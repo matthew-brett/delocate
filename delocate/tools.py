@@ -294,12 +294,12 @@ def zip2dir(zip_fname, out_dir):
     ----------
     zip_fname : str
         Filename of zip archive to write
-    in_dir : str
+    out_dir : str
         Directory path containing files to go in the zip archive
     """
-    z = zipfile.ZipFile(zip_fname, 'r')
-    z.extractall(out_dir)
-    z.close()
+    # Use unzip command rather than zipfile module to preserve permissions
+    # http://bugs.python.org/issue15795
+    back_tick(['unzip', '-o', '-d', out_dir, zip_fname])
 
 
 def dir2zip(in_dir, zip_fname):

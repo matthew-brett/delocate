@@ -3,6 +3,7 @@ from __future__ import division, print_function
 
 import os
 from os.path import join as pjoin, dirname
+import stat
 import shutil
 
 from ..tools import (back_tick, unique_by_index, ensure_writable, zip2dir,
@@ -91,6 +92,16 @@ def test_zip2():
         shutil.rmtree('a_dir')
         zip2dir('another.ext', 'third_dir')
         assert_equal(os.listdir('third_dir'), ['file2.txt'])
+        # Check permissions kept in zip unzip cycle
+        os.mkdir('a_dir')
+        permissions = stat.S_IRUSR | stat.S_IWGRP | stat.S_IXGRP
+        fname = pjoin('a_dir', 'permitted_file')
+        _write_file(fname, 'Some script or something')
+        os.chmod(fname, permissions)
+        dir2zip('a_dir', 'test.zip')
+        zip2dir('test.zip', 'another_dir')
+        out_fname = pjoin('another_dir', 'permitted_file')
+        assert_equal(os.stat(out_fname).st_mode & 0o777, permissions)
 
 
 def test_find_package_dirs():

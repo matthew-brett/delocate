@@ -14,6 +14,11 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* 0.6.2 (Monday November 10 2014)
+
+  * Bugfix for zipfile unpacking losing permissions; This wiped out useful
+    permissions like execute permissions for scripts when modifying zip files.
+
 * 0.6.1 (Thursday October 23 2014)
 
   * Add some useful flags to ``delocate-add-platform``

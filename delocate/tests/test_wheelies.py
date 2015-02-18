@@ -56,6 +56,14 @@ def _fixed_wheel(out_path):
     return pjoin(out_path, wheel_base), stray_lib
 
 
+def _rename_module(in_wheel, mod_fname, out_wheel):
+    # Rename module with library dependency in wheel
+    with InWheel(in_wheel, out_wheel):
+        mod_dir = pjoin('fakepkg1', 'subpkg')
+        os.rename(pjoin(mod_dir, 'module2.so'), pjoin(mod_dir, mod_fname))
+    return out_wheel
+
+
 def test_fix_plat():
     # Can we fix a wheel with a stray library?
     # We have to make one that works first
@@ -109,6 +117,28 @@ def test_fix_plat():
         the_lib = pjoin('plat_pkg3', 'fakepkg1', '.dylibs', base_stray)
         inst_id = DLC_PREFIX + 'fakepkg1/' + base_stray
         assert_equal(get_install_id(the_lib), inst_id)
+
+
+def test_fix_plat_dylibs():
+    # Check default and non-default searches for dylibs
+    with InTemporaryDirectory() as tmpdir:
+        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
+        _rename_module(fixed_wheel, 'module.other', 'test.whl')
+        # With dylibs-only - only analyze files with exts '.dylib', '.so'
+        assert_equal(delocate_wheel('test.whl', lib_filt_func='dylibs-only'),
+                     {})
+        # With func that doesn't find the module
+        func = lambda fn : fn.endswith('.so')
+        assert_equal(delocate_wheel('test.whl', lib_filt_func=func), {})
+        # Default - looks in every file
+        shutil.copyfile('test.whl', 'test2.whl')  # for following test
+        dep_mod = pjoin('fakepkg1', 'subpkg', 'module.other')
+        assert_equal(delocate_wheel('test.whl'),
+                     {realpath(stray_lib): {dep_mod: stray_lib}})
+        # With func that does find the module
+        func = lambda fn : fn.endswith('.other')
+        assert_equal(delocate_wheel('test2.whl', lib_filt_func=func),
+                     {realpath(stray_lib): {dep_mod: stray_lib}})
 
 
 def _thin_lib(stray_lib, arch):

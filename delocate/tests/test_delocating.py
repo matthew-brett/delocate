@@ -379,8 +379,13 @@ def test_delocate_path():
         assert_equal(len(os.listdir('deplibs5')), 0)
 
 
-def _make_delocatable_path():
-    # Copy two libraries to different dirs, one depending on the other
+def _make_bare_depends():
+    # Copy:
+    # * liba.dylib to 'libs' dir, which is a dependency of libb.dylib
+    # * libb.dylib to 'subtree' dir, as 'libb' (no extension).
+    #
+    # This is for testing delocation when the depending file does not have a
+    # dynamic library file extension.
     libb, = _copy_libs([LIBB], 'subtree')
     liba, = _copy_libs([LIBA], 'libs')
     bare_b, _ = splitext(libb)
@@ -395,7 +400,7 @@ def test_delocate_path_dylibs():
     _rp = realpath  # shortcut
     with InTemporaryDirectory():
         # With 'dylibs-only' - does not inspect non-dylib files
-        liba, bare_b = _make_delocatable_path()
+        liba, bare_b = _make_bare_depends()
         assert_equal(delocate_path('subtree', 'deplibs',
                                    lib_filt_func='dylibs-only'), {})
         assert_equal(len(os.listdir('deplibs')), 0)
@@ -406,7 +411,7 @@ def test_delocate_path_dylibs():
         assert_equal(os.listdir('deplibs'), ['liba.dylib'])
     with InTemporaryDirectory():
         # Callable, dylibs only, does not inspect
-        liba, bare_b = _make_delocatable_path()
+        liba, bare_b = _make_bare_depends()
         func = lambda fn : fn.endswith('.dylib')
         assert_equal(delocate_path('subtree', 'deplibs', func), {})
         func = lambda fn : fn.endswith('libb')

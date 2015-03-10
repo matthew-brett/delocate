@@ -22,7 +22,7 @@ from nose.tools import (assert_true, assert_false, assert_equal, assert_raises,
                         assert_not_equal)
 
 from .test_install_names import EXT_LIBS
-from .test_delocating import _make_libtree, _copy_to, _make_delocatable_path
+from .test_delocating import _make_libtree, _copy_to, _make_bare_depends
 from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
                             STRAY_LIB_DEP, WHEEL_PATCH, WHEEL_PATCH_BAD,
                             _thin_lib, _thin_mod, _rename_module)
@@ -141,7 +141,7 @@ def test_path_dylibs():
     # Test delocate-path with and without dylib extensions
     with InTemporaryDirectory():
         # With 'dylibs-only' - does not inspect non-dylib files
-        liba, bare_b = _make_delocatable_path()
+        liba, bare_b = _make_bare_depends()
         out_dypath = pjoin('subtree', 'deplibs')
         code, stdout, stderr = run_command(
             ['delocate-path', 'subtree', '-L', 'deplibs', '-d'])

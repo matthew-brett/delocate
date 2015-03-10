@@ -248,7 +248,7 @@ def filter_system_libs(libname):
 
 
 def delocate_path(tree_path, lib_path,
-                  lib_filt_func = _dylibs_only,
+                  lib_filt_func = None,
                   copy_filt_func = filter_system_libs):
     """ Copy required libraries for files in `tree_path` into `lib_path`
 
@@ -258,11 +258,11 @@ def delocate_path(tree_path, lib_path,
         Root path of tree to search for required libraries
     lib_path : str
         Directory into which we copy required libraries
-    lib_filt_func : None or callable, optional
+    lib_filt_func : None or str or callable, optional
         If None, inspect all files for dependencies on dynamic libraries. If
         callable, accepts filename as argument, returns True if we should
-        inspect the file, False otherwise. Default is callable rejecting all
-        but files ending in ``.so`` or ``.dylib``.
+        inspect the file, False otherwise. If str == "dylibs-only" then inspect
+        only files with known dynamic library extensions (``.dylib``, ``.so``).
     copy_filt_func : None or callable, optional
         If callable, called on each library name detected as a dependency; copy
         where ``copy_filt_func(libname)`` is True, don't copy otherwise.
@@ -281,6 +281,8 @@ def delocate_path(tree_path, lib_path,
         is the ``install_name`` of ``copied_lib_path`` in the depending
         library.
     """
+    if lib_filt_func == "dylibs-only":
+        lib_filt_func = _dylibs_only
     if not exists(lib_path):
         os.makedirs(lib_path)
     lib_dict = tree_libs(tree_path, lib_filt_func)
@@ -305,7 +307,7 @@ def _merge_lib_dict(d1, d2):
 def delocate_wheel(in_wheel,
                    out_wheel = None,
                    lib_sdir = '.dylibs',
-                   lib_filt_func = _dylibs_only,
+                   lib_filt_func = None,
                    copy_filt_func = filter_system_libs,
                    require_archs = None,
                    check_verbose = False,
@@ -327,11 +329,11 @@ def delocate_wheel(in_wheel,
     lib_sdir : str, optional
         Subdirectory name in wheel package directory (or directories) to store
         needed libraries.
-    lib_filt_func : None or callable, optional
+    lib_filt_func : None or str or callable, optional
         If None, inspect all files for dependencies on dynamic libraries. If
         callable, accepts filename as argument, returns True if we should
-        inspect the file, False otherwise. Default is callable rejecting all
-        but files ending in ``.so`` or ``.dylib``.
+        inspect the file, False otherwise. If str == "dylibs-only" then inspect
+        only files with known dynamic library extensions (``.dylib``, ``.so``).
     copy_filt_func : None or callable, optional
         If callable, called on each library name detected as a dependency; copy
         where ``copy_filt_func(libname)`` is True, don't copy otherwise.
@@ -360,6 +362,8 @@ def delocate_wheel(in_wheel,
         is the ``install_name`` of ``copied_lib_path`` in the depending
         library. The filenames in the keys are relative to the wheel root path.
     """
+    if lib_filt_func == "dylibs-only":
+        lib_filt_func = _dylibs_only
     in_wheel = abspath(in_wheel)
     if out_wheel is None:
         out_wheel = in_wheel

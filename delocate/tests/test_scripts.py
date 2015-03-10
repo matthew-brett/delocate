@@ -15,16 +15,17 @@ import shutil
 
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import back_tick, set_install_name, zip2dir, dir2zip
+from ..wheeltools import InWheel
 from .scriptrunner import ScriptRunner
 
 from nose.tools import (assert_true, assert_false, assert_equal, assert_raises,
                         assert_not_equal)
 
 from .test_install_names import EXT_LIBS
-from .test_delocating import _make_libtree, _copy_to
+from .test_delocating import _make_libtree, _copy_to, _make_delocatable_path
 from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
                             STRAY_LIB_DEP, WHEEL_PATCH, WHEEL_PATCH_BAD,
-                            _thin_lib, _thin_mod)
+                            _thin_lib, _thin_mod, _rename_module)
 from .test_fuse import assert_same_tree
 from .test_wheeltools import get_winfo
 
@@ -136,6 +137,24 @@ def test_path():
         assert_equal(os.listdir(out_path), ['libfake.dylib'])
 
 
+def test_path_dylibs():
+    # Test delocate-path with and without dylib extensions
+    with InTemporaryDirectory():
+        # With 'dylibs-only' - does not inspect non-dylib files
+        liba, bare_b = _make_delocatable_path()
+        out_dypath = pjoin('subtree', 'deplibs')
+        code, stdout, stderr = run_command(
+            ['delocate-path', 'subtree', '-L', 'deplibs', '-d'])
+        assert_equal(len(os.listdir(out_dypath)), 0)
+        code, stdout, stderr = run_command(
+            ['delocate-path', 'subtree', '-L', 'deplibs', '--dylibs-only'])
+        assert_equal(len(os.listdir(pjoin('subtree', 'deplibs'))), 0)
+        # Default - does inspect non-dylib files
+        code, stdout, stderr = run_command(
+            ['delocate-path', 'subtree', '-L', 'deplibs'])
+        assert_equal(os.listdir(out_dypath), ['liba.dylib'])
+
+
 def _check_wheel(wheel_fname, lib_sdir):
     wheel_fname = abspath(wheel_fname)
     with InTemporaryDirectory():
@@ -187,6 +206,24 @@ def test_wheel():
                         'Copied to package .dylibs directory:',
                         stray_lib]
         assert_equal(stdout, wheel_lines1 + wheel_lines2)
+
+
+def test_fix_wheel_dylibs():
+    # Check default and non-default search for dynamic libraries
+    with InTemporaryDirectory() as tmpdir:
+        # Default in-place fix
+        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
+        _rename_module(fixed_wheel, 'module.other', 'test.whl')
+        shutil.copyfile('test.whl', 'test2.whl')
+        # Default is to look in all files and therefore fix
+        code, stdout, stderr = run_command(
+            ['delocate-wheel', 'test.whl'])
+        _check_wheel('test.whl', '.dylibs')
+        # Can turn this off to only look in dynamic lib exts
+        code, stdout, stderr = run_command(
+            ['delocate-wheel', 'test2.whl', '-d'])
+        with InWheel('test2.whl'):  # No fix
+            assert_false(exists(pjoin('fakepkg1', '.dylibs')))
 
 
 def test_fix_wheel_archs():

@@ -3,7 +3,8 @@
 from __future__ import division, print_function
 
 import os
-from os.path import (join as pjoin, dirname, basename, relpath, realpath)
+from os.path import (join as pjoin, dirname, basename, relpath, realpath,
+                     splitext)
 import shutil
 
 from ..delocating import (DelocationError, delocate_tree_libs, copy_recurse,
@@ -376,6 +377,42 @@ def test_delocate_path():
             realpath('subtree5'))
         assert_equal(delocate_path('subtree5', 'deplibs5'), {})
         assert_equal(len(os.listdir('deplibs5')), 0)
+
+
+def _make_delocatable_path():
+    # Copy two libraries to different dirs, one depending on the other
+    libb, = _copy_libs([LIBB], 'subtree')
+    liba, = _copy_libs([LIBA], 'libs')
+    bare_b, _ = splitext(libb)
+    os.rename(libb, bare_b)
+    # use realpath for OSX /private/var - /var
+    set_install_name(bare_b, 'liba.dylib', realpath(liba))
+    return liba, bare_b
+
+
+def test_delocate_path_dylibs():
+    # Test options for delocating everything, or just dynamic libraries
+    _rp = realpath  # shortcut
+    with InTemporaryDirectory():
+        # With 'dylibs-only' - does not inspect non-dylib files
+        liba, bare_b = _make_delocatable_path()
+        assert_equal(delocate_path('subtree', 'deplibs',
+                                   lib_filt_func='dylibs-only'), {})
+        assert_equal(len(os.listdir('deplibs')), 0)
+        # None - does inspect non-dylib files
+        assert_equal(delocate_path('subtree', 'deplibs', None),
+                     {_rp(pjoin('libs', 'liba.dylib')):
+                      {_rp(bare_b): _rp(liba)}})
+        assert_equal(os.listdir('deplibs'), ['liba.dylib'])
+    with InTemporaryDirectory():
+        # Callable, dylibs only, does not inspect
+        liba, bare_b = _make_delocatable_path()
+        func = lambda fn : fn.endswith('.dylib')
+        assert_equal(delocate_path('subtree', 'deplibs', func), {})
+        func = lambda fn : fn.endswith('libb')
+        assert_equal(delocate_path('subtree', 'deplibs', None),
+                     {_rp(pjoin('libs', 'liba.dylib')):
+                      {_rp(bare_b): _rp(liba)}})
 
 
 def test_check_archs():

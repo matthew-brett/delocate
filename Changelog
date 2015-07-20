@@ -14,6 +14,16 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* 0.6.3 (Monday July 20 2015)
+
+  * Inspect all files looking for linked libraries, instead of inspecting only
+    files ending in library extensions.  This means that you will also pick up
+    libraries for executables in the given path to delocate, by default, but
+    is slower to execute. Thanks to Marc Abramowitz for the report and
+    suggestion;
+  * Remove silly check for library existence when delocating libraries that
+    are in the tree to delocate.
+
 * 0.6.2 (Monday November 10 2014)
 
   * Bugfix for zipfile unpacking losing permissions; This wiped out useful

@@ -155,38 +155,6 @@ def test_delocate_tree_libs():
             assert_true(set(new_links) <= set(lib_inames))
 
 
-def test_deloc_lib_reuse():
-    # Test behavior of dlocate_tree_lib when expected files already present
-    with InTemporaryDirectory() as tmpdir:
-        # Copy libs into a temporary directory
-        subtree = pjoin(tmpdir, 'subtree')
-        all_local_libs = _make_libtree(subtree)
-        liba, libb, libc, test_lib, slibc, stest_lib = all_local_libs
-        lib_dict = tree_libs(subtree)
-        copy_dir = 'dynlibs'
-        os.makedirs(copy_dir)
-        # But put something different with same name in output location
-        out_liba = pjoin(copy_dir, 'liba.dylib')
-        with open(out_liba, 'wt') as fobj:
-            fobj.write('Not good')
-        assert_raises(DelocationError,
-                      delocate_tree_libs, lib_dict, copy_dir, subtree)
-        # Delete - now it works
-        os.unlink(out_liba)
-        _ = delocate_tree_libs(lib_dict, copy_dir, subtree)
-        # Remake libs for another shot
-        subtree = pjoin(tmpdir, 'subtree2')
-        all_local_libs = _make_libtree(subtree)
-        liba, libb, libc, test_lib, slibc, stest_lib = all_local_libs
-        copy_dir = 'dynlibs2'
-        os.makedirs(copy_dir)
-        # If the library that needs copying is identical to the library already
-        # present, still barf because we need to modify it anyway
-        shutil.copy2(liba, copy_dir)
-        assert_raises(DelocationError,
-                      delocate_tree_libs, lib_dict, copy_dir, subtree)
-
-
 def _copy_fixpath(files, directory):
     new_fnames = []
     for fname in files:

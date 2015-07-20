@@ -82,10 +82,6 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
             copied_libs[required] = requirings
             copied_basenames.add(r_ed_base)
         else: # Is local, plan to set relative loader_path
-            out_path = pjoin(lib_path, basename(required))
-            if exists(out_path):
-                raise DelocationError(
-                    'Output {0} already exists'.format(out_path))
             delocated_libs.add(required)
     # Modify in place now that we've checked for errors
     for required in copied_libs:

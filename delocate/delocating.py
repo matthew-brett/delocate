@@ -85,7 +85,7 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
             delocated_libs.add(required)
     # Modify in place now that we've checked for errors
     for required in copied_libs:
-        shutil.copy2(required, lib_path)
+        shutil.copy(required, lib_path)
         # Set rpath and install names for this copied library
         for requiring, orig_install_name in lib_dict[required].items():
             req_rel = relpath(rp_lib_path, dirname(requiring))
@@ -228,7 +228,7 @@ def _copy_required(lib_path, copy_filt_func, copied_libs):
         out_path = pjoin(lib_path, basename(required))
         if exists(out_path):
             raise DelocationError(out_path + ' already exists')
-        shutil.copy2(required, lib_path)
+        shutil.copy(required, lib_path)
         copied2orig[out_path] = required
         copied_libs[required] = procd_requirings
 

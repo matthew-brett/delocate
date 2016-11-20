@@ -3,10 +3,10 @@ language:
 
 env:
   matrix:
-    - VERSION="2.7.7"
-    - VERSION=3.2.5
-    - VERSION="3.3.5"
-    - VERSION="3.4.1"
+    - VERSION="2.7.12"
+    - VERSION="3.4.4"
+    - VERSION="3.5.2"
+    - VERSION="3.6.0a3"
 
 install:
   - set -vx  # echo commands

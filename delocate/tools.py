@@ -135,6 +135,10 @@ def _line0_says_object(line0, filename):
     if line0.startswith('Archive :'):
         # nothing to do for static libs
         return False
+    if line0.endswith("'%s': The file was not recognized as a valid object file." % filename):
+        return False
+    if line0.endswith("'%s': The end of the file was unexpectedly encountered." % filename):
+        return False
     if not line0.startswith(filename + ':'):
         raise InstallNameError('Unexpected first line: ' + line0)
     further_report = line0[len(filename) + 1:]
@@ -163,7 +167,8 @@ def get_install_names(filename):
     install_names : tuple
         tuple of install names for library `filename`
     """
-    out = back_tick(['otool', '-L', filename])
+    out, err = back_tick(['otool', '-L', filename], ret_err=True)
+    out = err if not len(out) else out
     lines = out.split('\n')
     if not _line0_says_object(lines[0], filename):
         return ()
@@ -190,7 +195,8 @@ def get_install_id(filename):
     install_id : str
         install id of library `filename`, or None if no install id
     """
-    out = back_tick(['otool', '-D', filename])
+    out, err = back_tick(['otool', '-D', filename], ret_err=True)
+    out = err if not len(out) else out
     lines = out.split('\n')
     if not _line0_says_object(lines[0], filename):
         return None

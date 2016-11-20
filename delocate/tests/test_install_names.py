@@ -26,6 +26,7 @@ LIBC = pjoin(DATA_PATH, 'libc.dylib')
 LIBA_STATIC = pjoin(DATA_PATH, 'liba.a')
 A_OBJECT = pjoin(DATA_PATH, 'a.o')
 TEST_LIB = pjoin(DATA_PATH, 'test-lib')
+ICO_FILE = pjoin(DATA_PATH, 'icon.ico')
 
 def test_get_install_names():
     # Test install name listing
@@ -42,6 +43,8 @@ def test_get_install_names():
     # Static archive and object files returns empty tuple
     assert_equal(get_install_names(A_OBJECT), ())
     assert_equal(get_install_names(LIBA_STATIC), ())
+    # ico file triggers another error message and should also return an empty tuple
+    assert_equal(get_install_names(ICO_FILE), ())
 
 
 def test_parse_install_name():
@@ -66,6 +69,7 @@ def test_install_id():
     assert_equal(get_install_id(TEST_LIB), None)
     # Non-object file returns None too
     assert_equal(get_install_id(__file__), None)
+    assert_equal(get_install_id(ICO_FILE), None)
 
 
 def test_change_install_name():

@@ -48,7 +48,8 @@ Release checklist
 
     nosetests --with-doctest delocate
 
-  Do this on a Python 2 and Python 3 setup.
+  Do this on a Python 2 and Python 3 setup.  Check on oldest supported version
+  of OSX.  Check on newest supported version.
 
 * Run the same tests after installing into a virtualenv, to test that
   installing works correctly::
@@ -84,45 +85,44 @@ to upstream on github.
   version.
 
 * Once everything looks good, upload the source release to PyPi.  See
-  `setuptools intro`_::
+  `setuptools intro`_ and `twine`_::
 
-    python setup.py register
-    python setup.py sdist --formats=gztar,zip upload
+    python setup.py sdist --formats=zip
+    twine upload -s dist/*.zip
 
 * Upload wheels by building in virtualenvs, something like::
 
    workon py27
    rm -rf build
-   python setup.py bdist_wheel upload
+   python setup.py bdist_wheel
    workon py33
    rm -rf build
-   python setup.py bdist_wheel upload
+   python setup.py bdist_wheel
    workon py34
    rm -rf build
-   python setup.py bdist_wheel upload
+   python setup.py bdist_wheel
+   twine upload -s dist/*.whl
 
 * Remember you'll need your ``~/.pypirc`` file set up right for this to work.
   See `setuptools intro`_.  The file should look something like this::
 
     [distutils]
     index-servers =
-        pypi
+        warehouse
 
-    [pypi]
-    username:your.pypi.username
-    password:your-password
-
-    [server-login]
+    [warehouse]
+    repository: https://upload.pypi.io/legacy/
     username:your.pypi.username
     password:your-password
 
 * Check how everything looks on pypi - the description, the packages.  If
   necessary delete the release and try again if it doesn't look right.
 
-* Push the tag with ``git push origin 0.6.0``
+* Push the tag with something like ``git push origin 0.6.0``
 
 * Announce to the mailing lists.  With fear and trembling.
 
 .. _setuptools intro: http://packages.python.org/an_example_pypi_project/setuptools.html
+.. _twine: https://pypi.python.org/pypi/twine
 
 .. include:: ../links_names.inc

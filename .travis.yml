@@ -11,6 +11,7 @@ matrix:
   include:
       - env: VERSION="2.7.12"
       - env: VERSION="3.4.4"
+      - env: VERSION="3.5.2"
       - env: VERSION="3.6.0b4"
       # OSX 10.9
       - osx_image: beta-xcode6.1

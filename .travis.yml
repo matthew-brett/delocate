@@ -2,11 +2,22 @@ language:
   - objective-c
 
 env:
-  matrix:
-    - VERSION="2.7.12"
-    - VERSION="3.4.4"
+  global:
     - VERSION="3.5.2"
-    - VERSION="3.6.0a3"
+
+# Default OSX (xcode image) is 10.10 (xcode 7.3) as of 2016-11-23
+
+matrix:
+  include:
+      - env: VERSION="2.7.12"
+      - env: VERSION="3.4.4"
+      - env: VERSION="3.6.0b4"
+      # OSX 10.9
+      - osx_image: beta-xcode6.1
+      # OSX 10.10
+      - osx_image: xcode6.4
+      # OSX 10.12
+      - osx_image: xcode8.2
 
 install:
   - set -vx  # echo commands

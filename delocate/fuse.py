@@ -54,11 +54,15 @@ def fuse_trees(to_tree, from_tree, lib_exts=('.so', '.dylib', '.a')):
             root, ext = splitext(fname)
             from_path = pjoin(from_dirpath, fname)
             to_path = pjoin(to_dirpath, fname)
-            if (ext in lib_exts
-                and exists(to_path) and
-                not cmp_contents(from_path, to_path)):
+            if not exists(to_path):
+                shutil.copyfile(from_path, to_path)
+            elif cmp_contents(from_path, to_path):
+                pass
+            elif ext in lib_exts:
+                # existing lib that needs fuse
                 lipo_fuse(from_path, to_path, to_path)
             else:
+                # existing not-lib file not identical to source
                 shutil.copyfile(from_path, to_path)
 
 

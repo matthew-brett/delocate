@@ -20,9 +20,7 @@ check_call(['cc', '-dynamiclib', pjoin(LIBS, 'extfunc.c'),
             '-o', EXTLIB])
 check_call(['install_name_tool', '-id', EXTLIB, EXTLIB])
 
-exts = [Extension('fakepkg1.module1',
-                  [pjoin("fakepkg1", "module1.pyx")]),
-        Extension('fakepkg1.subpkg.module2',
+exts = [Extension('fakepkg1.subpkg.module2',
                   [pjoin("fakepkg1", "subpkg", "module2.pyx")],
                   libraries=['extfunc'],
                   extra_link_args = ['-L' + LIBS]

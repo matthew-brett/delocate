@@ -77,9 +77,9 @@ You might want to make tag the release commit on your local machine, push to
 pypi_, review, fix, rebase, until all is good.  Then and only then do you push
 to upstream on github.
 
-* Make an annotated tag for the release with tag of form ``0.6.0``::
+* Make a signed tag for the release with tag of form ``0.6.0``::
 
-    git tag -am 'Fifth public release' 0.6.0
+    git tag -s 0.6.0
 
   Because we're using `versioneer`_ it is the tag which sets the package
   version.
@@ -87,7 +87,22 @@ to upstream on github.
 * Once everything looks good, upload the source release to PyPi.  See
   `setuptools intro`_ and `twine`_::
 
+    # Check there's nothing in the working tree you want
+    git status
+
+  After you've confirmed that the ``git reset --hard`` below is what you want,
+  then::
+
+    git clean -fxd
+    git reset --hard   # careful!
     python setup.py sdist --formats=zip
+
+  Check the wheel filename looks correct::
+
+    ls dist/*.zip
+
+  If so then upload to pypi (see below)::
+
     twine upload -s dist/*.zip
 
 * Upload wheels by building in virtualenvs, something like::

@@ -21,9 +21,8 @@ matrix:
 
 install:
   - set -vx  # echo commands
-  - git submodule update --init
-  - source terryfy/travis_tools.sh
-  - get_python_environment macpython $VERSION venv
+  - source multibuild/osx_utils.sh
+  - get_macpython_environment $VERSION venv
   - pip install wheel nose
   - python setup.py install
 

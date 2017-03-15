@@ -6,10 +6,12 @@ Analyze library dependencies in paths and wheel files
 import os
 from os.path import join as pjoin, realpath
 
-from .tools import get_install_names, zip2dir
+import warnings
+
+from .tools import get_install_names, zip2dir, get_rpaths
 from .tmpdirs import TemporaryDirectory
 
-def tree_libs(start_path, filt_func = None):
+def tree_libs(start_path, filt_func=None):
     """ Return analysis of library dependencies within `start_path`
 
     Parameters
@@ -51,14 +53,55 @@ def tree_libs(start_path, filt_func = None):
             depending_libpath = realpath(pjoin(dirpath, base))
             if not filt_func is None and not filt_func(depending_libpath):
                 continue
+            rpaths = get_rpaths(depending_libpath)
             for install_name in get_install_names(depending_libpath):
                 lib_path = (install_name if install_name.startswith('@')
                             else realpath(install_name))
+                lib_path = resolve_rpath(lib_path, rpaths)
                 if lib_path in lib_dict:
                     lib_dict[lib_path][depending_libpath] = install_name
                 else:
                     lib_dict[lib_path] = {depending_libpath: install_name}
     return lib_dict
+
+
+def resolve_rpath(lib_path, rpaths):
+    """ Return `lib_path` with its `@rpath` resolved
+
+    If the `lib_path` doesn't have `@rpath` then it's returned as is.
+
+    If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
+    combination found.  If the library can't be found in `rpaths` then a
+    detailed warning is printed and `lib_path` is returned as is.
+
+    Parameters
+    ----------
+    lib_path : str
+        The path to a library file, which may or may not start with `@rpath`.
+    rpaths : sequence of str
+        A sequence of search paths, usually gotten from a call to `get_rpaths`.
+
+    Returns
+    -------
+    lib_path : str
+        A str with the resolved libraries realpath.
+    """
+    if not lib_path.startswith('@rpath/'):
+        return lib_path
+
+    lib_rpath = lib_path.split('/', 1)[1]
+    for rpath in rpaths:
+        rpath_lib = realpath(pjoin(rpath, lib_rpath))
+        if os.path.exists(rpath_lib):
+            return rpath_lib
+
+    warnings.warn(
+        "Couldn't find {0} on paths:\n\t{1}".format(
+            lib_path,
+            '\n\t'.join(realpath(path) for path in rpaths),
+            )
+        )
+    return lib_path
 
 
 def get_prefix_stripper(strip_prefix):

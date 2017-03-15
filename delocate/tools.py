@@ -250,7 +250,9 @@ def set_install_id(filename, install_id):
 RPATH_RE = re.compile("path (.*) \(offset \d+\)")
 
 def get_rpaths(filename):
-    """ Return rpaths from library `filename`
+    """ Return a tuple of rpaths from the library `filename`
+
+    If `filename` is not a library then the returned tuple will be empty.
 
     Parameters
     ----------
@@ -262,7 +264,12 @@ def get_rpaths(filename):
     rpath : tuple
         rpath paths in `filename`
     """
-    out = back_tick(['otool', '-l', filename])
+    try:
+        out = back_tick(['otool', '-l', filename])
+    except RuntimeError:
+        return ()
+    if out.startswith('Archive :') or out.endswith(': is not an object file'):
+        return ()
     lines = [line.strip() for line in out.split('\n')]
     assert lines[0] == filename + ':'
     paths = []

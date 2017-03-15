@@ -59,9 +59,9 @@ installation of ``gfortran`` (as well as the system libs).
 
 .. warning::
 
-    If you see any dependencies starting with ``@`` in a wheel that has not yet
-    been processed with ``delocate-wheel``, the delocation process below will
-    likely not work, and leave you with - er - a broken wheel.
+    Dependency paths starting with ``@loader_path/`` or ``@executable_path/``
+    are ignored by delocate.  These files will be skipped by the
+    ``delocate-wheel`` command.
 
 You can get a listing of the files depending on each of the libraries,
 using the ``--depending`` flag::

@@ -4,10 +4,10 @@ Utilities for analyzing library dependencies in trees and wheels
 """
 
 import os
-from os.path import (join as pjoin, dirname, realpath, relpath)
+from os.path import (join as pjoin, dirname, realpath, relpath, split)
 
 from ..libsana import (tree_libs, get_prefix_stripper, get_rp_stripper,
-                       stripped_lib_dict, wheel_libs)
+                       stripped_lib_dict, wheel_libs, resolve_rpath)
 
 from ..tools import set_install_name
 
@@ -173,3 +173,10 @@ def test_wheel_libs():
     def filt(fname):
         return not fname.endswith(mod2)
     assert_equal(wheel_libs(PLAT_WHEEL, filt), {})
+
+
+def test_resolve_rpath():
+    # A minimal test of the resolve_rpath function
+    path, lib = split(LIBA)
+    lib_rpath = pjoin('@rpath', lib)
+    assert_equal(resolve_rpath(lib_rpath, [path]), realpath(LIBA))

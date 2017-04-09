@@ -437,3 +437,44 @@ def lipo_fuse(in_fname1, in_fname2, out_fname):
     return back_tick(['lipo', '-create',
                       in_fname1, in_fname2,
                       '-output', out_fname])
+
+
+@ensure_writable
+def replace_signature(filename, identity):
+    """ Replace the signature of a binary file using `identity`
+
+    See the codesign documentation for more info
+
+    Parameters
+    ----------
+    filename : str
+        Filepath to a binary file.
+    identity : str
+        The signing identity to use.
+    """
+    back_tick(['codesign', '--force', '--sign', identity, filename],
+              raise_err=True)
+
+
+def validate_signature(filename):
+    """ Remove invalid signatures from a binary file
+
+    If the file signature is missing or valid then it will be ignored
+
+    Invalid signatures are replaced with an ad-hoc signature.  This is the
+    closest you can get to removing a signature on MacOS
+
+    Parameters
+    ----------
+    filename : str
+        Filepath to a binary file
+    """
+    out, err = back_tick(['codesign', '--verify', filename],
+                         ret_err=True, as_str=True, raise_err=False)
+    if not err:
+        return # The existing signature is valid
+    if 'code object is not signed at all' in err:
+        return # File has no signature, and adding a new one isn't necessary
+
+    # This file's signature is invalid and needs to be replaced
+    replace_signature(filename, '-') # Replace with an ad-hoc signature

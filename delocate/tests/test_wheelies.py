@@ -253,6 +253,7 @@ def test_patch_wheel():
 
 def test_fix_rpath():
     # Test wheels which have an @rpath dependency
+    # Also verifies the delocated libraries signature
     with InTemporaryDirectory():
         # The module was set to expect its dependency in the libs/ directory
         os.symlink(DATA_PATH, 'libs')
@@ -268,3 +269,6 @@ def test_fix_rpath():
             delocate_wheel(RPATH_WHEEL, 'tmp.whl'),
             {stray_lib: {dep_mod: dep_path}},
         )
+        with InWheel('tmp.whl'):
+            check_call(['codesign', '--verify',
+                        'fakepkg/.dylibs/libextfunc_rpath.dylib'])

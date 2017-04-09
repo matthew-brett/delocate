@@ -12,7 +12,7 @@ from subprocess import Popen, PIPE
 
 from .pycompat import string_types
 from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
-from .tools import (set_install_name, zip2dir, dir2zip,
+from .tools import (set_install_name, zip2dir, dir2zip, validate_signature,
                     find_package_dirs, set_install_id, get_archs)
 from .tmpdirs import TemporaryDirectory
 from .wheeltools import rewrite_record, InWheel
@@ -398,6 +398,7 @@ def delocate_wheel(in_wheel,
                 lib_base = basename(lib)
                 copied_path = pjoin(lib_path, lib_base)
                 set_install_id(copied_path, install_id_root + lib_base)
+                validate_signature(copied_path)
             _merge_lib_dict(all_copied, copied_libs)
         if len(all_copied):
             rewrite_record(wheel_dir)

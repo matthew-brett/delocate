@@ -8,7 +8,8 @@ import shutil
 
 from ..tools import (back_tick, unique_by_index, ensure_writable, zip2dir,
                      dir2zip, find_package_dirs, cmp_contents, get_archs,
-                     lipo_fuse)
+                     lipo_fuse, replace_signature, validate_signature,
+                     add_rpath)
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -160,3 +161,34 @@ def test_get_archs_fuse():
         assert_raises(RuntimeError, lipo_fuse, 'libcopy32', LIB32, 'yetanother')
         shutil.copyfile(LIB64, 'libcopy64')
         assert_raises(RuntimeError, lipo_fuse, 'libcopy64', LIB64, 'yetanother')
+
+
+def test_validate_signature():
+    # Fully test the validate_signature tool
+    def check_signature(filename):
+        """Raises RuntimeError if codesign can not verify the signature."""
+        back_tick(['codesign', '--verify', filename], raise_err=True)
+
+    with InTemporaryDirectory():
+        # Copy a binary file to test with, any binary file would work
+        shutil.copyfile(LIBBOTH, 'libcopy')
+
+        # validate_signature does not add missing signatures
+        validate_signature('libcopy')
+
+        # codesign should raise an error (missing signature)
+        assert_raises(RuntimeError, check_signature, 'libcopy')
+
+        replace_signature('libcopy', '-') # Force this file to be signed
+        validate_signature('libcopy') # Cover the `is already valid` code path
+
+        check_signature('libcopy') # codesign now accepts the file
+
+        # Alter the contents of this file, this will invalidate the signature
+        add_rpath('libcopy', '/dummy/path')
+
+        # codesign should raise a new error (invalid signature)
+        assert_raises(RuntimeError, check_signature, 'libcopy')
+
+        validate_signature('libcopy') # Replace the broken signature
+        check_signature('libcopy')

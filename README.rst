@@ -19,6 +19,9 @@ Provides scripts:
 * ``delocate-wheel`` -- rewrite wheel having copied and relinked library
   dependencies into the wheel tree.
 
+`auditwheel <https://github.com/pypa/auditwheel>`_ is a tool for Linux
+similar to ``delocate``, on which it was based.
+
 .. warning::
 
     Please be careful - this software is alpha quality and has not been much

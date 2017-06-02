@@ -135,11 +135,11 @@ def _line0_says_object(line0, filename):
     if line0.startswith('Archive :'):
         # nothing to do for static libs
         return False
-    if line0.endswith("'%s': The file was not recognized as a valid object file." % filename):
+    if ("'%s': The file was not recognized as a valid object file" % filename) in line0:
         return False
-    if line0.endswith("'%s': The end of the file was unexpectedly encountered." % filename):
+    if ("'%s': The end of the file was unexpectedly encountered" % filename) in line0:
         return False
-    if not line0.startswith(filename + ':'):
+    if not (filename + ':') in line0:
         raise InstallNameError('Unexpected first line: ' + line0)
     further_report = line0[len(filename) + 1:]
     if further_report == '':

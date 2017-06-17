@@ -32,7 +32,10 @@ install:
   - set -vx  # echo commands
   - source multibuild/osx_utils.sh
   - get_macpython_environment $VERSION venv
-  - pip install wheel nose
+  - pip install wheel nose Cython
+  - cd wheel_makers
+  - ./make_wheels.sh
+  - cd ..
   - python setup.py install
 
 script:

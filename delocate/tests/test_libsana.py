@@ -179,4 +179,7 @@ def test_resolve_rpath():
     # A minimal test of the resolve_rpath function
     path, lib = split(LIBA)
     lib_rpath = pjoin('@rpath', lib)
-    assert_equal(resolve_rpath(lib_rpath, [path]), realpath(LIBA))
+    # Should skip '/nonexist' path
+    assert_equal(resolve_rpath(lib_rpath, ['/nonexist', path]), realpath(LIBA))
+    # Should return the given parameter as is since it can't be found
+    assert_equal(resolve_rpath(lib_rpath, []), lib_rpath)

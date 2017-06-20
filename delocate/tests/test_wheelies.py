@@ -3,6 +3,7 @@
 import os
 from os.path import (join as pjoin, basename, realpath, abspath, exists)
 
+from glob import glob
 import shutil
 from subprocess import check_call
 
@@ -19,9 +20,17 @@ from nose.tools import (assert_true, assert_false, assert_raises, assert_equal)
 from .test_install_names import DATA_PATH, EXT_LIBS
 from .test_tools import (ARCH_32, ARCH_BOTH)
 
-PLAT_WHEEL = pjoin(DATA_PATH, 'fakepkg1-1.0-cp27-none-macosx_10_6_intel.whl')
-PURE_WHEEL = pjoin(DATA_PATH, 'fakepkg2-1.0-py27-none-any.whl')
-RPATH_WHEEL = pjoin(DATA_PATH, 'fakepkg_rpath-1.0-cp27-cp27m-macosx_10_6_intel.whl')
+
+def _collect_wheel(globber):
+    wheels = glob(pjoin(DATA_PATH, globber))
+    if len(wheels) > 1:
+        raise ValueError("Too many wheels for glob {}".format(wheels))
+    return wheels[0]
+
+
+PLAT_WHEEL = _collect_wheel('fakepkg1-1.0-cp27-*.whl')
+PURE_WHEEL = _collect_wheel('fakepkg2-1.0-py2*.whl')
+RPATH_WHEEL = _collect_wheel('fakepkg_rpath-1.0-*.whl')
 STRAY_LIB = pjoin(DATA_PATH, 'libextfunc.dylib')
 # The install_name in the wheel for the stray library
 STRAY_LIB_DEP = ('/Users/mb312/dev_trees/delocate/wheel_makers/'

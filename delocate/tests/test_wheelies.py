@@ -3,7 +3,6 @@
 import os
 from os.path import (join as pjoin, basename, realpath, abspath, exists)
 
-import glob
 import shutil
 from subprocess import check_call
 
@@ -22,7 +21,7 @@ from .test_tools import (ARCH_32, ARCH_BOTH)
 
 PLAT_WHEEL = pjoin(DATA_PATH, 'fakepkg1-1.0-cp27-none-macosx_10_6_intel.whl')
 PURE_WHEEL = pjoin(DATA_PATH, 'fakepkg2-1.0-py27-none-any.whl')
-RPATH_WHEEL, = glob.glob(pjoin(DATA_PATH, 'fakepkg_rpath-1.0-*.whl'))
+RPATH_WHEEL = pjoin(DATA_PATH, 'fakepkg_rpath-1.0-cp27-cp27m-macosx_10_6_intel.whl')
 STRAY_LIB = pjoin(DATA_PATH, 'libextfunc.dylib')
 # The install_name in the wheel for the stray library
 STRAY_LIB_DEP = ('/Users/mb312/dev_trees/delocate/wheel_makers/'
@@ -249,7 +248,7 @@ def test_fix_rpath():
         with InWheel(RPATH_WHEEL):
             # dep_mod can vary depending the Python version used to build
             # the test wheel
-            dep_mod, = glob.glob('fakepkg/subpkg/module2*.so')
+            dep_mod = 'fakepkg/subpkg/module2.so'
         dep_path = '@rpath/libextfunc_rpath.dylib'
 
         assert_equal(

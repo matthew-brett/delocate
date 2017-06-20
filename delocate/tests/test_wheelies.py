@@ -31,9 +31,9 @@ def _collect_wheel(globber):
     return wheels[0]
 
 
-PLAT_WHEEL = _collect_wheel('fakepkg1-1.0-cp27-*.whl')
-PURE_WHEEL = _collect_wheel('fakepkg2-1.0-py2*.whl')
-RPATH_WHEEL = _collect_wheel('fakepkg_rpath-1.0-*.whl')
+PLAT_WHEEL = _collect_wheel('fakepkg1-1.0-cp*.whl')
+PURE_WHEEL = _collect_wheel('fakepkg2-1.0-py*.whl')
+RPATH_WHEEL = _collect_wheel('fakepkg_rpath-1.0-cp*.whl')
 STRAY_LIB = pjoin(DATA_PATH, 'libextfunc.dylib')
 # The install_name in the wheel for the stray library
 STRAY_LIB_DEP = ('/Users/mb312/dev_trees/delocate/wheel_makers/'

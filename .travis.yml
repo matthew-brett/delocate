@@ -38,7 +38,7 @@ install:
         pip install cython;
         (cd wheel_makers && ./make_wheels.sh);
     fi
-  - python setup.py install
+  - pip install .
 
 script:
   - echo $PWD

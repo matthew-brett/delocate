@@ -33,8 +33,11 @@ install:
   - set -vx  # echo commands
   - source multibuild/osx_utils.sh
   - get_macpython_environment $VERSION venv
-  - pip install wheel nose Cython
-  - if [ -n "$BUILD_WHEELS" ]; then (cd wheel_makers && ./make_wheels.sh); fi
+  - pip install wheel nose
+  - if [ -n "$BUILD_WHEELS" ]; then
+        pip install cython;
+        (cd wheel_makers && ./make_wheels.sh);
+    fi
   - python setup.py install
 
 script:

@@ -16,6 +16,7 @@ from nose.tools import (assert_true, assert_false, assert_raises,
 
 from .test_tools import LIB32, LIB64, LIB64A
 from .test_wheelies import PURE_WHEEL
+from .test_wheeltools import assert_record_equal
 
 
 def assert_same_tree(tree1, tree2):
@@ -25,8 +26,14 @@ def assert_same_tree(tree1, tree2):
             assert_true(isdir(pjoin(tree2_dirpath, dname)))
         for fname in filenames:
             tree1_path = pjoin(dirpath, fname)
-            assert_true(
-                cmp_contents(tree1_path, pjoin(tree2_dirpath, fname)))
+            with open(tree1_path, 'rb') as fobj:
+                contents1 = fobj.read()
+            with open(pjoin(tree2_dirpath, fname), 'rb') as fobj:
+                contents2 = fobj.read()
+            if fname == 'RECORD':  # Record can have different line orders
+                assert_record_equal(contents1, contents2)
+            else:
+                assert_equal(contents1, contents2)
 
 
 def test_fuse_trees():
@@ -71,7 +78,6 @@ def test_fuse_trees():
         fuse_trees('tree1', 'tree2')
         assert_equal(os.listdir('tree1'),
                      ['afile.txt', 'anotherfile.txt', 'liba.a', 'tests'])
-
 
 
 def test_fuse_wheels():

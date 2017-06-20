@@ -23,8 +23,11 @@ from .test_tools import (ARCH_32, ARCH_BOTH)
 
 def _collect_wheel(globber):
     wheels = glob(pjoin(DATA_PATH, globber))
-    if len(wheels) > 1:
-        raise ValueError("Too many wheels for glob {}".format(wheels))
+    if len(wheels) == 0:
+        raise ValueError("No wheels for glob {}".format(globber))
+    elif len(wheels) > 1:
+        raise ValueError("Too many wheels for glob {} ({})".format(
+            globber, '; '.join(wheels)))
     return wheels[0]
 
 

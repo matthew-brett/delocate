@@ -17,6 +17,11 @@ from nose.tools import (assert_true, assert_false, assert_raises, assert_equal)
 from .test_wheelies import PURE_WHEEL, PLAT_WHEEL
 
 
+def assert_record_equal(record_orig, record_new):
+    assert_equal(sorted(record_orig.splitlines()),
+                        sorted(record_new.splitlines()))
+
+
 def test_rewrite_record():
     dist_info_sdir = 'fakepkg2-1.0.dist-info'
     with InTemporaryDirectory():
@@ -29,7 +34,7 @@ def test_rewrite_record():
         rewrite_record('wheel')
         with open(record_fname, 'rt') as fobj:
             record_new = fobj.read()
-        assert_equal(record_orig, record_new)
+        assert_record_equal(record_orig, record_new)
         # Test that signature gets deleted
         sig_fname = pjoin('wheel', dist_info_sdir, 'RECORD.jws')
         with open(sig_fname, 'wt') as fobj:
@@ -37,7 +42,7 @@ def test_rewrite_record():
         rewrite_record('wheel')
         with open(record_fname, 'rt') as fobj:
             record_new = fobj.read()
-        assert_equal(record_orig, record_new)
+        assert_record_equal(record_orig, record_new)
         assert_false(exists(sig_fname))
         # Test error for too many dist-infos
         shutil.copytree(pjoin('wheel', dist_info_sdir),
@@ -82,26 +87,34 @@ def test_in_wheel():
             assert_false(isfile(mod_path))
 
 
-def get_winfo(info_fname, drop_version=True):
-    """ Get wheel info from WHEEL file
+def _filter_key(items, key):
+    return [(k, v) for k, v in items if k != key]
 
-    Drop "Wheel-Version" by default in case this changes in the future
-    """
-    wf = WheelFile(info_fname)
-    info = sorted(wf.parsed_wheel_info.items())
+
+def assert_winfo_similar(whl_fname, exp_items, drop_version=True):
+    wf = WheelFile(whl_fname)
+    wheel_parts = wf.parsed_filename.groupdict()
+    # Info can contain duplicate keys (e.g. Tag)
+    w_info = sorted(wf.parsed_wheel_info.items())
     if drop_version:
-        info = [(name, value) for (name, value) in info
-                if name != "Wheel-Version"]
-    return info
+        w_info = _filter_key(w_info, 'Wheel-Version')
+        exp_items = _filter_key(exp_items, 'Wheel-Version')
+    assert_equal(len(exp_items), len(w_info))
+    # Extract some information from actual values
+    wheel_parts['pip_version'] = dict(w_info)['Generator'].split()[1]
+    for (key1, value1), (key2, value2) in zip(exp_items, w_info):
+        assert_equal(key1, key2)
+        value1 = value1.format(**wheel_parts)
+        assert_equal(value1, value2)
 
 
 def test_add_platforms():
     # Check adding platform to wheel name and tag section
-    exp_items = [('Generator', 'bdist_wheel (0.23.0)'),
+    exp_items = [('Generator', 'bdist_wheel {pip_version}'),
                  ('Root-Is-Purelib', 'false'),
-                 ('Tag', 'cp27-none-macosx_10_6_intel'),
+                 ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
                  ('Wheel-Version', '1.0')]
-    assert_equal(get_winfo(PLAT_WHEEL, drop_version=False), exp_items)
+    assert_winfo_similar(PLAT_WHEEL, exp_items, drop_version=False)
     with InTemporaryDirectory() as tmpdir:
         # First wheel needs proper wheel filename for later unpack test
         out_fname = basename(PURE_WHEEL)
@@ -110,18 +123,18 @@ def test_add_platforms():
         assert_raises(WheelToolsError,
                       add_platforms, PURE_WHEEL, plats, tmpdir)
         assert_false(exists(out_fname))
-        out_fname = ('fakepkg1-1.0-cp27-none-macosx_10_6_intel.'
-                     'macosx_10_9_intel.macosx_10_9_x86_64.whl')
+        out_fname = (splitext(basename(PLAT_WHEEL))[0] +
+                     '.macosx_10_9_intel.macosx_10_9_x86_64.whl')
         assert_equal(realpath(add_platforms(PLAT_WHEEL, plats, tmpdir)),
                      realpath(out_fname))
         assert_true(isfile(out_fname))
         # Expected output minus wheel-version (that might change)
-        extra_exp = [('Generator', 'bdist_wheel (0.23.0)'),
+        extra_exp = [('Generator', 'bdist_wheel {pip_version}'),
                       ('Root-Is-Purelib', 'false'),
-                      ('Tag', 'cp27-none-macosx_10_6_intel'),
-                      ('Tag', 'cp27-none-macosx_10_9_intel'),
-                      ('Tag', 'cp27-none-macosx_10_9_x86_64')]
-        assert_equal(get_winfo(out_fname), extra_exp)
+                      ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
+                      ('Tag', '{pyver}-{abi}-macosx_10_9_intel'),
+                      ('Tag', '{pyver}-{abi}-macosx_10_9_x86_64')]
+        assert_winfo_similar(out_fname, extra_exp)
         # If wheel exists (as it does) then raise error
         assert_raises(WheelToolsError,
                       add_platforms, PLAT_WHEEL, plats, tmpdir)
@@ -129,14 +142,14 @@ def test_add_platforms():
         add_platforms(PLAT_WHEEL, plats, tmpdir, clobber=True)
         # Assemble platform tags in two waves to check tags are not being
         # multiplied
-        out_1 = 'fakepkg1-1.0-cp27-none-macosx_10_6_intel.macosx_10_9_intel.whl'
+        out_1 = splitext(basename(PLAT_WHEEL))[0] + '.macosx_10_9_intel.whl'
         assert_equal(realpath(add_platforms(PLAT_WHEEL, plats[0:1], tmpdir)),
                      realpath(out_1))
-        assert_equal(get_winfo(out_1), extra_exp[:-1])
+        assert_winfo_similar(out_1, extra_exp[:-1])
         out_2 = splitext(out_1)[0] + '.macosx_10_9_x86_64.whl'
         assert_equal(realpath(add_platforms(out_1, plats[1:], tmpdir, True)),
                      realpath(out_2))
-        assert_equal(get_winfo(out_2), extra_exp)
+        assert_winfo_similar(out_2, extra_exp)
         # Default is to write into directory of wheel
         os.mkdir('wheels')
         shutil.copy2(PLAT_WHEEL, 'wheels')
@@ -150,9 +163,9 @@ def test_add_platforms():
         res = sorted(os.listdir('wheels'))
         assert_equal(add_platforms(local_out, plats, clobber=True), None)
         assert_equal(sorted(os.listdir('wheels')), res)
-        assert_equal(get_winfo(out_fname), extra_exp)
+        assert_winfo_similar(out_fname, extra_exp)
         # But WHEEL tags if missing, even if file name is OK
         shutil.copy2(local_plat, local_out)
         add_platforms(local_out, plats, clobber=True)
         assert_equal(sorted(os.listdir('wheels')), res)
-        assert_equal(get_winfo(out_fname), extra_exp)
+        assert_winfo_similar(out_fname, extra_exp)

@@ -10,7 +10,7 @@ from __future__ import division, print_function, absolute_import
 
 import os
 from os.path import (dirname, join as pjoin, isfile, abspath, realpath,
-                     basename, exists)
+                     basename, exists, splitext)
 import shutil
 
 from ..tmpdirs import InTemporaryDirectory
@@ -27,7 +27,7 @@ from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
                             STRAY_LIB_DEP, WHEEL_PATCH, WHEEL_PATCH_BAD,
                             _thin_lib, _thin_mod, _rename_module)
 from .test_fuse import assert_same_tree
-from .test_wheeltools import get_winfo
+from .test_wheeltools import assert_winfo_similar
 
 
 def _proc_lines(in_str):
@@ -344,11 +344,11 @@ def test_patch_wheel():
 
 def test_add_platforms():
     # Check adding platform to wheel name and tag section
-    exp_items = [('Generator', 'bdist_wheel (0.23.0)'),
+    exp_items = [('Generator', 'bdist_wheel {pip_version}'),
                  ('Root-Is-Purelib', 'false'),
-                 ('Tag', 'cp27-none-macosx_10_6_intel'),
+                 ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
                  ('Wheel-Version', '1.0')]
-    assert_equal(get_winfo(PLAT_WHEEL, drop_version=False), exp_items)
+    assert_winfo_similar(PLAT_WHEEL, exp_items, drop_version=False)
     with InTemporaryDirectory() as tmpdir:
         # First wheel needs proper wheel filename for later unpack test
         out_fname = basename(PURE_WHEEL)
@@ -367,18 +367,18 @@ def test_add_platforms():
         # Still doesn't do anything though
         assert_false(exists(out_fname))
         # Works for plat_wheel
-        out_fname = ('fakepkg1-1.0-cp27-none-macosx_10_6_intel.'
-                     'macosx_10_9_intel.macosx_10_9_x86_64.whl')
+        out_fname = (splitext(basename(PLAT_WHEEL))[0] +
+                     '.macosx_10_9_intel.macosx_10_9_x86_64.whl')
         code, stdout, stderr = run_command(
             ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir] + plat_args)
         assert_true(isfile(out_fname))
         # Expected output minus wheel-version (that might change)
-        extra_exp = [('Generator', 'bdist_wheel (0.23.0)'),
+        extra_exp = [('Generator', 'bdist_wheel {pip_version}'),
                       ('Root-Is-Purelib', 'false'),
-                      ('Tag', 'cp27-none-macosx_10_6_intel'),
-                      ('Tag', 'cp27-none-macosx_10_9_intel'),
-                      ('Tag', 'cp27-none-macosx_10_9_x86_64')]
-        assert_equal(get_winfo(out_fname), extra_exp)
+                      ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
+                      ('Tag', '{pyver}-{abi}-macosx_10_9_intel'),
+                      ('Tag', '{pyver}-{abi}-macosx_10_9_x86_64')]
+        assert_winfo_similar(out_fname, extra_exp)
         # If wheel exists (as it does) then raise error
         assert_raises(RuntimeError, run_command,
             ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir] + plat_args)
@@ -388,22 +388,22 @@ def test_add_platforms():
         # Can also specify platform tags via --osx-ver flags
         code, stdout, stderr = run_command(
             ['delocate-addplat', PLAT_WHEEL, '-c', '-w', tmpdir, '-x', '10_9'])
-        assert_equal(get_winfo(out_fname), extra_exp)
+        assert_winfo_similar(out_fname, extra_exp)
         # Can mix plat_tag and osx_ver
-        out_big_fname = ('fakepkg1-1.0-cp27-none-macosx_10_6_intel.'
-                         'macosx_10_9_intel.macosx_10_9_x86_64.'
-                         'macosx_10_10_intel.macosx_10_10_x86_64.whl')
-        extra_big_exp = [('Generator', 'bdist_wheel (0.23.0)'),
+        out_big_fname = (splitext(basename(PLAT_WHEEL))[0] +
+                         '.macosx_10_9_intel.macosx_10_9_x86_64'
+                         '.macosx_10_10_intel.macosx_10_10_x86_64.whl')
+        extra_big_exp = [('Generator', 'bdist_wheel {pip_version}'),
                          ('Root-Is-Purelib', 'false'),
-                         ('Tag', 'cp27-none-macosx_10_10_intel'),
-                         ('Tag', 'cp27-none-macosx_10_10_x86_64'),
-                         ('Tag', 'cp27-none-macosx_10_6_intel'),
-                         ('Tag', 'cp27-none-macosx_10_9_intel'),
-                         ('Tag', 'cp27-none-macosx_10_9_x86_64')]
+                         ('Tag', '{pyver}-{abi}-macosx_10_10_intel'),
+                         ('Tag', '{pyver}-{abi}-macosx_10_10_x86_64'),
+                         ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
+                         ('Tag', '{pyver}-{abi}-macosx_10_9_intel'),
+                         ('Tag', '{pyver}-{abi}-macosx_10_9_x86_64')]
         code, stdout, stderr = run_command(
             ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir, '-x', '10_10']
             + plat_args)
-        assert_equal(get_winfo(out_big_fname), extra_big_exp)
+        assert_winfo_similar(out_big_fname, extra_big_exp)
         # Default is to write into directory of wheel
         os.mkdir('wheels')
         shutil.copy2(PLAT_WHEEL, 'wheels')
@@ -422,19 +422,20 @@ def test_add_platforms():
         shutil.copy2(PLAT_WHEEL, 'wheels')
         # If platforms already present, don't write more
         res = sorted(os.listdir('wheels'))
-        assert_equal(get_winfo(local_out), extra_exp)
+        assert_winfo_similar(local_out, extra_exp)
         code, stdout, stderr = run_command(
             ['delocate-addplat', local_out, '--clobber']  + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
-        assert_equal(get_winfo(local_out), extra_exp)
+        assert_winfo_similar(local_out, extra_exp)
         # The wheel doesn't get deleted output name same as input, as here
         code, stdout, stderr = run_command(
             ['delocate-addplat', local_out, '-r', '--clobber']  + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
         # But adds WHEEL tags if missing, even if file name is OK
         shutil.copy2(local_plat, local_out)
-        assert_not_equal(get_winfo(local_out), extra_exp)
+        assert_raises(AssertionError,
+                      assert_winfo_similar, local_out, extra_exp)
         code, stdout, stderr = run_command(
             ['delocate-addplat', local_out, '--clobber']  + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
-        assert_equal(get_winfo(local_out), extra_exp)
+        assert_winfo_similar(local_out, extra_exp)

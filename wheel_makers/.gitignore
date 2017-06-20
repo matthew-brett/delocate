@@ -1,0 +1,4 @@
+*.c
+*.dylib
+*.so
+fakepkg*.egg-info/

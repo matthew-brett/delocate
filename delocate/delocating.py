@@ -14,7 +14,7 @@ from .pycompat import string_types
 from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
 from .tools import (set_install_name, zip2dir, dir2zip,
                     find_package_dirs, set_install_id, get_archs)
-from .tmpdirs import InTemporaryDirectory, InGivenDirectory
+from .tmpdirs import TemporaryDirectory
 from .wheeltools import rewrite_record, InWheel
 
 # Prefix for install_name_id of copied libraries
@@ -366,42 +366,43 @@ def delocate_wheel(in_wheel,
     else:
         out_wheel = abspath(out_wheel)
     in_place = in_wheel == out_wheel
-    with InTemporaryDirectory() as tmpdir:
+    with TemporaryDirectory() as tmpdir:
         all_copied = {}
-        zip2dir(in_wheel, 'wheel')
-        with InGivenDirectory('wheel'):
-            for package_path in find_package_dirs('.'):
-                lib_path = pjoin(package_path, lib_sdir)
-                lib_path_exists = exists(lib_path)
-                copied_libs = delocate_path(package_path, lib_path,
-                                            lib_filt_func, copy_filt_func)
-                if copied_libs and lib_path_exists:
+        wheel_dir = realpath(pjoin(tmpdir, 'wheel'))
+        zip2dir(in_wheel, wheel_dir)
+        for package_path in find_package_dirs(wheel_dir):
+            lib_path = pjoin(package_path, lib_sdir)
+            lib_path_exists = exists(lib_path)
+            copied_libs = delocate_path(package_path, lib_path,
+                                        lib_filt_func, copy_filt_func)
+            if copied_libs and lib_path_exists:
+                raise DelocationError(
+                    '{0} already exists in wheel but need to copy '
+                    '{1}'.format(lib_path, '; '.join(copied_libs)))
+            if len(os.listdir(lib_path)) == 0:
+                shutil.rmtree(lib_path)
+            # Check architectures
+            if not require_archs is None:
+                stop_fast = not check_verbose
+                bads = check_archs(copied_libs, require_archs, stop_fast)
+                if len(bads) != 0:
+                    if check_verbose:
+                        print(bads_report(bads, pjoin(tmpdir, 'wheel')))
                     raise DelocationError(
-                        '{0} already exists in wheel but need to copy '
-                        '{1}'.format(lib_path, '; '.join(copied_libs)))
-                if len(os.listdir(lib_path)) == 0:
-                    shutil.rmtree(lib_path)
-                # Check architectures
-                if not require_archs is None:
-                    stop_fast = not check_verbose
-                    bads = check_archs(copied_libs, require_archs, stop_fast)
-                    if len(bads) != 0:
-                        if check_verbose:
-                            print(bads_report(bads, pjoin(tmpdir, 'wheel')))
-                        raise DelocationError(
-                            "Some missing architectures in wheel")
-                # Change install ids to be unique within Python space
-                install_id_root = DLC_PREFIX + package_path + '/'
-                for lib in copied_libs:
-                    lib_base = basename(lib)
-                    copied_path = pjoin(lib_path, lib_base)
-                    set_install_id(copied_path, install_id_root + lib_base)
-                _merge_lib_dict(all_copied, copied_libs)
+                        "Some missing architectures in wheel")
+            # Change install ids to be unique within Python space
+            install_id_root = (DLC_PREFIX +
+                               relpath(package_path, wheel_dir) +
+                               '/')
+            for lib in copied_libs:
+                lib_base = basename(lib)
+                copied_path = pjoin(lib_path, lib_base)
+                set_install_id(copied_path, install_id_root + lib_base)
+            _merge_lib_dict(all_copied, copied_libs)
         if len(all_copied):
-            rewrite_record('wheel')
+            rewrite_record(wheel_dir)
         if len(all_copied) or not in_place:
-            dir2zip('wheel', out_wheel)
-    wheel_dir = realpath(pjoin(tmpdir, 'wheel'))
+            dir2zip(wheel_dir, out_wheel)
     return stripped_lib_dict(all_copied, wheel_dir + os.path.sep)
 
 

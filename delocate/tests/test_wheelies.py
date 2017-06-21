@@ -36,8 +36,9 @@ PURE_WHEEL = _collect_wheel('fakepkg2-1.0-py*.whl')
 RPATH_WHEEL = _collect_wheel('fakepkg_rpath-1.0-cp*.whl')
 STRAY_LIB = pjoin(DATA_PATH, 'libextfunc.dylib')
 # The install_name in the wheel for the stray library
-STRAY_LIB_DEP = ('/Users/mb312/dev_trees/delocate/wheel_makers/'
-                 'fakepkg1/libs/libextfunc.dylib')
+with open(pjoin(DATA_PATH, 'wheel_build_path.txt'), 'rt') as fobj:
+    _wheel_build_path = fobj.read().strip()
+STRAY_LIB_DEP = _wheel_build_path + '/fakepkg1/libs/libextfunc.dylib'
 WHEEL_PATCH = pjoin(DATA_PATH, 'fakepkg2.patch')
 WHEEL_PATCH_BAD = pjoin(DATA_PATH, 'fakepkg2.bad_patch')
 

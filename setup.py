@@ -33,6 +33,7 @@ setup(name='delocate',
       packages=['delocate', 'delocate.tests'],
       package_data = {'delocate.tests':
                       [pjoin('data', '*.dylib'),
+                       pjoin('data', '*.txt'),
                        pjoin('data', 'liba.a'),
                        pjoin('data', 'a.o'),
                        pjoin('data', '*.whl'),

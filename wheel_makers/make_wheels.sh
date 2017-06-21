@@ -25,6 +25,9 @@ cd fakepkg_rpath
 python setup.py clean bdist_wheel
 cd -
 
-rm ../delocate/tests/data/fakepkg*.whl
-cp */dist/*.whl ../delocate/tests/data
-cp */libs/*.dylib ../delocate/tests/data
+OUT_PATH=../delocate/tests/data
+rm $OUT_PATH/fakepkg*.whl
+cp */dist/*.whl $OUT_PATH
+cp */libs/*.dylib $OUT_PATH
+# Record wheel building path
+echo $PWD > $OUT_PATH/wheel_build_path.txt

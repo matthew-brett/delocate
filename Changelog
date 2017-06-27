@@ -14,6 +14,10 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* 0.7.0 (Tuesday June 27th 2017)
+
+  Add ability to deal with rpath.  Thanks to Kyle Stewart.
+
 * 0.6.5 (Friday June 16 2017)
 
   More changes for compatibility with newer OSX Xcode messages.  Thanks to

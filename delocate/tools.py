@@ -284,8 +284,10 @@ def get_rpaths(filename):
         assert cmdsize.startswith('cmdsize ')
         paths.append(RPATH_RE.match(path).groups()[0])
         line_no += 2
-    for path in os.environ.get('LD_LIBRARY_PATH', '').split(':'):
-        paths.append(path)
+    ld_path = os.environ.get('LD_LIBRARY_PATH')
+    if ld_path is not None:
+        for path in ld_path.split(':'):
+            paths.append(path)
     return tuple(paths)
 
 

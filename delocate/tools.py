@@ -250,7 +250,8 @@ def set_install_id(filename, install_id):
 RPATH_RE = re.compile("path (.*) \(offset \d+\)")
 
 def get_rpaths(filename):
-    """ Return a tuple of rpaths from the library `filename`
+    """ Return a tuple of rpaths from the library `filename`, with an
+    additional fallback to entries in `LD_LIBRARY_PATH`.
 
     If `filename` is not a library then the returned tuple will be empty.
 
@@ -283,6 +284,8 @@ def get_rpaths(filename):
         assert cmdsize.startswith('cmdsize ')
         paths.append(RPATH_RE.match(path).groups()[0])
         line_no += 2
+    for path in os.environ.get('LD_LIBRARY_PATH', '').split(':'):
+        paths.append(path)
     return tuple(paths)
 
 

@@ -130,22 +130,36 @@ def parse_install_name(line):
     return IN_RE.match(line).groups()
 
 
+# otool -L strings indicating this is not an object file. The string changes
+# with different otool versions.
+BAD_OBJECT_STRINGS = [
+    'is not an object file',  # otool version cctools-862
+    'The end of the file was unexpectedly encountered',  # cctools-862 (.ico)
+    'The file was not recognized as a valid object file.',  # cctools-895
+    'Object is not a Mach-O file type'  # cctools-900
+]
+
+
+def _cmd_out_err(cmd):
+    # Run command, return stdout or stderr if stdout is empty
+    out, err = back_tick(cmd, ret_err=True)
+    out = err if not len(out) else out
+    return out.split('\n')
+
+
 def _line0_says_object(line0, filename):
     line0 = line0.strip()
+    for candidate in BAD_OBJECT_STRINGS:
+        if candidate in line0:
+            return False
     if line0.startswith('Archive :'):
         # nothing to do for static libs
         return False
-    if ("'%s': The file was not recognized as a valid object file" % filename) in line0:
-        return False
-    if ("'%s': The end of the file was unexpectedly encountered" % filename) in line0:
-        return False
-    if not (filename + ':') in line0:
+    if not line0.startswith(filename + ':'):
         raise InstallNameError('Unexpected first line: ' + line0)
     further_report = line0[len(filename) + 1:]
     if further_report == '':
         return True
-    if further_report == ' is not an object file':
-        return False
     raise InstallNameError(
         'Too ignorant to know what "{0}" means'.format(further_report))
 
@@ -167,9 +181,7 @@ def get_install_names(filename):
     install_names : tuple
         tuple of install names for library `filename`
     """
-    out, err = back_tick(['otool', '-L', filename], ret_err=True)
-    out = err if not len(out) else out
-    lines = out.split('\n')
+    lines = _cmd_out_err(['otool', '-L', filename])
     if not _line0_says_object(lines[0], filename):
         return ()
     names = tuple(parse_install_name(line)[0] for line in lines[1:])
@@ -195,9 +207,7 @@ def get_install_id(filename):
     install_id : str
         install id of library `filename`, or None if no install id
     """
-    out, err = back_tick(['otool', '-D', filename], ret_err=True)
-    out = err if not len(out) else out
-    lines = out.split('\n')
+    lines = _cmd_out_err(['otool', '-D', filename])
     if not _line0_says_object(lines[0], filename):
         return None
     if len(lines) == 1:
@@ -265,13 +275,12 @@ def get_rpaths(filename):
         rpath paths in `filename`
     """
     try:
-        out = back_tick(['otool', '-l', filename])
+        lines = _cmd_out_err(['otool', '-l', filename])
     except RuntimeError:
         return ()
-    if out.startswith('Archive :') or out.endswith(': is not an object file'):
+    if not _line0_says_object(lines[0], filename):
         return ()
-    lines = [line.strip() for line in out.split('\n')]
-    assert lines[0] == filename + ':'
+    lines = [line.strip() for line in lines]
     paths = []
     line_no = 1
     while line_no < len(lines):

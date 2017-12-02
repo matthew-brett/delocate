@@ -135,7 +135,7 @@ def parse_install_name(line):
 BAD_OBJECT_STRINGS = [
     'is not an object file',  # otool version cctools-862
     'The end of the file was unexpectedly encountered',  # cctools-862 (.ico)
-    'The file was not recognized as a valid object file.',  # cctools-895
+    'The file was not recognized as a valid object file',  # cctools-895
     'Object is not a Mach-O file type'  # cctools-900
 ]
 

@@ -136,6 +136,7 @@ BAD_OBJECT_STRINGS = [
     'is not an object file',  # otool version cctools-862
     'The end of the file was unexpectedly encountered',  # cctools-862 (.ico)
     'The file was not recognized as a valid object file',  # cctools-895
+    'Invalid data was encountered while parsing the file',  # 895 binary file
     'Object is not a Mach-O file type'  # cctools-900
 ]
 

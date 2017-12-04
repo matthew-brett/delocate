@@ -14,6 +14,10 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* 0.7.3 (Monday December 4th 2017
+
+  Also deal with xcode 8.3 message from another binary file.
+
 * 0.7.2 (Saturday December 2nd 2017
 
   Make compatible with latest Xcode error messages.

@@ -27,6 +27,9 @@ LIBA_STATIC = pjoin(DATA_PATH, 'liba.a')
 A_OBJECT = pjoin(DATA_PATH, 'a.o')
 TEST_LIB = pjoin(DATA_PATH, 'test-lib')
 ICO_FILE = pjoin(DATA_PATH, 'icon.ico')
+PY_FILE = pjoin(DATA_PATH, 'some_code.py')
+BIN_FILE = pjoin(DATA_PATH, 'binary_example.bin')
+
 
 def test_get_install_names():
     # Test install name listing
@@ -45,6 +48,10 @@ def test_get_install_names():
     assert_equal(get_install_names(LIBA_STATIC), ())
     # ico file triggers another error message and should also return an empty tuple
     assert_equal(get_install_names(ICO_FILE), ())
+    # Python file (__file__ above may be a pyc file)
+    assert_equal(get_install_names(PY_FILE), ())
+    # Binary file (in fact a truncated SAS file)
+    assert_equal(get_install_names(BIN_FILE), ())
 
 
 def test_parse_install_name():
@@ -100,9 +107,15 @@ def test_set_install_id():
     assert_raises(InstallNameError, set_install_id, TEST_LIB, 'libbof.dylib')
 
 
+def test_get_rpaths():
+    # Test fetch of rpaths
+    # Not dynamic libs, no rpaths
+    for fname in (LIBB, A_OBJECT, LIBA_STATIC, ICO_FILE, PY_FILE, BIN_FILE):
+        assert_equal(get_rpaths(fname), ())
+
+
 def test_add_rpath():
     # Test adding to rpath
-    assert_equal(get_rpaths(LIBB), ())
     with InTemporaryDirectory() as tmpdir:
         libfoo = pjoin(tmpdir, 'libfoo.dylib')
         shutil.copy2(LIBB, libfoo)

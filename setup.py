@@ -18,10 +18,6 @@ versioneer.versionfile_build = pjoin('delocate', '_version.py')
 versioneer.tag_prefix = ''
 versioneer.parentdir_prefix = 'delocate-'
 
-setuptools_args = {}
-if 'setuptools' in sys.modules:
-    setuptools_args['install_requires'] = ['wheel']
-
 setup(name='delocate',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
@@ -34,6 +30,7 @@ setup(name='delocate',
       install_requires=[
           "machomangler; sys_platform == 'win32'",
           "bindepend; sys_platform == 'win32'",
+          "wheel",
       ],
       package_data = {'delocate.tests':
                       [pjoin('data', '*.dylib'),
@@ -66,5 +63,4 @@ setup(name='delocate',
                      'Python Modules',
                      'Topic :: Software Development :: Build Tools'],
       long_description = open('README.rst', 'rt').read(),
-      **setuptools_args
      )

@@ -46,13 +46,13 @@ setup(name='delocate',
                        pjoin('data', 'icon.ico')]},
       entry_points = {
           'console_scripts': [
-              '{} = delocate.cmd.{}:main'.format(name, name)
+              'delocate-{} = delocate.cmd.delocate_{}:main'.format(name, name)
               for name in (
-                  'delocate-addplat',
-                  'delocate-fuse',
-                  'delocate-listdeps',
-                  'delocate-patch',
-                  'delocate-path',
+                  'addplat',
+                  'fuse',
+                  'listdeps',
+                  'patch',
+                  'path',
               )
           ]
       },

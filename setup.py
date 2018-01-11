@@ -28,7 +28,7 @@ setup(name='delocate',
       url='http://github.com/matthew-brett/delocate',
       packages=['delocate', 'delocate.tests'],
       install_requires=[
-          "machomangler; sys_platform == 'win32'",
+          "machomachomangler; sys_platform == 'win32'",
           "bindepend; sys_platform == 'win32'",
           "wheel",
       ],

@@ -31,6 +31,10 @@ setup(name='delocate',
       author_email='matthew.brett@gmail.com',
       url='http://github.com/matthew-brett/delocate',
       packages=['delocate', 'delocate.tests'],
+      install_requires=[
+          "machomangler; sys_platform == 'win32'",
+          "bindepend; sys_platform == 'win32'",
+      ],
       package_data = {'delocate.tests':
                       [pjoin('data', '*.dylib'),
                        pjoin('data', '*.txt'),

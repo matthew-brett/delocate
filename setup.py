@@ -44,14 +44,18 @@ setup(name='delocate',
                        pjoin('data', '*patch'),
                        pjoin('data', 'make_libs.sh'),
                        pjoin('data', 'icon.ico')]},
-      scripts = [pjoin('scripts', f) for f in (
-          'delocate-fuse',
-          'delocate-listdeps',
-          'delocate-wheel',
-          'delocate-path',
-          'delocate-patch',
-          'delocate-addplat',
-      )],
+      entry_points = {
+          'console_scripts': [
+              '{} = delocate.cmd.{}:main'.format(name, name)
+              for name in (
+                  'delocate-addplat',
+                  'delocate-fuse',
+                  'delocate-listdeps',
+                  'delocate-patch',
+                  'delocate-path',
+              )
+          ]
+      },
       license='BSD license',
       classifiers = ['Intended Audience :: Developers',
                      "Environment :: Console",

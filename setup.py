@@ -2,6 +2,7 @@
 """ setup script for delocate package """
 import sys
 from os.path import join as pjoin
+from setuptools import setup, find_packages
 
 # For some commands, use setuptools.
 if len(set(('develop', 'bdist_egg', 'bdist_rpm', 'bdist', 'bdist_dumb',
@@ -9,7 +10,6 @@ if len(set(('develop', 'bdist_egg', 'bdist_rpm', 'bdist', 'bdist_dumb',
             'bdist_mpkg')).intersection(sys.argv)) > 0:
     import setuptools
 
-from distutils.core import setup
 import versioneer
 
 versioneer.VCS = 'git'
@@ -26,7 +26,7 @@ setup(name='delocate',
       maintainer='Matthew Brett',
       author_email='matthew.brett@gmail.com',
       url='http://github.com/matthew-brett/delocate',
-      packages=['delocate', 'delocate.tests'],
+      packages=find_packages(),
       install_requires=[
           "machomachomangler; sys_platform == 'win32'",
           "bindepend; sys_platform == 'win32'",
@@ -53,6 +53,7 @@ setup(name='delocate',
                   'listdeps',
                   'patch',
                   'path',
+                  'wheel',
               )
           ]
       },

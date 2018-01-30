@@ -13,7 +13,7 @@ from ..tools import (back_tick, unique_by_index, ensure_writable, zip2dir,
 
 from ..tmpdirs import InTemporaryDirectory
 
-from nose.tools import assert_true, assert_false, assert_equal, assert_raises
+from .pytest_tools import assert_true, assert_false, assert_equal, assert_raises
 
 DATA_PATH = pjoin(dirname(__file__), 'data')
 LIB32 = pjoin(DATA_PATH, 'liba32.dylib')

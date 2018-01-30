@@ -8,6 +8,8 @@ import zipfile
 import re
 import stat
 
+from delocate import WIN32
+
 class InstallNameError(Exception):
     pass
 
@@ -182,15 +184,20 @@ def get_install_names(filename):
     install_names : tuple
         tuple of install names for library `filename`
     """
-    lines = _cmd_out_err(['otool', '-L', filename])
-    if not _line0_says_object(lines[0], filename):
-        return ()
-    names = tuple(parse_install_name(line)[0] for line in lines[1:])
-    install_id = get_install_id(filename)
-    if not install_id is None:
-        assert names[0] == install_id
-        return names[1:]
-    return names
+    if WIN32:
+        from bindepend import getImports
+
+        return tuple(getImports(filename))
+    else:
+        lines = _cmd_out_err(['otool', '-L', filename])
+        if not _line0_says_object(lines[0], filename):
+            return ()
+        names = tuple(parse_install_name(line)[0] for line in lines[1:])
+        install_id = get_install_id(filename)
+        if not install_id is None:
+            assert names[0] == install_id
+            return names[1:]
+        return names
 
 
 def get_install_id(filename):

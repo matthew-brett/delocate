@@ -14,7 +14,7 @@ from ..tools import (get_install_names, set_install_name, back_tick)
 
 from ..tmpdirs import InTemporaryDirectory
 
-from nose.tools import (assert_true, assert_raises, assert_equal)
+from .pytest_tools import (assert_true, assert_raises, assert_equal)
 
 from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
                                  EXT_LIBS)

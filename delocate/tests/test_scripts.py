@@ -18,7 +18,7 @@ from ..tools import back_tick, set_install_name, zip2dir, dir2zip
 from ..wheeltools import InWheel
 from .scriptrunner import ScriptRunner
 
-from nose.tools import (assert_true, assert_false, assert_equal, assert_raises,
+from .pytest_tools import (assert_true, assert_false, assert_equal, assert_raises,
                         assert_not_equal)
 
 from .test_install_names import EXT_LIBS

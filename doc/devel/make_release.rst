@@ -46,7 +46,7 @@ Release checklist
 * Make sure all tests pass on your local machine (from the delocate root
   directory)::
 
-    nosetests --with-doctest delocate
+    pytest --pyargs delocate
 
   Do this on a Python 2 and Python 3 setup.  Check on oldest supported version
   of OSX.  Check on newest supported version.

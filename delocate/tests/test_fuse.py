@@ -10,7 +10,7 @@ from ..fuse import fuse_trees, fuse_wheels
 from ..tmpdirs import InTemporaryDirectory
 from ..wheeltools import rewrite_record
 
-from nose.tools import (assert_true, assert_false, assert_raises,
+from .pytest_tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
 
 

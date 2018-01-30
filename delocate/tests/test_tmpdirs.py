@@ -6,7 +6,7 @@ from os.path import realpath, abspath, dirname, isfile
 
 from ..tmpdirs import InGivenDirectory
 
-from nose.tools import assert_true, assert_equal
+from .pytest_tools import assert_true, assert_equal
 
 MY_PATH = abspath(__file__)
 MY_DIR = dirname(MY_PATH)

@@ -38,8 +38,10 @@ install:
         pip install cython;
         (cd wheel_makers && ./make_wheels.sh);
     fi
-  - pip install -e .
+  - pip install .
 
 script:
   - echo $PWD
-  - pytest
+  - mkdir tmp_test_dir
+  - cd tmp_test_dir
+  - pytest --pyargs delocate

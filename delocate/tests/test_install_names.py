@@ -1,5 +1,6 @@
 """ Tests for install name utilities """
 
+import sys
 import os
 from os.path import (join as pjoin, exists, dirname, basename)
 
@@ -14,21 +15,39 @@ from ..tmpdirs import InTemporaryDirectory
 from .pytest_tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
 
-# External libs linked from test data
-LIBSTDCXX='/usr/lib/libstdc++.6.dylib'
-LIBSYSTEMB='/usr/lib/libSystem.B.dylib'
-EXT_LIBS = (LIBSTDCXX, LIBSYSTEMB)
-
 DATA_PATH = pjoin(dirname(__file__), 'data')
-LIBA = pjoin(DATA_PATH, 'liba.dylib')
-LIBB = pjoin(DATA_PATH, 'libb.dylib')
-LIBC = pjoin(DATA_PATH, 'libc.dylib')
-LIBA_STATIC = pjoin(DATA_PATH, 'liba.a')
-A_OBJECT = pjoin(DATA_PATH, 'a.o')
-TEST_LIB = pjoin(DATA_PATH, 'test-lib')
-ICO_FILE = pjoin(DATA_PATH, 'icon.ico')
-PY_FILE = pjoin(DATA_PATH, 'some_code.py')
-BIN_FILE = pjoin(DATA_PATH, 'binary_example.bin')
+
+if sys.platform == 'win32':
+    # External libs linked from test data
+    LIBSTDCXX='/usr/lib/libstdc++.6.dylib'
+    LIBSYSTEMB='/usr/lib/libSystem.B.dylib'
+    EXT_LIBS = (LIBSTDCXX, LIBSYSTEMB)
+
+    LIBA = pjoin(DATA_PATH, 'liba.dll')
+    LIBB = pjoin(DATA_PATH, 'libb.dll')
+    LIBC = pjoin(DATA_PATH, 'libc.dll')
+
+    LIBA_STATIC = pjoin(DATA_PATH, 'liba.a')
+    A_OBJECT = pjoin(DATA_PATH, 'a.o')
+    TEST_LIB = pjoin(DATA_PATH, 'test-lib')
+    ICO_FILE = pjoin(DATA_PATH, 'icon.ico')
+    PY_FILE = pjoin(DATA_PATH, 'some_code.py')
+    BIN_FILE = pjoin(DATA_PATH, 'binary_example.bin')
+else:
+    # External libs linked from test data
+    LIBSTDCXX='/usr/lib/libstdc++.6.dylib'
+    LIBSYSTEMB='/usr/lib/libSystem.B.dylib'
+    EXT_LIBS = (LIBSTDCXX, LIBSYSTEMB)
+
+    LIBA = pjoin(DATA_PATH, 'liba.dylib')
+    LIBB = pjoin(DATA_PATH, 'libb.dylib')
+    LIBC = pjoin(DATA_PATH, 'libc.dylib')
+    LIBA_STATIC = pjoin(DATA_PATH, 'liba.a')
+    A_OBJECT = pjoin(DATA_PATH, 'a.o')
+    TEST_LIB = pjoin(DATA_PATH, 'test-lib')
+    ICO_FILE = pjoin(DATA_PATH, 'icon.ico')
+    PY_FILE = pjoin(DATA_PATH, 'some_code.py')
+    BIN_FILE = pjoin(DATA_PATH, 'binary_example.bin')
 
 
 def test_get_install_names():

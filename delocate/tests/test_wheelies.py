@@ -94,34 +94,30 @@ def test_fix_plat():
                      {_rp(stray_lib): {dep_mod: stray_lib}})
         zip2dir(fixed_wheel, 'plat_pkg')
         assert_true(exists(pjoin('plat_pkg', 'fakepkg1')))
-        dylibs = pjoin('plat_pkg', 'fakepkg1', '.dylibs')
+        dylibs = pjoin('plat_pkg', 'fakepkg1.dylibs')
         assert_true(exists(dylibs))
         assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
         # New output name
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        assert_equal(delocate_wheel(fixed_wheel, 'fixed_wheel.ext'),
+        new_wheel = basename(fixed_wheel).replace('fakepkg1', 'fixed_wheel')
+        assert_equal(delocate_wheel(fixed_wheel, new_wheel),
                      {_rp(stray_lib): {dep_mod: stray_lib}})
-        zip2dir('fixed_wheel.ext', 'plat_pkg1')
+        zip2dir(new_wheel, 'plat_pkg1')
         assert_true(exists(pjoin('plat_pkg1', 'fakepkg1')))
-        dylibs = pjoin('plat_pkg1', 'fakepkg1', '.dylibs')
+        dylibs = pjoin('plat_pkg1', 'fixed_wheel.dylibs')
         assert_true(exists(dylibs))
         assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
         # Test another lib output directory
+        new_wheel = basename(fixed_wheel).replace('fakepkg1', 'fixed_wheel2')
         assert_equal(delocate_wheel(fixed_wheel,
-                                    'fixed_wheel2.ext',
-                                    'dylibs_dir'),
+                                    new_wheel,
+                                    '.dylibs_dir'),
                      {_rp(stray_lib): {dep_mod: stray_lib}})
-        zip2dir('fixed_wheel2.ext', 'plat_pkg2')
+        zip2dir(new_wheel, 'plat_pkg2')
         assert_true(exists(pjoin('plat_pkg2', 'fakepkg1')))
-        dylibs = pjoin('plat_pkg2', 'fakepkg1', 'dylibs_dir')
+        dylibs = pjoin('plat_pkg2', 'fixed_wheel2.dylibs_dir')
         assert_true(exists(dylibs))
         assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
-        # Test check for existing output directory
-        assert_raises(DelocationError,
-                      delocate_wheel,
-                      fixed_wheel,
-                      'broken_wheel.ext',
-                      'subpkg')
         # Test that `wheel unpack` works
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         assert_equal(delocate_wheel(fixed_wheel),
@@ -130,7 +126,7 @@ def test_fix_plat():
         # Check that copied libraries have modified install_name_ids
         zip2dir(fixed_wheel, 'plat_pkg3')
         base_stray = basename(stray_lib)
-        the_lib = pjoin('plat_pkg3', 'fakepkg1', '.dylibs', base_stray)
+        the_lib = pjoin('plat_pkg3', 'fakepkg1.dylibs', base_stray)
         inst_id = DLC_PREFIX + 'fakepkg1/' + base_stray
         assert_equal(get_install_id(the_lib), inst_id)
 
@@ -143,7 +139,7 @@ def test_script_permissions():
         wheel_name = pjoin('wheels', whl_name)
         script_name = pjoin('fakepkg1-1.0.data', 'scripts', 'fakescript.py')
         exe_name = pjoin('fakepkg1', 'ascript')
-        lib_path = pjoin('fakepkg1', '.dylibs')
+        lib_path = 'fakepkg1.dylibs'
         mtimes = {}
         with InWheel(wheel_name):
             assert not isdir(lib_path)
@@ -169,21 +165,23 @@ def test_fix_plat_dylibs():
     # Check default and non-default searches for dylibs
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        _rename_module(fixed_wheel, 'module.other', 'test.whl')
+        new_wheel = basename(fixed_wheel).replace('fakepkg1', 'test')
+        _rename_module(fixed_wheel, 'module.other', new_wheel)
         # With dylibs-only - only analyze files with exts '.dylib', '.so'
-        assert_equal(delocate_wheel('test.whl', lib_filt_func='dylibs-only'),
+        assert_equal(delocate_wheel(new_wheel, lib_filt_func='dylibs-only'),
                      {})
         # With func that doesn't find the module
         func = lambda fn : fn.endswith('.so')
-        assert_equal(delocate_wheel('test.whl', lib_filt_func=func), {})
+        assert_equal(delocate_wheel(new_wheel, lib_filt_func=func), {})
         # Default - looks in every file
-        shutil.copyfile('test.whl', 'test2.whl')  # for following test
+        new_wheel2 = basename(fixed_wheel).replace('fakepkg1', 'test2')
+        shutil.copyfile(new_wheel, new_wheel2)  # for following test
         dep_mod = pjoin('fakepkg1', 'subpkg', 'module.other')
-        assert_equal(delocate_wheel('test.whl'),
+        assert_equal(delocate_wheel(new_wheel),
                      {realpath(stray_lib): {dep_mod: stray_lib}})
         # With func that does find the module
         func = lambda fn : fn.endswith('.other')
-        assert_equal(delocate_wheel('test2.whl', lib_filt_func=func),
+        assert_equal(delocate_wheel(new_wheel2, lib_filt_func=func),
                      {realpath(stray_lib): {dep_mod: stray_lib}})
 
 
@@ -285,7 +283,7 @@ def test_patch_wheel():
 def test_fix_rpath():
     # Test wheels which have an @rpath dependency
     # Also verifies the delocated libraries signature
-    with InTemporaryDirectory():
+    with InTemporaryDirectory() as tmpdir:
         # The module was set to expect its dependency in the libs/ directory
         os.symlink(DATA_PATH, 'libs')
 
@@ -296,10 +294,11 @@ def test_fix_rpath():
             dep_mod = 'fakepkg/subpkg/module2.so'
         dep_path = '@rpath/libextfunc_rpath.dylib'
 
+        out_wheel = pjoin(tmpdir, basename(RPATH_WHEEL))
         assert_equal(
-            delocate_wheel(RPATH_WHEEL, 'tmp.whl'),
+            delocate_wheel(RPATH_WHEEL, out_wheel),
             {stray_lib: {dep_mod: dep_path}},
         )
-        with InWheel('tmp.whl'):
+        with InWheel(out_wheel):
             check_call(['codesign', '--verify',
-                        'fakepkg/.dylibs/libextfunc_rpath.dylib'])
+                        'fakepkg.dylibs/libextfunc_rpath.dylib'])

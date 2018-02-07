@@ -159,7 +159,7 @@ def _check_wheel(wheel_fname, lib_sdir):
     wheel_fname = abspath(wheel_fname)
     with InTemporaryDirectory():
         zip2dir(wheel_fname, 'plat_pkg')
-        dylibs = pjoin('plat_pkg', 'fakepkg1', lib_sdir)
+        dylibs = pjoin('plat_pkg', lib_sdir)
         assert_true(exists(dylibs))
         assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
 
@@ -171,38 +171,40 @@ def test_wheel():
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         code, stdout, stderr = run_command(
             ['delocate-wheel', fixed_wheel])
-        _check_wheel(fixed_wheel, '.dylibs')
+        _check_wheel(fixed_wheel, 'fakepkg1.dylibs')
         # Make another copy to test another output directory
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         code, stdout, stderr = run_command(
-            ['delocate-wheel', '-L', 'dynlibs_dir', fixed_wheel])
-        _check_wheel(fixed_wheel, 'dynlibs_dir')
+            ['delocate-wheel', '-L', '.dynlibs_dir', fixed_wheel])
+        _check_wheel(fixed_wheel, 'fakepkg1.dynlibs_dir')
         # Another output directory
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         code, stdout, stderr = run_command(
             ['delocate-wheel', '-w', 'fixed', fixed_wheel])
-        _check_wheel(pjoin('fixed', basename(fixed_wheel)), '.dylibs')
+        _check_wheel(pjoin('fixed', basename(fixed_wheel)), 'fakepkg1.dylibs')
         # More than one wheel
-        shutil.copy2(fixed_wheel, 'wheel_copy.ext')
+        fixed_wheel_copy = basename(
+            fixed_wheel).replace('fakepkg1', 'wheel_copy')
+        shutil.copy2(fixed_wheel, fixed_wheel_copy)
         code, stdout, stderr = run_command(
-            ['delocate-wheel', '-w', 'fixed2', fixed_wheel, 'wheel_copy.ext'])
+            ['delocate-wheel', '-w', 'fixed2', fixed_wheel, fixed_wheel_copy])
         assert_equal(stdout,
                      ['Fixing: ' + name
-                      for name in (fixed_wheel, 'wheel_copy.ext')])
-        _check_wheel(pjoin('fixed2', basename(fixed_wheel)), '.dylibs')
-        _check_wheel(pjoin('fixed2', 'wheel_copy.ext'), '.dylibs')
+                      for name in (fixed_wheel, fixed_wheel_copy)])
+        _check_wheel(pjoin('fixed2', basename(fixed_wheel)), 'fakepkg1.dylibs')
+        _check_wheel(pjoin('fixed2', fixed_wheel_copy), 'wheel_copy.dylibs')
         # Verbose - single wheel
         code, stdout, stderr = run_command(
             ['delocate-wheel', '-w', 'fixed3', fixed_wheel, '-v'])
-        _check_wheel(pjoin('fixed3', basename(fixed_wheel)), '.dylibs')
+        _check_wheel(pjoin('fixed3', basename(fixed_wheel)), 'fakepkg1.dylibs')
         wheel_lines1 = ['Fixing: ' + fixed_wheel,
                         'Copied to package .dylibs directory:',
                         stray_lib]
         assert_equal(stdout, wheel_lines1)
         code, stdout, stderr = run_command(
             ['delocate-wheel', '-v', '--wheel-dir', 'fixed4',
-             fixed_wheel, 'wheel_copy.ext'])
-        wheel_lines2 = ['Fixing: wheel_copy.ext',
+             fixed_wheel, fixed_wheel_copy])
+        wheel_lines2 = ['Fixing: ' + fixed_wheel_copy,
                         'Copied to package .dylibs directory:',
                         stray_lib]
         assert_equal(stdout, wheel_lines1 + wheel_lines2)
@@ -213,17 +215,18 @@ def test_fix_wheel_dylibs():
     with InTemporaryDirectory() as tmpdir:
         # Default in-place fix
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        _rename_module(fixed_wheel, 'module.other', 'test.whl')
-        shutil.copyfile('test.whl', 'test2.whl')
+        _rename_module(fixed_wheel, 'module.other', fixed_wheel)
         # Default is to look in all files and therefore fix
         code, stdout, stderr = run_command(
-            ['delocate-wheel', 'test.whl'])
-        _check_wheel('test.whl', '.dylibs')
+            ['delocate-wheel', fixed_wheel])
+        _check_wheel(fixed_wheel, 'fakepkg1.dylibs')
         # Can turn this off to only look in dynamic lib exts
+        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
+        _rename_module(fixed_wheel, 'module.other', fixed_wheel)
         code, stdout, stderr = run_command(
-            ['delocate-wheel', 'test2.whl', '-d'])
-        with InWheel('test2.whl'):  # No fix
-            assert_false(exists(pjoin('fakepkg1', '.dylibs')))
+            ['delocate-wheel', fixed_wheel, '-d'])
+        with InWheel(fixed_wheel):  # No fix
+            assert_false(exists(pjoin('fakepkg1.dylibs')))
 
 
 def test_fix_wheel_archs():
@@ -234,7 +237,7 @@ def test_fix_wheel_archs():
         # Fixed wheel, architectures are OK
         code, stdout, stderr = run_command(
             ['delocate-wheel', fixed_wheel, '-k'])
-        _check_wheel(fixed_wheel, '.dylibs')
+        _check_wheel(fixed_wheel, 'fakepkg1.dylibs')
         # Broken with one architecture removed still OK without checking
         # But if we check, raise error
         fmt_str = 'Fixing: {0}\n{1} needs arch {2} missing from {3}'
@@ -251,7 +254,7 @@ def test_fix_wheel_archs():
             _fix_break(arch)
             code, stdout, stderr = run_command(
                 ['delocate-wheel', fixed_wheel])
-            _check_wheel(fixed_wheel, '.dylibs')
+            _check_wheel(fixed_wheel, 'fakepkg1.dylibs')
             # Checked
             _fix_break(arch)
             code, stdout, stderr = bytes_runner.run_command(

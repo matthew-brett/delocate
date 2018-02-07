@@ -3,8 +3,8 @@
 from __future__ import division, print_function
 
 import os
-from os.path import (join as pjoin, dirname, basename, relpath, realpath,
-                     splitext)
+from os.path import (join as pjoin, dirname, basename, getmtime, relpath,
+                     realpath, splitext)
 import shutil
 
 from ..delocating import (DelocationError, delocate_tree_libs, copy_recurse,
@@ -282,18 +282,17 @@ def test_copy_recurse_overwrite():
         os.makedirs('libcopy')
         test_lib, liba, libb, libc = _copy_fixpath(
             [TEST_LIB, LIBA, LIBB, LIBC], 'libcopy')
+        liba_mtime = getmtime(LIBA)
         # Filter system libs
         def filt_func(libname):
             return not libname.startswith('/usr/lib')
         os.makedirs('subtree')
         # libb depends on liba
         shutil.copy2(libb, 'subtree')
-        # If liba is already present, barf
+        # If liba is already present, we shouldn't try to copy it
         shutil.copy2(liba, 'subtree')
-        assert_raises(DelocationError, copy_recurse, 'subtree', filt_func)
-        # Works if liba not present
-        os.unlink(pjoin('subtree', 'liba.dylib'))
         copy_recurse('subtree', filt_func)
+        assert_equal(liba_mtime, getmtime(pjoin('subtree', 'liba.dylib')))
 
 
 def test_delocate_path():

@@ -10,6 +10,12 @@ import shutil
 import warnings
 from subprocess import Popen, PIPE
 
+try:
+    from wheel.install import WHEEL_INFO_RE  # type: ignore
+except ImportError:  # As of Wheel 0.32.0
+    from wheel.wheelfile import WHEEL_INFO_RE  # type: ignore
+    WHEEL_INFO_RE = WHEEL_INFO_RE.match
+
 from .pycompat import string_types
 from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
 from .tools import (set_install_name, zip2dir, dir2zip, validate_signature,
@@ -227,7 +233,7 @@ def _copy_required(lib_path, copy_filt_func, copied_libs):
         # Haven't see this one before, add entry to copied_libs
         out_path = pjoin(lib_path, basename(required))
         if exists(out_path):
-            raise DelocationError(out_path + ' already exists')
+            continue
         shutil.copy(required, lib_path)
         copied2orig[out_path] = required
         copied_libs[required] = procd_requirings
@@ -370,15 +376,12 @@ def delocate_wheel(in_wheel,
         all_copied = {}
         wheel_dir = realpath(pjoin(tmpdir, 'wheel'))
         zip2dir(in_wheel, wheel_dir)
+        wheel_fname = basename(out_wheel)
+        lib_path = pjoin(wheel_dir, WHEEL_INFO_RE(wheel_fname).group('name') + lib_sdir)
         for package_path in find_package_dirs(wheel_dir):
-            lib_path = pjoin(package_path, lib_sdir)
             lib_path_exists = exists(lib_path)
             copied_libs = delocate_path(package_path, lib_path,
                                         lib_filt_func, copy_filt_func)
-            if copied_libs and lib_path_exists:
-                raise DelocationError(
-                    '{0} already exists in wheel but need to copy '
-                    '{1}'.format(lib_path, '; '.join(copied_libs)))
             if len(os.listdir(lib_path)) == 0:
                 shutil.rmtree(lib_path)
             # Check architectures

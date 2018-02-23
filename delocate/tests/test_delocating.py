@@ -507,3 +507,44 @@ def test_bads_report():
                   set([(LIB64A, LIBBOTH, ARCH_32),
                        (LIB64, LIB64, ARCH_32, ARCH_64),
                        (LIB32, ARCH_32)]))
+
+
+def test_ld_library_path_lookups():
+    # Test that LD_LIBRARY_PATH can be used to find libs during
+    # delocation
+    old_LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', None)
+    try:
+        # Clear out LD_LIBRARY_PATH so we can run in isolation
+        if old_LD_LIBRARY_PATH is not None:
+            del os.environ['LD_LIBRARY_PATH']
+        with InTemporaryDirectory() as tmpdir:
+            # Copy libs into a temporary directory
+            subtree = pjoin(tmpdir, 'subtree')
+            all_local_libs = _make_libtree(subtree)
+            liba, libb, libc, test_lib, slibc, stest_lib = all_local_libs
+            # move libb and confirm that test_lib doesn't work
+            hidden_dir = 'hidden'
+            os.mkdir(hidden_dir)
+            new_libb = os.path.join(hidden_dir, os.path.basename(LIBB))
+            shutil.move(libb,
+                        new_libb)
+            assert_raises(RuntimeError, back_tick, [test_lib])
+            # libc holds the reference to libb -- update that reference so
+            # that it uses @rpath
+            # This will allow changes to LD_LIBRARY_PATH to be picked up
+            set_install_name(libc,
+                             libb,
+                             '@rpath/{}'.format(os.path.basename(LIBB)))
+            # confirm delocate_path doesn't work
+            delocate_path('subtree', 'deplibs')
+            assert_raises(RuntimeError, back_tick, [test_lib])
+            # Update LD_LIBRARY_PATH and confirm that we can now
+            # successfully delocate test_lib
+            os.environ['LD_LIBRARY_PATH'] = hidden_dir
+            delocate_path('subtree', 'deplibs')
+            back_tick(test_lib)
+    finally:
+        if old_LD_LIBRARY_PATH is not None:
+            os.environ['LD_LIBRARY_PATH'] = old_LD_LIBRARY_PATH
+        else:
+            del os.environ['LD_LIBRARY_PATH']

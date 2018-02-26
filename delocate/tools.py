@@ -262,7 +262,8 @@ RPATH_RE = re.compile("path (.*) \(offset \d+\)")
 
 def get_rpaths(filename):
     """ Return a tuple of rpaths from the library `filename`, with an
-    additional fallback to entries in `LD_LIBRARY_PATH`.
+    additional fallback to entries in `LD_LIBRARY_PATH`,
+    `DYLD_LIBRARY_PATH`, and `DYLD_FALLBACK_LIBRARY_PATH`.
 
     If `filename` is not a library then the returned tuple will be empty.
 
@@ -294,10 +295,15 @@ def get_rpaths(filename):
         assert cmdsize.startswith('cmdsize ')
         paths.append(RPATH_RE.match(path).groups()[0])
         line_no += 2
-    ld_path = os.environ.get('LD_LIBRARY_PATH')
-    if ld_path is not None:
-        for path in ld_path.split(':'):
-            paths.append(path)
+    # We'll search the extra library paths in a specific order:
+    # LD_LIBRARY, DYLD_LIBRARY, DYLD_FALLBACK_LIBRARY
+    extra_paths = ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH',
+                   'DYLD_FALLBACK_LIBRARY_PATH']
+    for pathname in extra_paths:
+        path_contents = os.environ.get(pathname)
+        if path_contents is not None:
+            for path in path_contents.split(':'):
+                paths.append(path)
     return tuple(paths)
 
 

@@ -15,7 +15,7 @@ from ..wheeltools import InWheel
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
 
-from nose.tools import (assert_true, assert_false, assert_raises, assert_equal)
+from .pytest_tools import (assert_true, assert_false, assert_raises, assert_equal)
 
 from .test_install_names import DATA_PATH, EXT_LIBS
 from .test_tools import (ARCH_32, ARCH_BOTH)

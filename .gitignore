@@ -4,3 +4,4 @@ dist/
 MANIFEST
 .coverage
 delocate*info/
+.cache

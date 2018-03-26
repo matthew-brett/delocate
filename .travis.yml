@@ -33,7 +33,7 @@ install:
   - set -vx  # echo commands
   - source multibuild/osx_utils.sh
   - get_macpython_environment $VERSION venv
-  - pip install wheel nose
+  - pip install wheel pytest
   - if [ -n "$BUILD_WHEELS" ]; then
         pip install cython;
         (cd wheel_makers && ./make_wheels.sh);
@@ -44,4 +44,4 @@ script:
   - echo $PWD
   - mkdir tmp_test_dir
   - cd tmp_test_dir
-  - nosetests delocate
+  - pytest --pyargs delocate

@@ -2,6 +2,7 @@
 """ setup script for delocate package """
 import sys
 from os.path import join as pjoin
+from setuptools import setup, find_packages
 
 # For some commands, use setuptools.
 if len(set(('develop', 'bdist_egg', 'bdist_rpm', 'bdist', 'bdist_dumb',
@@ -9,7 +10,6 @@ if len(set(('develop', 'bdist_egg', 'bdist_rpm', 'bdist', 'bdist_dumb',
             'bdist_mpkg')).intersection(sys.argv)) > 0:
     import setuptools
 
-from distutils.core import setup
 import versioneer
 
 versioneer.VCS = 'git'
@@ -17,10 +17,6 @@ versioneer.versionfile_source = pjoin('delocate', '_version.py')
 versioneer.versionfile_build = pjoin('delocate', '_version.py')
 versioneer.tag_prefix = ''
 versioneer.parentdir_prefix = 'delocate-'
-
-setuptools_args = {}
-if 'setuptools' in sys.modules:
-    setuptools_args['install_requires'] = ['wheel']
 
 setup(name='delocate',
       version=versioneer.get_version(),
@@ -30,7 +26,12 @@ setup(name='delocate',
       maintainer='Matthew Brett',
       author_email='matthew.brett@gmail.com',
       url='http://github.com/matthew-brett/delocate',
-      packages=['delocate', 'delocate.tests'],
+      packages=find_packages(),
+      install_requires=[
+          "machomachomangler; sys_platform == 'win32'",
+          "bindepend; sys_platform == 'win32'",
+          "wheel",
+      ],
       package_data = {'delocate.tests':
                       [pjoin('data', '*.dylib'),
                        pjoin('data', '*.txt'),
@@ -43,14 +44,19 @@ setup(name='delocate',
                        pjoin('data', '*patch'),
                        pjoin('data', 'make_libs.sh'),
                        pjoin('data', 'icon.ico')]},
-      scripts = [pjoin('scripts', f) for f in (
-          'delocate-fuse',
-          'delocate-listdeps',
-          'delocate-wheel',
-          'delocate-path',
-          'delocate-patch',
-          'delocate-addplat',
-      )],
+      entry_points = {
+          'console_scripts': [
+              'delocate-{} = delocate.cmd.delocate_{}:main'.format(name, name)
+              for name in (
+                  'addplat',
+                  'fuse',
+                  'listdeps',
+                  'patch',
+                  'path',
+                  'wheel',
+              )
+          ]
+      },
       license='BSD license',
       classifiers = ['Intended Audience :: Developers',
                      "Environment :: Console",
@@ -62,5 +68,4 @@ setup(name='delocate',
                      'Python Modules',
                      'Topic :: Software Development :: Build Tools'],
       long_description = open('README.rst', 'rt').read(),
-      **setuptools_args
      )

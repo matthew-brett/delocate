@@ -4,7 +4,7 @@ Analyze library dependencies in paths and wheel files
 """
 
 import os
-from os.path import join as pjoin, realpath
+from os.path import basename, join as pjoin, realpath
 
 import warnings
 
@@ -55,9 +55,12 @@ def tree_libs(start_path, filt_func=None):
                 continue
             rpaths = get_rpaths(depending_libpath)
             for install_name in get_install_names(depending_libpath):
-                lib_path = (install_name if install_name.startswith('@')
-                            else realpath(install_name))
-                lib_path = resolve_rpath(lib_path, rpaths)
+                # If the library starts with '@rpath' we'll try and resolve an rpath
+                # Otherwise we'll search for the library using env variables
+                if install_name.startswith('@'):
+                    lib_path = resolve_rpath(install_name, rpaths)
+                else:
+                    lib_path = search_environment_for_lib(install_name)
                 if lib_path in lib_dict:
                     lib_dict[lib_path][depending_libpath] = install_name
                 else:
@@ -103,6 +106,55 @@ def resolve_rpath(lib_path, rpaths):
         )
     return lib_path
 
+
+def search_environment_for_lib(lib_path):
+    """ Search common environment variables for `lib_path`
+
+    Apple's documentation about how to do this does not quite match what we see
+    in the wild, so we'll use a single approach here:
+
+        1. Search for the basename of the library on DYLD_LIBRARY_PATH
+        2. Search for ``realpath(lib_path)``
+        3. Search for the basename of the library on DYLD_FALLBACK_LIBRARY_PATH
+
+    Testing has suggested that LD_LIBRARY_PATH is not actually used in this
+    process as all, so we'll ignore it.
+
+    Parameters
+    ----------
+    lib_path : str
+        Name of the library to search for
+
+    Returns
+    -------
+    lib_path : str
+        Full path of ``basename(lib_path)``'s location, if it can be found, or
+        ``realpath(lib_path)`` if it cannot.
+    """
+    lib_basename = basename(lib_path)
+    potential_library_locations = []
+
+    # 1. Search on DYLD_LIBRARY_PATH
+    DYLD_LIBRARY_PATH = os.environ.get('DYLD_LIBRARY_PATH')
+    if DYLD_LIBRARY_PATH is not None:
+        for path in DYLD_LIBRARY_PATH.split(':'):
+            lib_location = os.path.join(path, lib_basename)
+            potential_library_locations.append(lib_location)
+
+    # 2. Search for realpath(lib_path)
+    potential_library_locations.append(realpath(lib_path))
+
+    # 3. Search on DYLD_FALLBACK_LIBRARY_PATH
+    DYLD_FALLBACK_LIBRARY_PATH = os.environ.get('DYLD_FALLBACK_LIBRARY_PATH')
+    if DYLD_FALLBACK_LIBRARY_PATH is not None:
+        for path in DYLD_FALLBACK_LIBRARY_PATH.split(':'):
+            lib_location = pjoin(path, lib_basename)
+            potential_library_locations.append(lib_location)
+
+    for location in potential_library_locations:
+        if os.path.exists(location):
+            return location
+    return realpath(lib_path)
 
 def get_prefix_stripper(strip_prefix):
     """ Return function to strip `strip_prefix` prefix from string if present

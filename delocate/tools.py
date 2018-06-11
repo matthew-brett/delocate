@@ -404,10 +404,10 @@ def find_package_dirs(root_path):
         an ``__init__.py`` file.  Paths prefixed by `root_path`
     """
     package_sdirs = set()
-    for entry in os.listdir(root_path):
-        fname = entry if root_path == '.' else pjoin(root_path, entry)
-        if isdir(fname) and exists(pjoin(fname, '__init__.py')):
-            package_sdirs.add(fname)
+    for dirpath, dirnames, filenames in os.walk(root_path):
+        if '__init__.py' in filenames:
+            package_sdirs.add(dirpath)
+            del dirnames[:]
     return package_sdirs
 
 

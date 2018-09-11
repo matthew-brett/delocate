@@ -13,7 +13,8 @@ from subprocess import Popen, PIPE
 from .pycompat import string_types
 from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
 from .tools import (set_install_name, zip2dir, dir2zip, validate_signature,
-                    find_package_dirs, set_install_id, get_archs)
+                    find_package_dirs, find_packages, set_install_id, get_archs,
+                    dylibs_only)
 from .tmpdirs import TemporaryDirectory
 from .wheeltools import rewrite_record, InWheel
 
@@ -233,11 +234,6 @@ def _copy_required(lib_path, copy_filt_func, copied_libs):
         copied_libs[required] = procd_requirings
 
 
-def _dylibs_only(filename):
-    return (filename.endswith('.so') or
-            filename.endswith('.dylib'))
-
-
 def filter_system_libs(libname):
     return not (libname.startswith('/usr/lib') or
                 libname.startswith('/System'))
@@ -278,7 +274,7 @@ def delocate_path(tree_path, lib_path,
         library.
     """
     if lib_filt_func == "dylibs-only":
-        lib_filt_func = _dylibs_only
+        lib_filt_func = dylibs_only
     if not exists(lib_path):
         os.makedirs(lib_path)
     lib_dict = tree_libs(tree_path, lib_filt_func)
@@ -359,7 +355,7 @@ def delocate_wheel(in_wheel,
         library. The filenames in the keys are relative to the wheel root path.
     """
     if lib_filt_func == "dylibs-only":
-        lib_filt_func = _dylibs_only
+        lib_filt_func = dylibs_only
     in_wheel = abspath(in_wheel)
     if out_wheel is None:
         out_wheel = in_wheel
@@ -370,8 +366,12 @@ def delocate_wheel(in_wheel,
         all_copied = {}
         wheel_dir = realpath(pjoin(tmpdir, 'wheel'))
         zip2dir(in_wheel, wheel_dir)
-        for package_path in find_package_dirs(wheel_dir):
-            lib_path = pjoin(package_path, lib_sdir)
+        for package_path, is_dir in find_packages(wheel_dir):
+            if is_dir:
+                lib_path = pjoin(package_path, lib_sdir)
+            else:
+                root_name = basename(package_path).split('.', 1)[0]
+                lib_path = pjoin(dirname(package_path), lib_sdir + root_name)
             lib_path_exists = exists(lib_path)
             copied_libs = delocate_path(package_path, lib_path,
                                         lib_filt_func, copy_filt_func)

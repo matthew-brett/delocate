@@ -7,7 +7,7 @@ import stat
 import shutil
 
 from ..tools import (back_tick, unique_by_index, ensure_writable, chmod_perms,
-                     ensure_permissions, zip2dir, dir2zip, find_package_dirs,
+                     ensure_permissions, zip2dir, dir2zip, find_packages,
                      cmp_contents, get_archs, lipo_fuse, replace_signature,
                      validate_signature, add_rpath)
 
@@ -152,8 +152,8 @@ def test_zip2():
         assert_equal(os.stat(out_fname).st_mode & 0o777, permissions)
 
 
-def test_find_package_dirs():
-    # Test utility for finding package directories
+def test_find_packages():
+    # Test utility for finding packages directories
     with InTemporaryDirectory():
         os.mkdir('to_test')
         a_dir = pjoin('to_test', 'a_dir')
@@ -161,16 +161,22 @@ def test_find_package_dirs():
         c_dir = pjoin('to_test', 'c_dir')
         for dir in (a_dir, b_dir, c_dir):
             os.mkdir(dir)
-        assert_equal(find_package_dirs('to_test'), set([]))
+        assert_equal(find_packages('to_test'), set([]))
         _write_file(pjoin(a_dir, '__init__.py'), "# a package")
-        assert_equal(find_package_dirs('to_test'), set([a_dir]))
+        assert_equal(find_packages('to_test'), set([(a_dir, True)]))
         _write_file(pjoin(c_dir, '__init__.py'), "# another package")
-        assert_equal(find_package_dirs('to_test'), set([a_dir, c_dir]))
+        assert_equal(find_packages('to_test'), set([(a_dir, True), (c_dir, True)]))
         # Not recursive
-        assert_equal(find_package_dirs('.'), set())
+        assert_equal(find_packages('.'), set())
         _write_file(pjoin('to_test', '__init__.py'), "# base package")
         # Also - strips '.' for current directory
-        assert_equal(find_package_dirs('.'), set(['to_test']))
+        assert_equal(find_packages('.'), set([('to_test', True)]))
+    # Additionally, find C Extension modules in the root
+    with InTemporaryDirectory():
+        _write_file('_so_mod.so', "# .so c extension")
+        assert_equal(find_packages('.'), set([('_so_mod.so', False)]))
+        _write_file('_dylib_mod.dylib', "# .dylib c extension")
+        assert_equal(find_packages('.'), set([('_so_mod.so', False), ('_dylib_mod.dylib', False)]))
 
 
 def test_cmp_contents():

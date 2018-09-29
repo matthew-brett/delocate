@@ -112,8 +112,6 @@ def ensure_permissions(f, mode_flags=stat.S_IWUSR):
     return modify
 
 
-IN_RE = re.compile("(.*) \(compatibility version (\d+\.\d+\.\d+), "
-                   "current version (\d+\.\d+\.\d+)\)")
 # Open filename, checking for read permission
 open_readable = ensure_permissions(open, stat.S_IRUSR)
 
@@ -121,6 +119,8 @@ open_readable = ensure_permissions(open, stat.S_IRUSR)
 ensure_writable = ensure_permissions
 
 
+IN_RE = re.compile(r"(.*) \(compatibility version (\d+\.\d+\.\d+), "
+                   r"current version (\d+\.\d+\.\d+)\)")
 
 def parse_install_name(line):
     """ Parse a line of install name output
@@ -272,7 +272,7 @@ def set_install_id(filename, install_id):
     back_tick(['install_name_tool', '-id', install_id, filename])
 
 
-RPATH_RE = re.compile("path (.*) \(offset \d+\)")
+RPATH_RE = re.compile(r"path (.*) \(offset \d+\)")
 
 def get_rpaths(filename):
     """ Return a tuple of rpaths from the library `filename`

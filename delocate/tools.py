@@ -87,20 +87,26 @@ def unique_by_index(sequence):
     return uniques
 
 
-def ensure_writable(f):
-    """decorator to ensure a filename is writable before modifying it
+def _chmod_perms(fname):
+    # Permissions relevant to chmod
+    return stat.S_IMODE(os.stat(fname).st_mode)
 
-    If changed, original permissions are restored after the decorated modification.
+
+def ensure_permissions(f, mode_flags=stat.S_IWUSR):
+    """decorator to ensure a filename has given permissions.
+
+    If changed, original permissions are restored after the decorated
+    modification.
     """
     def modify(filename, *args, **kwargs):
-        m = os.stat(filename).st_mode
-        if not m & stat.S_IWUSR:
-            os.chmod(filename, m | stat.S_IWUSR)
+        m = _chmod_perms(filename) if exists(filename) else mode_flags
+        if not m & mode_flags:
+            os.chmod(filename, m | mode_flags)
         try:
             return f(filename, *args, **kwargs)
         finally:
             # restore original permissions
-            if not m & stat.S_IWUSR:
+            if not m & mode_flags:
                 os.chmod(filename, m)
 
     return modify
@@ -108,6 +114,13 @@ def ensure_writable(f):
 
 IN_RE = re.compile("(.*) \(compatibility version (\d+\.\d+\.\d+), "
                    "current version (\d+\.\d+\.\d+)\)")
+# Open filename, checking for read permission
+open_readable = ensure_permissions(open, stat.S_IRUSR)
+
+# For backward compatibility
+ensure_writable = ensure_permissions
+
+
 
 def parse_install_name(line):
     """ Parse a line of install name output
@@ -137,7 +150,8 @@ BAD_OBJECT_STRINGS = [
     'The end of the file was unexpectedly encountered',  # cctools-862 (.ico)
     'The file was not recognized as a valid object file',  # cctools-895
     'Invalid data was encountered while parsing the file',  # 895 binary file
-    'Object is not a Mach-O file type'  # cctools-900
+    'Object is not a Mach-O file type',  # cctools-900
+    'Permission denied'  # RECORD file may not have read permission
 ]
 
 
@@ -343,9 +357,15 @@ def dir2zip(in_dir, zip_fname):
                         compression=zipfile.ZIP_DEFLATED)
     for root, dirs, files in os.walk(in_dir):
         for file in files:
-            fname = pjoin(root, file)
-            out_fname = relpath(fname, in_dir)
-            z.write(os.path.join(root, file), out_fname)
+            in_fname = pjoin(root, file)
+            # Preserve file permissions, but allow copy
+            info = zipfile.ZipInfo(in_fname)
+            info.filename = relpath(in_fname, in_dir)
+            # See https://stackoverflow.com/questions/434641/how-do-i-set-permissions-attributes-on-a-file-in-a-zip-file-using-pythons-zip/48435482#48435482
+            info.external_attr = _chmod_perms(in_fname) << 16
+            with open_readable(in_fname, 'rb') as fobj:
+                contents = fobj.read()
+            z.writestr(info, contents, zipfile.ZIP_DEFLATED)
     z.close()
 
 

@@ -13,7 +13,7 @@ except ImportError:  # As of Wheel 0.32.0
 from ..wheeltools import (rewrite_record, InWheel, InWheelCtx, WheelToolsError,
                           add_platforms, _get_wheelinfo_name)
 from ..tmpdirs import InTemporaryDirectory
-from ..tools import zip2dir
+from ..tools import zip2dir, open_readable
 
 from .pytest_tools import (assert_true, assert_false, assert_raises, assert_equal)
 
@@ -30,12 +30,12 @@ def test_rewrite_record():
     with InTemporaryDirectory():
         zip2dir(PURE_WHEEL, 'wheel')
         record_fname = pjoin('wheel', dist_info_sdir, 'RECORD')
-        with open(record_fname, 'rt') as fobj:
+        with open_readable(record_fname, 'rt') as fobj:
             record_orig = fobj.read()
         # Test we get the same record by rewriting
         os.unlink(record_fname)
         rewrite_record('wheel')
-        with open(record_fname, 'rt') as fobj:
+        with open_readable(record_fname, 'rt') as fobj:
             record_new = fobj.read()
         assert_record_equal(record_orig, record_new)
         # Test that signature gets deleted
@@ -43,7 +43,7 @@ def test_rewrite_record():
         with open(sig_fname, 'wt') as fobj:
             fobj.write('something')
         rewrite_record('wheel')
-        with open(record_fname, 'rt') as fobj:
+        with open_readable(record_fname, 'rt') as fobj:
             record_new = fobj.read()
         assert_record_equal(record_orig, record_new)
         assert_false(exists(sig_fname))

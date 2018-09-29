@@ -5,7 +5,8 @@ import os
 from os.path import (join as pjoin, relpath, isdir, dirname, basename)
 import shutil
 
-from ..tools import cmp_contents, get_archs, zip2dir, dir2zip, back_tick
+from ..tools import (cmp_contents, get_archs, zip2dir, dir2zip, back_tick,
+                     open_readable)
 from ..fuse import fuse_trees, fuse_wheels
 from ..tmpdirs import InTemporaryDirectory
 from ..wheeltools import rewrite_record
@@ -26,9 +27,9 @@ def assert_same_tree(tree1, tree2):
             assert_true(isdir(pjoin(tree2_dirpath, dname)))
         for fname in filenames:
             tree1_path = pjoin(dirpath, fname)
-            with open(tree1_path, 'rb') as fobj:
+            with open_readable(tree1_path, 'rb') as fobj:
                 contents1 = fobj.read()
-            with open(pjoin(tree2_dirpath, fname), 'rb') as fobj:
+            with open_readable(pjoin(tree2_dirpath, fname), 'rb') as fobj:
                 contents2 = fobj.read()
             if fname == 'RECORD':  # Record can have different line orders
                 assert_record_equal(contents1, contents2)

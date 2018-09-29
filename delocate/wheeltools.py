@@ -5,6 +5,7 @@ Tools that aren't specific to delocation
 
 import sys
 import os
+import stat
 from os.path import (join as pjoin, abspath, relpath, exists, sep as psep,
                      splitext, basename, dirname)
 import glob
@@ -19,17 +20,20 @@ try:
 except ImportError:  # As of Wheel 0.32.0
     from wheel.wheelfile import WheelFile
 from .tmpdirs import InTemporaryDirectory
-from .tools import unique_by_index, zip2dir, dir2zip
+from .tools import unique_by_index, zip2dir, dir2zip, ensure_permissions
 
 class WheelToolsError(Exception):
     pass
 
 
+open_rw = ensure_permissions(open, stat.S_IRUSR | stat.S_IWUSR)
+
+
 def _open_for_csv(name, mode):
     """ Deal with Python 2/3 open API differences """
     if sys.version_info[0] < 3:
-        return open(name, mode + 'b')
-    return open(name, mode, newline='', encoding='utf-8')
+        return open_rw(name, mode + 'b')
+    return open_rw(name, mode, newline='', encoding='utf-8')
 
 
 def rewrite_record(bdist_dir):
@@ -76,9 +80,9 @@ def rewrite_record(bdist_dir):
                 digest = hashlib.sha256(data).digest()
                 hash = 'sha256=' + native(urlsafe_b64encode(digest))
                 size = len(data)
-            record_path = relpath(
+            path_for_record = relpath(
                 path, bdist_dir).replace(psep, '/')
-            writer.writerow((record_path, hash, size))
+            writer.writerow((path_for_record, hash, size))
 
 
 class InWheel(InTemporaryDirectory):

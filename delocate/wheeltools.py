@@ -26,7 +26,7 @@ class WheelToolsError(Exception):
     pass
 
 
-open_rw = ensure_permissions(open, stat.S_IRUSR | stat.S_IWUSR)
+open_rw = ensure_permissions(stat.S_IRUSR | stat.S_IWUSR)(open)
 
 
 def _open_for_csv(name, mode):

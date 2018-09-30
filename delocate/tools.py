@@ -87,36 +87,39 @@ def unique_by_index(sequence):
     return uniques
 
 
-def _chmod_perms(fname):
+def chmod_perms(fname):
     # Permissions relevant to chmod
     return stat.S_IMODE(os.stat(fname).st_mode)
 
 
-def ensure_permissions(f, mode_flags=stat.S_IWUSR):
+def ensure_permissions(mode_flags=stat.S_IWUSR):
     """decorator to ensure a filename has given permissions.
 
     If changed, original permissions are restored after the decorated
     modification.
     """
-    def modify(filename, *args, **kwargs):
-        m = _chmod_perms(filename) if exists(filename) else mode_flags
-        if not m & mode_flags:
-            os.chmod(filename, m | mode_flags)
-        try:
-            return f(filename, *args, **kwargs)
-        finally:
-            # restore original permissions
-            if not m & mode_flags:
-                os.chmod(filename, m)
 
-    return modify
+    def decorator(f):
+        def modify(filename, *args, **kwargs):
+            m = chmod_perms(filename) if exists(filename) else mode_flags
+            if not m & mode_flags:
+                os.chmod(filename, m | mode_flags)
+            try:
+                return f(filename, *args, **kwargs)
+            finally:
+                # restore original permissions
+                if not m & mode_flags:
+                    os.chmod(filename, m)
+        return modify
+
+    return decorator
 
 
 # Open filename, checking for read permission
-open_readable = ensure_permissions(open, stat.S_IRUSR)
+open_readable = ensure_permissions(stat.S_IRUSR)(open)
 
 # For backward compatibility
-ensure_writable = ensure_permissions
+ensure_writable = ensure_permissions()
 
 
 IN_RE = re.compile(r"(.*) \(compatibility version (\d+\.\d+\.\d+), "
@@ -145,13 +148,19 @@ def parse_install_name(line):
 
 # otool -L strings indicating this is not an object file. The string changes
 # with different otool versions.
-BAD_OBJECT_STRINGS = [
-    'is not an object file',  # otool version cctools-862
-    'The end of the file was unexpectedly encountered',  # cctools-862 (.ico)
-    'The file was not recognized as a valid object file',  # cctools-895
-    'Invalid data was encountered while parsing the file',  # 895 binary file
-    'Object is not a Mach-O file type',  # cctools-900
-    'Permission denied'  # RECORD file may not have read permission
+BAD_OBJECT_TESTS = [
+    # otool version cctools-862
+    lambda s : 'is not an object file' in s,
+    # cctools-862 (.ico)
+    lambda s : 'The end of the file was unexpectedly encountered' in s,
+    # cctools-895
+    lambda s : 'The file was not recognized as a valid object file' in s,
+    # 895 binary file
+    lambda s: 'Invalid data was encountered while parsing the file' in s,
+    # cctools-900
+    lambda s : 'Object is not a Mach-O file type' in s,
+    # File may not have read permissions
+    lambda s : s.strip().endswith('Permission denied')
 ]
 
 
@@ -164,8 +173,8 @@ def _cmd_out_err(cmd):
 
 def _line0_says_object(line0, filename):
     line0 = line0.strip()
-    for candidate in BAD_OBJECT_STRINGS:
-        if candidate in line0:
+    for test in BAD_OBJECT_TESTS:
+        if test(line0):
             return False
     if line0.startswith('Archive :'):
         # nothing to do for static libs
@@ -362,7 +371,7 @@ def dir2zip(in_dir, zip_fname):
             info = zipfile.ZipInfo(in_fname)
             info.filename = relpath(in_fname, in_dir)
             # See https://stackoverflow.com/questions/434641/how-do-i-set-permissions-attributes-on-a-file-in-a-zip-file-using-pythons-zip/48435482#48435482
-            info.external_attr = _chmod_perms(in_fname) << 16
+            info.external_attr = chmod_perms(in_fname) << 16
             with open_readable(in_fname, 'rb') as fobj:
                 contents = fobj.read()
             z.writestr(info, contents, zipfile.ZIP_DEFLATED)
@@ -407,9 +416,9 @@ def cmp_contents(filename1, filename2):
         True if binary contents of `filename1` is same as binary contents of
         `filename2`, False otherwise.
     """
-    with open(filename1, 'rb') as fobj:
+    with open_readable(filename1, 'rb') as fobj:
         contents1 = fobj.read()
-    with open(filename2, 'rb') as fobj:
+    with open_readable(filename2, 'rb') as fobj:
         contents2 = fobj.read()
     return contents1 == contents2
 

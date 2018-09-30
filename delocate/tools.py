@@ -118,6 +118,9 @@ def ensure_permissions(mode_flags=stat.S_IWUSR):
 # Open filename, checking for read permission
 open_readable = ensure_permissions(stat.S_IRUSR)(open)
 
+# Open filename, checking for read / write permission
+open_rw = ensure_permissions(stat.S_IRUSR | stat.S_IWUSR)(open)
+
 # For backward compatibility
 ensure_writable = ensure_permissions()
 
@@ -148,6 +151,7 @@ def parse_install_name(line):
 
 # otool -L strings indicating this is not an object file. The string changes
 # with different otool versions.
+RE_PERM_DEN = re.compile(r"Permission denied[.) ]*$")
 BAD_OBJECT_TESTS = [
     # otool version cctools-862
     lambda s : 'is not an object file' in s,
@@ -160,7 +164,7 @@ BAD_OBJECT_TESTS = [
     # cctools-900
     lambda s : 'Object is not a Mach-O file type' in s,
     # File may not have read permissions
-    lambda s : s.strip().endswith('Permission denied')
+    lambda s : RE_PERM_DEN.search(s) is not None
 ]
 
 

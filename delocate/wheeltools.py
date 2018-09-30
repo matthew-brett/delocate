@@ -5,7 +5,6 @@ Tools that aren't specific to delocation
 
 import sys
 import os
-import stat
 from os.path import (join as pjoin, abspath, relpath, exists, sep as psep,
                      splitext, basename, dirname)
 import glob
@@ -20,13 +19,10 @@ try:
 except ImportError:  # As of Wheel 0.32.0
     from wheel.wheelfile import WheelFile
 from .tmpdirs import InTemporaryDirectory
-from .tools import unique_by_index, zip2dir, dir2zip, ensure_permissions
+from .tools import unique_by_index, zip2dir, dir2zip, open_rw
 
 class WheelToolsError(Exception):
     pass
-
-
-open_rw = ensure_permissions(stat.S_IRUSR | stat.S_IWUSR)(open)
 
 
 def _open_for_csv(name, mode):

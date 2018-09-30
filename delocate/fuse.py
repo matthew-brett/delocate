@@ -12,14 +12,25 @@ with the same relative path in ``to_tree``]. In this case the two files are
 libraries.
 """
 
-import shutil
 
 import os
 from os.path import (join as pjoin, exists, splitext, relpath, abspath)
+import shutil
 
-from .tools import zip2dir, dir2zip, cmp_contents, lipo_fuse
+from .tools import (zip2dir, dir2zip, cmp_contents, lipo_fuse,
+                    open_rw, chmod_perms)
 from .tmpdirs import InTemporaryDirectory
 from .wheeltools import rewrite_record
+
+
+def _copyfile(in_fname, out_fname):
+    # Copies files without read / write permission
+    perms = chmod_perms(in_fname)
+    with open_rw(in_fname, 'rb') as fobj:
+        contents = fobj.read()
+    with open_rw(out_fname, 'wb') as fobj:
+        fobj.write(contents)
+    os.chmod(out_fname, perms)
 
 
 def fuse_trees(to_tree, from_tree, lib_exts=('.so', '.dylib', '.a')):
@@ -55,7 +66,7 @@ def fuse_trees(to_tree, from_tree, lib_exts=('.so', '.dylib', '.a')):
             from_path = pjoin(from_dirpath, fname)
             to_path = pjoin(to_dirpath, fname)
             if not exists(to_path):
-                shutil.copyfile(from_path, to_path)
+                _copyfile(from_path, to_path)
             elif cmp_contents(from_path, to_path):
                 pass
             elif ext in lib_exts:
@@ -63,7 +74,7 @@ def fuse_trees(to_tree, from_tree, lib_exts=('.so', '.dylib', '.a')):
                 lipo_fuse(from_path, to_path, to_path)
             else:
                 # existing not-lib file not identical to source
-                shutil.copyfile(from_path, to_path)
+                _copyfile(from_path, to_path)
 
 
 def fuse_wheels(to_wheel, from_wheel, out_wheel):

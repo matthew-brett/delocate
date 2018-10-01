@@ -14,6 +14,16 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* 0.7.4 (Monday October 1st 2018)
+
+  Bugfix release to deal with large number of breaking changes in wheel
+  0.32.0.
+
+  * Refactor to deal with Wheel 0.32.0, with massive refactoring of the API,
+    and the use of zero permissions RECORD file.
+  * Refactor to use Pytest (many thanks to Github user Xoviat).
+  * Beginning of Windows refactor (Xoviat again).
+
 * 0.7.3 (Monday December 4th 2017
 
   Also deal with xcode 8.3 message from another binary file.

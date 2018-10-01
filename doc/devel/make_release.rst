@@ -55,12 +55,12 @@ Release checklist
   installing works correctly::
 
     mkvirtualenv delocate-test
-    pip install nose wheel
+    pip install pytest wheel
     git clean -fxd
-    python setup.py install
+    pip install -e .
     mkdir for_test
     cd for_test
-    nosetests --with-doctest delocate
+    pytest --pyargs delocate
 
 * Check the documentation doctests::
 
@@ -94,7 +94,8 @@ to upstream on github.
   then::
 
     git clean -fxd
-    git reset --hard   # careful!
+    git stat  # check for any stray files
+    git reset --hard   # careful of those stray files!
     python setup.py sdist --formats=zip
 
   Check the wheel filename looks correct::

@@ -3,6 +3,7 @@
 Tools that aren't specific to delocation
 """
 
+import sys
 import os
 from os.path import (join as pjoin, abspath, relpath, exists, sep as psep,
                      splitext, basename, dirname)
@@ -11,15 +12,24 @@ import hashlib
 import csv
 from itertools import product
 
-from wheel.util import urlsafe_b64encode, open_for_csv, native
+from wheel.util import urlsafe_b64encode, native
 from wheel.pkginfo import read_pkg_info, write_pkg_info
-from wheel.install import WheelFile
-
+try:
+    from wheel.install import WheelFile
+except ImportError:  # As of Wheel 0.32.0
+    from wheel.wheelfile import WheelFile
 from .tmpdirs import InTemporaryDirectory
-from .tools import unique_by_index, zip2dir, dir2zip
+from .tools import unique_by_index, zip2dir, dir2zip, open_rw
 
 class WheelToolsError(Exception):
     pass
+
+
+def _open_for_csv(name, mode):
+    """ Deal with Python 2/3 open API differences """
+    if sys.version_info[0] < 3:
+        return open_rw(name, mode + 'b')
+    return open_rw(name, mode, newline='', encoding='utf-8')
 
 
 def rewrite_record(bdist_dir):
@@ -53,7 +63,7 @@ def rewrite_record(bdist_dir):
         """Wheel hashes every possible file."""
         return (path == record_relpath)
 
-    with open_for_csv(record_path, 'w+') as record_file:
+    with _open_for_csv(record_path, 'w+') as record_file:
         writer = csv.writer(record_file)
         for path in walk():
             relative_path = relpath(path, bdist_dir)
@@ -66,9 +76,9 @@ def rewrite_record(bdist_dir):
                 digest = hashlib.sha256(data).digest()
                 hash = 'sha256=' + native(urlsafe_b64encode(digest))
                 size = len(data)
-            record_path = relpath(
+            path_for_record = relpath(
                 path, bdist_dir).replace(psep, '/')
-            writer.writerow((record_path, hash, size))
+            writer.writerow((path_for_record, hash, size))
 
 
 class InWheel(InTemporaryDirectory):
@@ -141,6 +151,14 @@ class InWheelCtx(InWheel):
         return self
 
 
+def _get_wheelinfo_name(wheelfile):
+    # Work round wheel API compatibility
+    try:
+        return wheelfile.wheelinfo_name
+    except AttributeError:
+        return wheelfile.dist_info_path + '/WHEEL'
+
+
 def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
     """ Add platform tags `platforms` to `in_wheel` filename and WHEEL tags
 
@@ -171,7 +189,7 @@ def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
     in_wheel = abspath(in_wheel)
     out_path = dirname(in_wheel) if out_path is None else abspath(out_path)
     wf = WheelFile(in_wheel)
-    info_fname = wf.wheelinfo_name
+    info_fname = _get_wheelinfo_name(wf)
     # Check what tags we have
     in_fname_tags = wf.parsed_filename.groupdict()['plat'].split('.')
     extra_fname_tags = [tag for tag in platforms if tag not in in_fname_tags]

@@ -5,12 +5,15 @@ import os
 from os.path import join as pjoin, exists, isfile, basename, realpath, splitext
 import shutil
 
-from wheel.install import WheelFile
+try:
+    from wheel.install import WheelFile
+except ImportError:  # As of Wheel 0.32.0
+    from wheel.wheelfile import WheelFile
 
 from ..wheeltools import (rewrite_record, InWheel, InWheelCtx, WheelToolsError,
-                          add_platforms)
+                          add_platforms, _get_wheelinfo_name)
 from ..tmpdirs import InTemporaryDirectory
-from ..tools import zip2dir
+from ..tools import zip2dir, open_readable
 
 from .pytest_tools import (assert_true, assert_false, assert_raises, assert_equal)
 
@@ -27,12 +30,12 @@ def test_rewrite_record():
     with InTemporaryDirectory():
         zip2dir(PURE_WHEEL, 'wheel')
         record_fname = pjoin('wheel', dist_info_sdir, 'RECORD')
-        with open(record_fname, 'rt') as fobj:
+        with open_readable(record_fname, 'rt') as fobj:
             record_orig = fobj.read()
         # Test we get the same record by rewriting
         os.unlink(record_fname)
         rewrite_record('wheel')
-        with open(record_fname, 'rt') as fobj:
+        with open_readable(record_fname, 'rt') as fobj:
             record_new = fobj.read()
         assert_record_equal(record_orig, record_new)
         # Test that signature gets deleted
@@ -40,7 +43,7 @@ def test_rewrite_record():
         with open(sig_fname, 'wt') as fobj:
             fobj.write('something')
         rewrite_record('wheel')
-        with open(record_fname, 'rt') as fobj:
+        with open_readable(record_fname, 'rt') as fobj:
             record_new = fobj.read()
         assert_record_equal(record_orig, record_new)
         assert_false(exists(sig_fname))
@@ -91,11 +94,23 @@ def _filter_key(items, key):
     return [(k, v) for k, v in items if k != key]
 
 
+def get_info(wheelfile):
+    # Work round wheel API changes
+    try:
+        return wheelfile.parsed_wheel_info
+    except AttributeError:
+        pass
+    # Wheel 0.32.0
+    from wheel.pkginfo import read_pkg_info_bytes
+    info_name = _get_wheelinfo_name(wheelfile)
+    return read_pkg_info_bytes(wheelfile.read(info_name))
+
+
 def assert_winfo_similar(whl_fname, exp_items, drop_version=True):
     wf = WheelFile(whl_fname)
     wheel_parts = wf.parsed_filename.groupdict()
     # Info can contain duplicate keys (e.g. Tag)
-    w_info = sorted(wf.parsed_wheel_info.items())
+    w_info = sorted(get_info(wf).items())
     if drop_version:
         w_info = _filter_key(w_info, 'Wheel-Version')
         exp_items = _filter_key(exp_items, 'Wheel-Version')

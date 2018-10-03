@@ -5,7 +5,8 @@ import os
 from os.path import (join as pjoin, relpath, isdir, dirname, basename)
 import shutil
 
-from ..tools import cmp_contents, get_archs, zip2dir, dir2zip, back_tick
+from ..tools import (cmp_contents, get_archs, zip2dir, dir2zip, back_tick,
+                     open_readable)
 from ..fuse import fuse_trees, fuse_wheels
 from ..tmpdirs import InTemporaryDirectory
 from ..wheeltools import rewrite_record
@@ -26,14 +27,18 @@ def assert_same_tree(tree1, tree2):
             assert_true(isdir(pjoin(tree2_dirpath, dname)))
         for fname in filenames:
             tree1_path = pjoin(dirpath, fname)
-            with open(tree1_path, 'rb') as fobj:
+            with open_readable(tree1_path, 'rb') as fobj:
                 contents1 = fobj.read()
-            with open(pjoin(tree2_dirpath, fname), 'rb') as fobj:
+            with open_readable(pjoin(tree2_dirpath, fname), 'rb') as fobj:
                 contents2 = fobj.read()
             if fname == 'RECORD':  # Record can have different line orders
                 assert_record_equal(contents1, contents2)
             else:
                 assert_equal(contents1, contents2)
+
+
+def assert_listdir_equal(path, listing):
+    assert sorted(os.listdir(path)) == sorted(listing)
 
 
 def test_fuse_trees():
@@ -42,21 +47,21 @@ def test_fuse_trees():
         os.mkdir('tree1')
         os.mkdir('tree2')
         fuse_trees('tree1', 'tree2')
-        assert_equal(os.listdir('tree1'), [])
+        assert_listdir_equal('tree1', [])
         with open(pjoin('tree2', 'afile.txt'), 'wt') as fobj:
             fobj.write('Some text')
         fuse_trees('tree1', 'tree2')
-        assert_equal(os.listdir('tree1'), ['afile.txt'])
+        assert_listdir_equal('tree1', ['afile.txt'])
         assert_same_tree('tree1', 'tree2')
         # Copy this test directory, show it turns up in output
         shutil.copytree(dirname(__file__), pjoin('tree2', 'tests'))
         fuse_trees('tree1', 'tree2')
-        assert_equal(os.listdir('tree1'), ['afile.txt', 'tests'])
+        assert_listdir_equal('tree1', ['afile.txt', 'tests'])
         assert_same_tree('tree1', 'tree2')
         # A library, not matched in to_tree
         shutil.copy2(LIB64A, 'tree2')
         fuse_trees('tree1', 'tree2')
-        assert_equal(os.listdir('tree1'), ['afile.txt', 'liba.a', 'tests'])
+        assert_listdir_equal('tree1', ['afile.txt', 'liba.a', 'tests'])
         assert_same_tree('tree1', 'tree2')
         # Run the same again; this tests that there is no error when the
         # library is the same in both trees
@@ -76,8 +81,9 @@ def test_fuse_trees():
         with open(pjoin('tree1', 'anotherfile.txt'), 'wt') as fobj:
             fobj.write('Some more text')
         fuse_trees('tree1', 'tree2')
-        assert_equal(os.listdir('tree1'),
-                     ['afile.txt', 'anotherfile.txt', 'liba.a', 'tests'])
+        assert_listdir_equal(
+            'tree1',
+            ['afile.txt', 'anotherfile.txt', 'liba.a', 'tests'])
 
 
 def test_fuse_wheels():

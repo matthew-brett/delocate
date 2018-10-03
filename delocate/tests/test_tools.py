@@ -6,10 +6,10 @@ from os.path import join as pjoin, dirname
 import stat
 import shutil
 
-from ..tools import (back_tick, unique_by_index, ensure_writable, zip2dir,
-                     dir2zip, find_package_dirs, cmp_contents, get_archs,
-                     lipo_fuse, replace_signature, validate_signature,
-                     add_rpath)
+from ..tools import (back_tick, unique_by_index, ensure_writable, chmod_perms,
+                     ensure_permissions, zip2dir, dir2zip, find_package_dirs,
+                     cmp_contents, get_archs, lipo_fuse, replace_signature,
+                     validate_signature, add_rpath)
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -46,6 +46,53 @@ def test_uniqe_by_index():
         yield 2
         yield 1
     assert_equal(unique_by_index(gen()), [4, 2, 1])
+
+
+def test_ensure_permissions():
+    # Test decorator to ensure permissions
+    with InTemporaryDirectory():
+        # Write, set zero permissions
+        sts = {}
+        for fname, contents in (('test.read', 'A line\n'),
+                                ('test.write', 'B line')):
+            with open(fname, 'wt') as fobj:
+                fobj.write(contents)
+            os.chmod(fname, 0)
+            sts[fname] = chmod_perms(fname)
+
+        def read_file(fname):
+            with open(fname, 'rt') as fobj:
+                contents = fobj.read()
+            return contents
+
+        fixed_read_file = ensure_permissions(stat.S_IRUSR)(read_file)
+        non_read_file = ensure_permissions(stat.S_IWUSR)(read_file)
+
+        def write_file(fname, contents):
+            with open(fname, 'wt') as fobj:
+                fobj.write(contents)
+
+        fixed_write_file = ensure_permissions(stat.S_IWUSR)(write_file)
+        non_write_file = ensure_permissions(stat.S_IRUSR)(write_file)
+
+        # Read fails with default, no permissions
+        assert_raises(IOError, read_file, 'test.read')
+        # Write fails with default, no permissions
+        assert_raises(IOError, write_file, 'test.write', 'continues')
+        # Read fails with wrong permissions
+        assert_raises(IOError, non_read_file, 'test.read')
+        # Write fails with wrong permissions
+        assert_raises(IOError, non_write_file, 'test.write', 'continues')
+        # Read succeeds with fixed function
+        assert_equal(fixed_read_file('test.read'), 'A line\n')
+        # Write fails, no permissions
+        assert_raises(IOError, non_write_file, 'test.write', 'continues')
+        # Write succeeds with fixed function
+        fixed_write_file('test.write', 'continues')
+        assert_equal(fixed_read_file('test.write'), 'continues')
+        # Permissions are as before
+        for fname, st in sts.items():
+            assert_equal(chmod_perms(fname), st)
 
 
 def test_ensure_writable():

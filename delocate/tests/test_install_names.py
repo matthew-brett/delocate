@@ -52,6 +52,14 @@ def test_get_install_names():
     assert_equal(get_install_names(PY_FILE), ())
     # Binary file (in fact a truncated SAS file)
     assert_equal(get_install_names(BIN_FILE), ())
+    # Test when no read permission
+    with InTemporaryDirectory():
+        shutil.copyfile(LIBA, 'test.dylib')
+        assert_equal(set(get_install_names('test.dylib')),
+                     set(EXT_LIBS))
+        # No permissions, no found libs
+        os.chmod('test.dylib', 0)
+        assert_equal(get_install_names('test.dylib'), ())
 
 
 def test_parse_install_name():

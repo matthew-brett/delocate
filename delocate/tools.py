@@ -375,7 +375,7 @@ def dir2zip(in_dir, zip_fname):
             info = zipfile.ZipInfo(in_fname)
             info.filename = relpath(in_fname, in_dir)
             # See https://stackoverflow.com/questions/434641/how-do-i-set-permissions-attributes-on-a-file-in-a-zip-file-using-pythons-zip/48435482#48435482
-            info.external_attr = chmod_perms(in_fname) << 16
+            info.external_attr = (chmod_perms(in_fname) | stat.S_IFREG) << 16
             with open_readable(in_fname, 'rb') as fobj:
                 contents = fobj.read()
             z.writestr(info, contents, zipfile.ZIP_DEFLATED)

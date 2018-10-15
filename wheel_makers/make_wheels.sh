@@ -12,6 +12,7 @@ fi
 
 rm */dist/fakepkg*.whl
 rm */libs/*.dylib
+rm */MANIFEST
 
 cd fakepkg1
 python setup.py clean bdist_wheel

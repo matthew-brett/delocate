@@ -1,7 +1,7 @@
 """ Direct tests of fixes to wheels """
 
 import os
-from os.path import (join as pjoin, basename, realpath, abspath, exists)
+from os.path import (join as pjoin, basename, realpath, abspath, exists, isdir)
 import stat
 from glob import glob
 import shutil
@@ -138,15 +138,25 @@ def test_fix_plat():
 def test_script_permissions():
     with InTemporaryDirectory():
         os.makedirs('wheels')
+        os.makedirs('fixed-wheels')
         shutil.copy2(PLAT_WHEEL, 'wheels')
-        wheel_name = pjoin('wheels', basename(PLAT_WHEEL))
+        whl_name = basename(PLAT_WHEEL)
+        wheel_name = pjoin('wheels', whl_name)
         script_name = pjoin('fakepkg1-1.0.data', 'scripts', 'fakescript.py')
+        exe_name = pjoin('fakepkg1', 'ascript.py')
+        lib_path = pjoin('fakepkg1', '.dylibs')
         with InWheel(wheel_name):
-            assert os.stat(script_name).st_mode & stat.S_IXUSR
-        delocate_wheel(wheel_name)
-        with InWheel(wheel_name):
-            assert exists(script_name)
-            assert os.stat(script_name).st_mode & stat.S_IXUSR
+            assert not isdir(lib_path)
+            for path in (script_name, exe_name):
+                assert os.stat(path).st_mode & stat.S_IXUSR
+                assert os.stat(path).st_mode & stat.S_IFREG
+        out_whl = pjoin('fixed-wheels', whl_name)
+        delocate_wheel(wheel_name, out_wheel=out_whl)
+        with InWheel(out_whl):
+            assert isdir(lib_path)
+            for path in (script_name, exe_name):
+                assert os.stat(path).st_mode & stat.S_IXUSR
+                assert os.stat(path).st_mode & stat.S_IFREG
 
 
 def test_fix_plat_dylibs():

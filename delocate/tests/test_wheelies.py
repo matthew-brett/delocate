@@ -2,7 +2,7 @@
 
 import os
 from os.path import (join as pjoin, basename, realpath, abspath, exists)
-
+import stat
 from glob import glob
 import shutil
 from subprocess import check_call
@@ -133,6 +133,20 @@ def test_fix_plat():
         the_lib = pjoin('plat_pkg3', 'fakepkg1', '.dylibs', base_stray)
         inst_id = DLC_PREFIX + 'fakepkg1/' + base_stray
         assert_equal(get_install_id(the_lib), inst_id)
+
+
+def test_script_permissions():
+    with InTemporaryDirectory():
+        os.makedirs('wheels')
+        shutil.copy2(PLAT_WHEEL, 'wheels')
+        wheel_name = pjoin('wheels', basename(PLAT_WHEEL))
+        script_name = pjoin('fakepkg1-1.0.data', 'scripts', 'fakescript.py')
+        with InWheel(wheel_name):
+            assert os.stat(script_name).st_mode & stat.S_IXUSR
+        delocate_wheel(wheel_name)
+        with InWheel(wheel_name):
+            assert exists(script_name)
+            assert os.stat(script_name).st_mode & stat.S_IXUSR
 
 
 def test_fix_plat_dylibs():

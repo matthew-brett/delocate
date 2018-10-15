@@ -30,5 +30,6 @@ setup(
     ext_modules = cythonize(exts),
     name = 'fakepkg1',
     version = "1.0",
+    scripts = [pjoin('scripts', 'fakescript.py')],
     packages = ['fakepkg1', 'fakepkg1.subpkg', 'fakepkg1.tests'],
 )

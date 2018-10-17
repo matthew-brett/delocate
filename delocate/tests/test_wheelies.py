@@ -138,9 +138,8 @@ def test_fix_plat():
 def test_script_permissions():
     with InTemporaryDirectory():
         os.makedirs('wheels')
-        os.makedirs('fixed-wheels')
-        shutil.copy2(PLAT_WHEEL, 'wheels')
-        whl_name = basename(PLAT_WHEEL)
+        wheel_name, stray_lib = _fixed_wheel('wheels')
+        whl_name = basename(wheel_name)
         wheel_name = pjoin('wheels', whl_name)
         script_name = pjoin('fakepkg1-1.0.data', 'scripts', 'fakescript.py')
         exe_name = pjoin('fakepkg1', 'ascript')
@@ -150,6 +149,7 @@ def test_script_permissions():
             for path in (script_name, exe_name):
                 assert os.stat(path).st_mode & stat.S_IXUSR
                 assert os.stat(path).st_mode & stat.S_IFREG
+        os.makedirs('fixed-wheels')
         out_whl = pjoin('fixed-wheels', whl_name)
         delocate_wheel(wheel_name, out_wheel=out_whl)
         with InWheel(out_whl):

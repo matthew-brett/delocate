@@ -143,7 +143,7 @@ def test_script_permissions():
         whl_name = basename(PLAT_WHEEL)
         wheel_name = pjoin('wheels', whl_name)
         script_name = pjoin('fakepkg1-1.0.data', 'scripts', 'fakescript.py')
-        exe_name = pjoin('fakepkg1', 'ascript.py')
+        exe_name = pjoin('fakepkg1', 'ascript')
         lib_path = pjoin('fakepkg1', '.dylibs')
         with InWheel(wheel_name):
             assert not isdir(lib_path)

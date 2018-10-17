@@ -31,6 +31,6 @@ setup(
     name = 'fakepkg1',
     version = "1.0",
     scripts = [pjoin('scripts', 'fakescript.py')],
-    package_data = {'fakepkg1': ['ascript.py']},
+    package_data = {'fakepkg1': ['ascript']},
     packages = ['fakepkg1', 'fakepkg1.subpkg', 'fakepkg1.tests'],
 )

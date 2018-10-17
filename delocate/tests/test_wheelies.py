@@ -144,19 +144,25 @@ def test_script_permissions():
         script_name = pjoin('fakepkg1-1.0.data', 'scripts', 'fakescript.py')
         exe_name = pjoin('fakepkg1', 'ascript')
         lib_path = pjoin('fakepkg1', '.dylibs')
+        mtimes = {}
         with InWheel(wheel_name):
             assert not isdir(lib_path)
             for path in (script_name, exe_name):
-                assert os.stat(path).st_mode & stat.S_IXUSR
-                assert os.stat(path).st_mode & stat.S_IFREG
+                st = os.stat(path)
+                assert st.st_mode & stat.S_IXUSR
+                assert st.st_mode & stat.S_IFREG
+                mtimes[path] = st.st_mtime
         os.makedirs('fixed-wheels')
         out_whl = pjoin('fixed-wheels', whl_name)
         delocate_wheel(wheel_name, out_wheel=out_whl)
         with InWheel(out_whl):
             assert isdir(lib_path)
             for path in (script_name, exe_name):
-                assert os.stat(path).st_mode & stat.S_IXUSR
-                assert os.stat(path).st_mode & stat.S_IFREG
+                st = os.stat(path)
+                assert st.st_mode & stat.S_IXUSR
+                assert st.st_mode & stat.S_IFREG
+                # Check modification time is the same as the original
+                assert st.st_mtime == mtimes[path]
 
 
 def test_fix_plat_dylibs():

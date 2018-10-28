@@ -15,7 +15,14 @@ import shutil
 
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import back_tick, set_install_name, zip2dir, dir2zip
-from ..wheeltools import InWheel
+
+try:
+    from wheel.install import WheelFile
+except ImportError:  # As of Wheel 0.32.0
+    from wheel.wheelfile import WheelFile
+
+from wheeltools import InWheel
+
 from .scriptrunner import ScriptRunner
 
 from .pytest_tools import (assert_true, assert_false, assert_equal, assert_raises,
@@ -27,7 +34,40 @@ from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
                             STRAY_LIB_DEP, WHEEL_PATCH, WHEEL_PATCH_BAD,
                             _thin_lib, _thin_mod, _rename_module)
 from .test_fuse import assert_same_tree
-from .test_wheeltools import assert_winfo_similar
+
+
+def get_info(wheelfile):
+    # Work round wheel API changes
+    try:
+        return wheelfile.parsed_wheel_info
+    except AttributeError:
+        pass
+    # Wheel 0.32.0
+    from wheel.pkginfo import read_pkg_info_bytes
+
+    info_name = wheelfile.dist_info_path + "/WHEEL"
+    return read_pkg_info_bytes(wheelfile.read(info_name))
+
+
+def _filter_key(items, key):
+    return [(k, v) for k, v in items if k != key]
+
+
+def assert_winfo_similar(whl_fname, exp_items, drop_version=True):
+    wf = WheelFile(whl_fname)
+    wheel_parts = wf.parsed_filename.groupdict()
+    # Info can contain duplicate keys (e.g. Tag)
+    w_info = sorted(get_info(wf).items())
+    if drop_version:
+        w_info = _filter_key(w_info, "Wheel-Version")
+        exp_items = _filter_key(exp_items, "Wheel-Version")
+    assert_equal(len(exp_items), len(w_info))
+    # Extract some information from actual values
+    wheel_parts["pip_version"] = dict(w_info)["Generator"].split()[1]
+    for (key1, value1), (key2, value2) in zip(exp_items, w_info):
+        assert_equal(key1, key2)
+        value1 = value1.format(**wheel_parts)
+        assert_equal(value1, value2)
 
 
 def _proc_lines(in_str):

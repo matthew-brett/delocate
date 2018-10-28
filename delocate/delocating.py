@@ -15,7 +15,7 @@ from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
 from .tools import (set_install_name, zip2dir, dir2zip, validate_signature,
                     find_package_dirs, set_install_id, get_archs)
 from .tmpdirs import TemporaryDirectory
-from .wheeltools import rewrite_record, InWheel
+from wheeltools import rewrite_record, InWheel
 
 # Prefix for install_name_id of copied libraries
 DLC_PREFIX = '/DLC/'

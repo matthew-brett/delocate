@@ -20,7 +20,7 @@ import shutil
 from .tools import (zip2dir, dir2zip, cmp_contents, lipo_fuse,
                     open_rw, chmod_perms)
 from .tmpdirs import InTemporaryDirectory
-from .wheeltools import rewrite_record
+from wheeltools import rewrite_record
 
 
 def _copyfile(in_fname, out_fname):

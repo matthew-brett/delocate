@@ -11,7 +11,7 @@ from ..delocating import (DelocationError, delocate_wheel, patch_wheel,
                           DLC_PREFIX)
 from ..tools import (get_install_names, set_install_name, zip2dir,
                      dir2zip, back_tick, get_install_id, get_archs)
-from ..wheeltools import InWheel
+from wheeltools import InWheel
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
 

@@ -243,7 +243,7 @@ def get_install_id(filename):
     if len(lines) == 1:
         return None
     if len(lines) != 2:
-        raise InstallNameError('Unexpected otool output ' + out)
+        raise InstallNameError('Unexpected otool output ' + '\n'.join(lines))
     return lines[1].strip()
 
 

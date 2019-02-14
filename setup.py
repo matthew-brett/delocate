@@ -31,6 +31,7 @@ setup(name='delocate',
           "machomachomangler; sys_platform == 'win32'",
           "bindepend; sys_platform == 'win32'",
           "wheel",
+          "wheeltools >= 0.1.0b1",
       ],
       package_data = {'delocate.tests':
                       [pjoin('data', '*.dylib'),

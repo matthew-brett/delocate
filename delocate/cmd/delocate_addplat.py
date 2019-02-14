@@ -22,7 +22,7 @@ from os.path import join as exists, expanduser, realpath
 from optparse import OptionParser, Option
 
 from delocate import __version__
-from delocate.wheeltools import add_platforms, WheelToolsError
+from wheeltools import add_platforms, WheelToolsError
 
 
 def main():

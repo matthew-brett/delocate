@@ -407,22 +407,26 @@ def find_package_dirs(root_path):
     return [p for p, is_dir in find_packages(root_path) if is_dir]
 
 
-def find_packages(root_path, lib_filt_func=None):
-    """ Find python packages in directory `root_path`
+def find_packages(root_path):
+    """ Find python packages or extension modules in directory `root_path`
 
     Parameters
     ----------
     root_path : str
-        Directory to search for package subdirectories
+        Directory to search for package subdirectories or standalone libraries.
 
     Returns
     -------
     package_sdirs : set
-        Set of (string, is_dir) tuples where each string is a subdirectory of
-        `root_path` containing an ``__init__.py`` file, or a C extension
-        single-file module directly in `root_path`, and is_dir indicates whether
-        the package is a subdirectory module or a single-file module.  Paths
-        prefixed by `root_path`
+        Set of (string, is_dir) tuples where each string is either 1) a
+        subdirectory of `root_path` containing an ``__init__.py`` file, or 2)
+        a single-file standalone extension module directly in `root_path`.
+        `is_dir` indicates whether the package is a subdirectory module or a
+        single-file module.  Paths prefixed by `root_path`
+
+    Notes
+    -----
+    Single-file standalone modules identified with :func:`dylibs_only`.
     """
     package_sdirs = set()
     for entry in os.listdir(root_path):
@@ -529,6 +533,7 @@ def replace_signature(filename, identity):
               raise_err=True)
 
 
+
 def validate_signature(filename):
     """ Remove invalid signatures from a binary file
 
@@ -554,5 +559,7 @@ def validate_signature(filename):
 
 
 def dylibs_only(filename):
+    """ Return True for `filename` with extensions `.so` or `.dylib`
+    """
     return (filename.endswith('.so') or
             filename.endswith('.dylib'))

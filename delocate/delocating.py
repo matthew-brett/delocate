@@ -5,13 +5,14 @@ from __future__ import division, print_function
 
 import os
 from os.path import (join as pjoin, dirname, basename, exists, abspath,
-                     relpath, realpath)
+                     relpath, realpath, isfile)
 import shutil
 import warnings
 from subprocess import Popen, PIPE
 
 from .pycompat import string_types
-from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
+from .libsana import (tree_libs, stripped_lib_dict, get_rp_stripper,
+                      _analyze_path)
 from .tools import (set_install_name, zip2dir, dir2zip, validate_signature,
                     find_package_dirs, find_packages, set_install_id, get_archs,
                     dylibs_only)
@@ -239,15 +240,16 @@ def filter_system_libs(libname):
                 libname.startswith('/System'))
 
 
-def delocate_path(tree_path, lib_path,
+def delocate_path(in_path, lib_path,
                   lib_filt_func = None,
                   copy_filt_func = filter_system_libs):
-    """ Copy required libraries for files in `tree_path` into `lib_path`
+    """ Copy required libraries for files in `in_path` into `lib_path`
 
     Parameters
     ----------
-    tree_path : str
-        Root path of tree to search for required libraries
+    in_path : str
+        Root path of tree to search for required libraries, or filename of
+        standalone extension module.
     lib_path : str
         Directory into which we copy required libraries
     lib_filt_func : None or str or callable, optional
@@ -277,11 +279,15 @@ def delocate_path(tree_path, lib_path,
         lib_filt_func = dylibs_only
     if not exists(lib_path):
         os.makedirs(lib_path)
-    lib_dict = tree_libs(tree_path, lib_filt_func)
+    if isfile(in_path):
+        lib_dict = {}
+        _analyze_path(in_path, lib_dict, lib_filt_func)
+    else:
+        lib_dict = tree_libs(in_path, lib_filt_func)
     if not copy_filt_func is None:
         lib_dict = dict((key, value) for key, value in lib_dict.items()
                         if copy_filt_func(key))
-    copied = delocate_tree_libs(lib_dict, lib_path, tree_path)
+    copied = delocate_tree_libs(lib_dict, lib_path, in_path)
     return copy_recurse(lib_path, copy_filt_func, copied)
 
 
@@ -367,9 +373,9 @@ def delocate_wheel(in_wheel,
         wheel_dir = realpath(pjoin(tmpdir, 'wheel'))
         zip2dir(in_wheel, wheel_dir)
         for package_path, is_dir in find_packages(wheel_dir):
-            if is_dir:
+            if is_dir:  # Package within subdirectory
                 lib_path = pjoin(package_path, lib_sdir)
-            else:
+            else:  # Standalone extension module
                 root_name = basename(package_path).split('.', 1)[0]
                 lib_path = pjoin(dirname(package_path), lib_sdir + root_name)
             lib_path_exists = exists(lib_path)

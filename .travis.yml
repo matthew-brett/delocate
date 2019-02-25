@@ -45,6 +45,12 @@ install:
         pip install cython;
         (cd wheel_makers && ./make_wheels.sh);
     fi
+  # Upload wheels to Rackspace container
+  - pip install wheelhouse-uploader
+  - python -m wheelhouse_uploader upload --local-folder
+        ${TRAVIS_BUILD_DIR}/delocate/tests/data/
+        --no-update-index
+        $WHEEL_SPEC
   - pip install .
 
 script:

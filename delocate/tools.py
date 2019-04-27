@@ -377,6 +377,10 @@ def dir2zip(in_dir, zip_fname):
             # Preserve file permissions, but allow copy
             info = zipfile.ZipInfo(in_fname)
             info.filename = relpath(in_fname, in_dir)
+            if os.path.sep == '\\':
+                # Make the path unix friendly on windows.
+                # PyPI won't accept wheels with windows path separators
+                info.filename = relpath(in_fname, in_dir).replace('\\', '/')
             # Set time from modification time
             info.date_time = time.localtime(in_stat.st_mtime)
             # See https://stackoverflow.com/questions/434641/how-do-i-set-permissions-attributes-on-a-file-in-a-zip-file-using-pythons-zip/48435482#48435482

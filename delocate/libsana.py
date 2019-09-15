@@ -58,10 +58,13 @@ def tree_libs(start_path, filt_func=None):
             env_var_paths = get_environment_variable_paths()
             search_paths = rpaths + env_var_paths
             for install_name in get_install_names(depending_libpath):
-                # If the library starts with '@rpath' we'll try and resolve an rpath
+                # If the library starts with '@rpath' we'll try and resolve it
+                # We'll do nothing to other '@'-paths
                 # Otherwise we'll search for the library using env variables
                 if install_name.startswith('@rpath'):
                     lib_path = resolve_rpath(install_name, search_paths)
+                elif install_name.startswith('@'):
+                    lib_path = install_name
                 else:
                     lib_path = search_environment_for_lib(install_name)
                 if lib_path in lib_dict:

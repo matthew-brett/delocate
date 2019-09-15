@@ -322,16 +322,32 @@ def get_rpaths(filename):
         assert cmdsize.startswith('cmdsize ')
         paths.append(RPATH_RE.match(path).groups()[0])
         line_no += 2
+    return tuple(paths)
+
+
+def get_environment_variable_paths():
+    """ Return a tuple of entries in `LD_LIBRARY_PATH`,
+    `DYLD_LIBRARY_PATH`, and `DYLD_FALLBACK_LIBRARY_PATH`.
+
+    This will allow us to search those locations for dependcies of libraries as
+    well as `@rpath` entries.
+
+    Returns
+    -------
+    env_var_paths : tuple
+        path entries in environment variables
+    """
     # We'll search the extra library paths in a specific order:
     # LD_LIBRARY, DYLD_LIBRARY, DYLD_FALLBACK_LIBRARY
+    env_var_paths = []
     extra_paths = ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH',
                    'DYLD_FALLBACK_LIBRARY_PATH']
     for pathname in extra_paths:
         path_contents = os.environ.get(pathname)
         if path_contents is not None:
             for path in path_contents.split(':'):
-                paths.append(path)
-    return tuple(paths)
+                env_var_paths.append(path)
+    return tuple(env_var_paths)
 
 
 @ensure_writable

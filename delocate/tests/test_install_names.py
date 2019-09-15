@@ -7,7 +7,7 @@ import shutil
 
 from ..tools import (InstallNameError, get_install_names, set_install_name,
                      get_install_id, get_rpaths, add_rpath, parse_install_name,
-                     set_install_id)
+                     set_install_id, get_environment_variable_paths)
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -120,6 +120,41 @@ def test_get_rpaths():
     # Not dynamic libs, no rpaths
     for fname in (LIBB, A_OBJECT, LIBA_STATIC, ICO_FILE, PY_FILE, BIN_FILE):
         assert_equal(get_rpaths(fname), ())
+
+
+def test_get_environment_variable_paths():
+    # Test that environment variable paths are fetched in a specific order
+    old_LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', None)
+    old_DYLD_LIBRARY_PATH = os.environ.get('DYLD_LIBRARY_PATH', None)
+    old_DYLD_FALLBACK_LIBRARY_PATH = \
+        os.environ.get('DYLD_FALLBACK_LIBRARY_PATH', None)
+    try:
+        os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = 'three'
+        os.environ['DYLD_LIBRARY_PATH'] = 'two'
+        os.environ['LD_LIBRARY_PATH'] = 'one'
+        assert_equal(get_environment_variable_paths(), ('one', 'two', 'three'))
+    finally:
+        if old_LD_LIBRARY_PATH is not None:
+            os.environ['LD_LIBRARY_PATH'] = old_LD_LIBRARY_PATH
+        else:
+            try:
+                del os.environ['LD_LIBRARY_PATH']
+            except:
+                pass
+        if old_DYLD_LIBRARY_PATH is not None:
+            os.environ['DYLD_LIBRARY_PATH'] = old_DYLD_LIBRARY_PATH
+        else:
+            try:
+                del os.environ['DYLD_LIBRARY_PATH']
+            except:
+                pass
+        if old_DYLD_FALBACK_LIBRARY_PATH is not None:
+            os.environ['DYLD_FALBACK_LIBRARY_PATH'] = old_DYLD_FALLBACK_LIBRARY_PATH
+        else:
+            try:
+                del os.environ['DYLD_FALLBACK_LIBRARY_PATH']
+            except:
+                pass
 
 
 def test_add_rpath():

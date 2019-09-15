@@ -8,7 +8,8 @@ from os.path import basename, join as pjoin, realpath
 
 import warnings
 
-from .tools import get_install_names, zip2dir, get_rpaths
+from .tools import (get_install_names, zip2dir, get_rpaths,
+                    get_environment_variable_paths)
 from .tmpdirs import TemporaryDirectory
 
 def tree_libs(start_path, filt_func=None):
@@ -54,11 +55,13 @@ def tree_libs(start_path, filt_func=None):
             if not filt_func is None and not filt_func(depending_libpath):
                 continue
             rpaths = get_rpaths(depending_libpath)
+            env_var_paths = get_environment_variable_paths()
+            search_paths = rpaths + env_var_paths
             for install_name in get_install_names(depending_libpath):
                 # If the library starts with '@rpath' we'll try and resolve an rpath
                 # Otherwise we'll search for the library using env variables
-                if install_name.startswith('@'):
-                    lib_path = resolve_rpath(install_name, rpaths)
+                if install_name.startswith('@rpath'):
+                    lib_path = resolve_rpath(install_name, search_paths)
                 else:
                     lib_path = search_environment_for_lib(install_name)
                 if lib_path in lib_dict:
@@ -134,27 +137,28 @@ def search_environment_for_lib(lib_path):
     lib_basename = basename(lib_path)
     potential_library_locations = []
 
+    def _paths_from_var(varname, lib_basename):
+        var = os.environ.get(varname)
+        if var is None:
+            return []
+        return [pjoin(path, lib_basename) for path in var.split(':')]
+
     # 1. Search on DYLD_LIBRARY_PATH
-    DYLD_LIBRARY_PATH = os.environ.get('DYLD_LIBRARY_PATH')
-    if DYLD_LIBRARY_PATH is not None:
-        for path in DYLD_LIBRARY_PATH.split(':'):
-            lib_location = os.path.join(path, lib_basename)
-            potential_library_locations.append(lib_location)
+    potential_library_locations += _paths_from_var('DYLD_LIBRARY_PATH',
+                                                   lib_path)
 
     # 2. Search for realpath(lib_path)
     potential_library_locations.append(realpath(lib_path))
 
     # 3. Search on DYLD_FALLBACK_LIBRARY_PATH
-    DYLD_FALLBACK_LIBRARY_PATH = os.environ.get('DYLD_FALLBACK_LIBRARY_PATH')
-    if DYLD_FALLBACK_LIBRARY_PATH is not None:
-        for path in DYLD_FALLBACK_LIBRARY_PATH.split(':'):
-            lib_location = pjoin(path, lib_basename)
-            potential_library_locations.append(lib_location)
+    potential_library_locations += \
+        _paths_from_var('DYLD_FALLBACK_LIBRARY_PATH', lib_path)
 
     for location in potential_library_locations:
         if os.path.exists(location):
             return location
     return realpath(lib_path)
+
 
 def get_prefix_stripper(strip_prefix):
     """ Return function to strip `strip_prefix` prefix from string if present

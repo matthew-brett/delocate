@@ -148,8 +148,8 @@ def test_get_environment_variable_paths():
                 del os.environ['DYLD_LIBRARY_PATH']
             except:
                 pass
-        if old_DYLD_FALBACK_LIBRARY_PATH is not None:
-            os.environ['DYLD_FALBACK_LIBRARY_PATH'] = old_DYLD_FALLBACK_LIBRARY_PATH
+        if old_DYLD_FALLBACK_LIBRARY_PATH is not None:
+            os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = old_DYLD_FALLBACK_LIBRARY_PATH
         else:
             try:
                 del os.environ['DYLD_FALLBACK_LIBRARY_PATH']

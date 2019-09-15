@@ -49,13 +49,13 @@ def tree_libs(start_path, filt_func=None):
     * http://matthew-brett.github.io/pydagogue/mac_runtime_link.html
     """
     lib_dict = {}
+    env_var_paths = get_environment_variable_paths()
     for dirpath, dirnames, basenames in os.walk(start_path):
         for base in basenames:
             depending_libpath = realpath(pjoin(dirpath, base))
             if not filt_func is None and not filt_func(depending_libpath):
                 continue
             rpaths = get_rpaths(depending_libpath)
-            env_var_paths = get_environment_variable_paths()
             search_paths = rpaths + env_var_paths
             for install_name in get_install_names(depending_libpath):
                 # If the library starts with '@rpath' we'll try and resolve it
@@ -148,14 +148,14 @@ def search_environment_for_lib(lib_path):
 
     # 1. Search on DYLD_LIBRARY_PATH
     potential_library_locations += _paths_from_var('DYLD_LIBRARY_PATH',
-                                                   lib_path)
+                                                   lib_basename)
 
     # 2. Search for realpath(lib_path)
     potential_library_locations.append(realpath(lib_path))
 
     # 3. Search on DYLD_FALLBACK_LIBRARY_PATH
     potential_library_locations += \
-        _paths_from_var('DYLD_FALLBACK_LIBRARY_PATH', lib_path)
+        _paths_from_var('DYLD_FALLBACK_LIBRARY_PATH', lib_basename)
 
     for location in potential_library_locations:
         if os.path.exists(location):

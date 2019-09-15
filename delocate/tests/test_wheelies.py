@@ -1,8 +1,8 @@
 """ Direct tests of fixes to wheels """
 
 import os
-from os.path import (join as pjoin, basename, realpath, abspath, exists)
-
+from os.path import (join as pjoin, basename, realpath, abspath, exists, isdir)
+import stat
 from glob import glob
 import shutil
 from subprocess import check_call
@@ -133,6 +133,36 @@ def test_fix_plat():
         the_lib = pjoin('plat_pkg3', 'fakepkg1', '.dylibs', base_stray)
         inst_id = DLC_PREFIX + 'fakepkg1/' + base_stray
         assert_equal(get_install_id(the_lib), inst_id)
+
+
+def test_script_permissions():
+    with InTemporaryDirectory():
+        os.makedirs('wheels')
+        wheel_name, stray_lib = _fixed_wheel('wheels')
+        whl_name = basename(wheel_name)
+        wheel_name = pjoin('wheels', whl_name)
+        script_name = pjoin('fakepkg1-1.0.data', 'scripts', 'fakescript.py')
+        exe_name = pjoin('fakepkg1', 'ascript')
+        lib_path = pjoin('fakepkg1', '.dylibs')
+        mtimes = {}
+        with InWheel(wheel_name):
+            assert not isdir(lib_path)
+            for path in (script_name, exe_name):
+                st = os.stat(path)
+                assert st.st_mode & stat.S_IXUSR
+                assert st.st_mode & stat.S_IFREG
+                mtimes[path] = st.st_mtime
+        os.makedirs('fixed-wheels')
+        out_whl = pjoin('fixed-wheels', whl_name)
+        delocate_wheel(wheel_name, out_wheel=out_whl)
+        with InWheel(out_whl):
+            assert isdir(lib_path)
+            for path in (script_name, exe_name):
+                st = os.stat(path)
+                assert st.st_mode & stat.S_IXUSR
+                assert st.st_mode & stat.S_IFREG
+                # Check modification time is the same as the original
+                assert st.st_mtime == mtimes[path]
 
 
 def test_fix_plat_dylibs():

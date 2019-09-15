@@ -5,6 +5,10 @@ env:
   global:
     - VERSION="3.5.3"
     - WHEEL_SPEC="wheel"
+    - WHEELHOUSE_UPLOADER_USERNAME=travis-worker
+    # Following generated with
+    # travis encrypt -r matthew-brett/delocate WHEELHOUSE_UPLOADER_SECRET=<the api key>
+    - secure: "BRc15pHO6+WwBh36X7KK4KFC+/hD7G3r5bmkKkWqUSrm1fhFkqDizj9V5g/9pGEcAl5FRLV0VZjTeceISfu2UhXxQxj4CkkTy7KYuSbZak2pEntfsDs7YBpQ3NHJ6ic8YdcWgptRXIQfmg/KPc9FsBIfLxJ2yVyyY7D9XpK+SvQ="
 
 # Default OSX (xcode image) is 10.11 (xcode 7.3.1) as of 2017-05-02
 # See: https://docs.travis-ci.com/user/osx-ci-environment/#OS-X-Version

@@ -7,6 +7,8 @@ from os.path import join as pjoin, relpath, isdir, exists
 import zipfile
 import re
 import stat
+import time
+
 
 class InstallNameError(Exception):
     pass
@@ -241,7 +243,7 @@ def get_install_id(filename):
     if len(lines) == 1:
         return None
     if len(lines) != 2:
-        raise InstallNameError('Unexpected otool output ' + out)
+        raise InstallNameError('Unexpected otool output ' + '\n'.join(lines))
     return lines[1].strip()
 
 
@@ -398,11 +400,20 @@ def dir2zip(in_dir, zip_fname):
     for root, dirs, files in os.walk(in_dir):
         for file in files:
             in_fname = pjoin(root, file)
+            in_stat = os.stat(in_fname)
             # Preserve file permissions, but allow copy
             info = zipfile.ZipInfo(in_fname)
             info.filename = relpath(in_fname, in_dir)
+            if os.path.sep == '\\':
+                # Make the path unix friendly on windows.
+                # PyPI won't accept wheels with windows path separators
+                info.filename = relpath(in_fname, in_dir).replace('\\', '/')
+            # Set time from modification time
+            info.date_time = time.localtime(in_stat.st_mtime)
             # See https://stackoverflow.com/questions/434641/how-do-i-set-permissions-attributes-on-a-file-in-a-zip-file-using-pythons-zip/48435482#48435482
-            info.external_attr = chmod_perms(in_fname) << 16
+            # Also set regular file permissions
+            perms = stat.S_IMODE(in_stat.st_mode) | stat.S_IFREG
+            info.external_attr = perms << 16
             with open_readable(in_fname, 'rb') as fobj:
                 contents = fobj.read()
             z.writestr(info, contents, zipfile.ZIP_DEFLATED)

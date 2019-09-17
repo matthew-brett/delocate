@@ -13,6 +13,7 @@ from ..tmpdirs import InTemporaryDirectory
 
 from .pytest_tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
+from .env_tools import TempDirWithoutEnvVars
 
 # External libs linked from test data
 LIBSTDCXX='/usr/lib/libstdc++.6.dylib'
@@ -124,37 +125,13 @@ def test_get_rpaths():
 
 def test_get_environment_variable_paths():
     # Test that environment variable paths are fetched in a specific order
-    old_LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', None)
-    old_DYLD_LIBRARY_PATH = os.environ.get('DYLD_LIBRARY_PATH', None)
-    old_DYLD_FALLBACK_LIBRARY_PATH = \
-        os.environ.get('DYLD_FALLBACK_LIBRARY_PATH', None)
-    try:
+    with TempDirWithoutEnvVars('DYLD_FALLBACK_LIBRARY_PATH',
+                               'DYLD_LIBRARY_PATH',
+                               'LD_LIBRARY_PATH'):
         os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = 'three'
         os.environ['DYLD_LIBRARY_PATH'] = 'two'
         os.environ['LD_LIBRARY_PATH'] = 'one'
         assert_equal(get_environment_variable_paths(), ('one', 'two', 'three'))
-    finally:
-        if old_LD_LIBRARY_PATH is not None:
-            os.environ['LD_LIBRARY_PATH'] = old_LD_LIBRARY_PATH
-        else:
-            try:
-                del os.environ['LD_LIBRARY_PATH']
-            except:
-                pass
-        if old_DYLD_LIBRARY_PATH is not None:
-            os.environ['DYLD_LIBRARY_PATH'] = old_DYLD_LIBRARY_PATH
-        else:
-            try:
-                del os.environ['DYLD_LIBRARY_PATH']
-            except:
-                pass
-        if old_DYLD_FALLBACK_LIBRARY_PATH is not None:
-            os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = old_DYLD_FALLBACK_LIBRARY_PATH
-        else:
-            try:
-                del os.environ['DYLD_FALLBACK_LIBRARY_PATH']
-            except:
-                pass
 
 
 def test_add_rpath():

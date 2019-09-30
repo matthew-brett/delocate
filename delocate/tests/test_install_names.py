@@ -126,12 +126,10 @@ def test_get_rpaths():
 def test_get_environment_variable_paths():
     # Test that environment variable paths are fetched in a specific order
     with TempDirWithoutEnvVars('DYLD_FALLBACK_LIBRARY_PATH',
-                               'DYLD_LIBRARY_PATH',
-                               'LD_LIBRARY_PATH'):
+                               'DYLD_LIBRARY_PATH'):
         os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = 'three'
         os.environ['DYLD_LIBRARY_PATH'] = 'two'
-        os.environ['LD_LIBRARY_PATH'] = 'one'
-        assert_equal(get_environment_variable_paths(), ('one', 'two', 'three'))
+        assert_equal(get_environment_variable_paths(), ('two', 'three'))
 
 
 def test_add_rpath():

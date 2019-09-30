@@ -291,8 +291,8 @@ RPATH_RE = re.compile(r"path (.*) \(offset \d+\)")
 
 def get_rpaths(filename):
     """ Return a tuple of rpaths from the library `filename`, with an
-    additional fallback to entries in `LD_LIBRARY_PATH`,
-    `DYLD_LIBRARY_PATH`, and `DYLD_FALLBACK_LIBRARY_PATH`.
+    additional fallback to entries in `DYLD_LIBRARY_PATH` and
+    `DYLD_FALLBACK_LIBRARY_PATH`.
 
     If `filename` is not a library then the returned tuple will be empty.
 
@@ -328,8 +328,8 @@ def get_rpaths(filename):
 
 
 def get_environment_variable_paths():
-    """ Return a tuple of entries in `LD_LIBRARY_PATH`,
-    `DYLD_LIBRARY_PATH`, and `DYLD_FALLBACK_LIBRARY_PATH`.
+    """ Return a tuple of entries in `DYLD_LIBRARY_PATH` and
+    `DYLD_FALLBACK_LIBRARY_PATH`.
 
     This will allow us to search those locations for dependcies of libraries as
     well as `@rpath` entries.
@@ -340,10 +340,9 @@ def get_environment_variable_paths():
         path entries in environment variables
     """
     # We'll search the extra library paths in a specific order:
-    # LD_LIBRARY, DYLD_LIBRARY, DYLD_FALLBACK_LIBRARY
+    # DYLD_LIBRARY_PATH and then DYLD_FALLBACK_LIBRARY_PATH
     env_var_paths = []
-    extra_paths = ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH',
-                   'DYLD_FALLBACK_LIBRARY_PATH']
+    extra_paths = ['DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']
     for pathname in extra_paths:
         path_contents = os.environ.get(pathname)
         if path_contents is not None:

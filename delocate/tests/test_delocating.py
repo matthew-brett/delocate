@@ -511,37 +511,6 @@ def test_bads_report():
                        (LIB32, ARCH_32)]))
 
 
-def test_ld_library_path_lookups():
-    # Test that LD_LIBRARY_PATH can be used to find libs during
-    # delocation
-    with TempDirWithoutEnvVars('LD_LIBRARY_PATH') as tmpdir:
-        # Copy libs into a temporary directory
-        subtree = pjoin(tmpdir, 'subtree')
-        all_local_libs = _make_libtree(subtree)
-        liba, libb, libc, test_lib, slibc, stest_lib = all_local_libs
-        # move libb and confirm that test_lib doesn't work
-        hidden_dir = 'hidden'
-        os.mkdir(hidden_dir)
-        new_libb = os.path.join(hidden_dir, os.path.basename(LIBB))
-        shutil.move(libb,
-                    new_libb)
-        assert_raises(RuntimeError, back_tick, [test_lib])
-        # libc holds the reference to libb -- update that reference so
-        # that it uses @rpath
-        # This will allow changes to LD_LIBRARY_PATH to be picked up
-        set_install_name(libc,
-                         libb,
-                         '@rpath/{}'.format(os.path.basename(LIBB)))
-        # confirm delocate_path doesn't work
-        delocate_path('subtree', 'deplibs')
-        assert_raises(RuntimeError, back_tick, [test_lib])
-        # Update LD_LIBRARY_PATH and confirm that we can now
-        # successfully delocate test_lib
-        os.environ['LD_LIBRARY_PATH'] = hidden_dir
-        delocate_path('subtree', 'deplibs')
-        back_tick(test_lib)
-
-
 def test_dyld_library_path_lookups():
     # Test that DYLD_LIBRARY_PATH can be used to find libs during
     # delocation

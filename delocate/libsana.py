@@ -116,15 +116,22 @@ def resolve_rpath(lib_path, rpaths):
 def search_environment_for_lib(lib_path):
     """ Search common environment variables for `lib_path`
 
-    Apple's documentation about how to do this does not quite match what we see
-    in the wild, so we'll use a single approach here:
+    We'll use a single approach here:
 
         1. Search for the basename of the library on DYLD_LIBRARY_PATH
         2. Search for ``realpath(lib_path)``
         3. Search for the basename of the library on DYLD_FALLBACK_LIBRARY_PATH
 
-    Testing has suggested that LD_LIBRARY_PATH is not actually used in this
-    process as all, so we'll ignore it.
+    This follows the order that Apple defines for "searching for a
+    library that has a directory name in it" as defined in their
+    documentation here:
+
+    https://developer.apple.com/library/archive/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/DynamicLibraryUsageGuidelines.html#//apple_ref/doc/uid/TP40001928-SW10
+
+    See the script "testing_osx_rpath_env_variables.sh" in tests/data
+    for a more in-depth explanation. The case where LD_LIBRARY_PATH is
+    used is a narrow subset of that, so we'll ignore it here to keep
+    things simple.
 
     Parameters
     ----------

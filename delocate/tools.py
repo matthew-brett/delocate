@@ -290,9 +290,7 @@ def set_install_id(filename, install_id):
 RPATH_RE = re.compile(r"path (.*) \(offset \d+\)")
 
 def get_rpaths(filename):
-    """ Return a tuple of rpaths from the library `filename`, with an
-    additional fallback to entries in `DYLD_LIBRARY_PATH` and
-    `DYLD_FALLBACK_LIBRARY_PATH`.
+    """ Return a tuple of rpaths from the library `filename`.
 
     If `filename` is not a library then the returned tuple will be empty.
 

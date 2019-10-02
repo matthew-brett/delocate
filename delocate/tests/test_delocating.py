@@ -2,7 +2,6 @@
 
 from __future__ import division, print_function
 
-from contextlib import contextmanager
 import os
 from os.path import (join as pjoin, dirname, basename, relpath, realpath,
                      splitext)

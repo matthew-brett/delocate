@@ -133,4 +133,35 @@ set_var_expect_success DYLD_FALLBACK_LIBRARY_PATH subdir subdir/test-lib
 mv subdir/* .
 rmdir subdir
 
+echo "As an extra, we'll demonstrate how OSX resolves library" \
+    "references containing directories"
+# This is an additional part of the documentation not covered above
+# The order OSX will try and find a library dependency when it has a
+# directory in the name is:
+# 1. Search for the basename of the library on DYLD_LIBRARY_PATH
+# 2. Search for the library using its full path
+# 3. Search for its basename on DYLD_FALLBACK_LIBRARY_PATH
+mkdir subdir
+cp libb.dylib subdir
+echo "We have two libb dylibs now -- one in the current working dir" \
+    "and one in subdir"
+echo "Start by updating libc to use an absolute path to libb"
+install_name_tool -change libb.dylib $(pwd)/libb.dylib libc.dylib
+otool -L libc.dylib
+echo "test-lib should work fine"
+run_expect_success ./test-lib
+echo "If we turn on DYLD_PRINT_LIBRARIES we can confirm the library" \
+    "that test-lib is loading"
+export DYLD_PRINT_LIBRARIES=YES
+# DYLD_PRINT_LIBRARIES outputs to stderr, so we need to redirect that
+# to stdout so that we can grep it
+./test-lib 2>&1 | grep libb
+echo "If we set DYLD_LIBRARY_PATH to point to subdir we should load" \
+    "that libb first"
+set_var_expect_success DYLD_LIBRARY_PATH subdir ./test-lib 2>&1 | grep libb
+echo "Finally, setting DYLD_FALLBACK_LIBRARY path does nothing"
+set_var_expect_success DYLD_FALLBACK_LIBRARY_PATH subdir ./test-lib 2>&1 | grep libb
+rm -rf subdir
+install_name_tool -change $(pwd)/libb.dylib libb.dylib libc.dylib
+
 echo "Demonstration completed successfully"

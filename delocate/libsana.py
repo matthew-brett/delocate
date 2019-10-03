@@ -147,12 +147,6 @@ def search_environment_for_lib(lib_path):
     lib_basename = basename(lib_path)
     potential_library_locations = []
 
-    def _paths_from_var(varname, lib_basename):
-        var = os.environ.get(varname)
-        if var is None:
-            return []
-        return [pjoin(path, lib_basename) for path in var.split(':')]
-
     # 1. Search on DYLD_LIBRARY_PATH
     potential_library_locations += _paths_from_var('DYLD_LIBRARY_PATH',
                                                    lib_basename)
@@ -269,3 +263,10 @@ def wheel_libs(wheel_fname, filt_func = None):
         zip2dir(wheel_fname, tmpdir)
         lib_dict = tree_libs(tmpdir, filt_func)
     return stripped_lib_dict(lib_dict, realpath(tmpdir) + os.path.sep)
+
+
+def _paths_from_var(varname, lib_basename):
+    var = os.environ.get(varname)
+    if var is None:
+        return []
+    return [pjoin(path, lib_basename) for path in var.split(':')]

@@ -7,12 +7,13 @@ import shutil
 
 from ..tools import (InstallNameError, get_install_names, set_install_name,
                      get_install_id, get_rpaths, add_rpath, parse_install_name,
-                     set_install_id)
+                     set_install_id, get_environment_variable_paths)
 
 from ..tmpdirs import InTemporaryDirectory
 
 from .pytest_tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
+from .env_tools import TempDirWithoutEnvVars
 
 # External libs linked from test data
 LIBSTDCXX='/usr/lib/libstdc++.6.dylib'
@@ -120,6 +121,15 @@ def test_get_rpaths():
     # Not dynamic libs, no rpaths
     for fname in (LIBB, A_OBJECT, LIBA_STATIC, ICO_FILE, PY_FILE, BIN_FILE):
         assert_equal(get_rpaths(fname), ())
+
+
+def test_get_environment_variable_paths():
+    # Test that environment variable paths are fetched in a specific order
+    with TempDirWithoutEnvVars('DYLD_FALLBACK_LIBRARY_PATH',
+                               'DYLD_LIBRARY_PATH'):
+        os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = 'three'
+        os.environ['DYLD_LIBRARY_PATH'] = 'two'
+        assert_equal(get_environment_variable_paths(), ('two', 'three'))
 
 
 def test_add_rpath():

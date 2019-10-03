@@ -9,7 +9,7 @@ import shutil
 
 from ..delocating import (DelocationError, delocate_tree_libs, copy_recurse,
                           delocate_path, check_archs, bads_report)
-from ..libsana import tree_libs
+from ..libsana import (tree_libs, search_environment_for_lib)
 from ..tools import (get_install_names, set_install_name, back_tick)
 
 from ..tmpdirs import InTemporaryDirectory
@@ -21,6 +21,7 @@ from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
 from .test_tools import (LIB32, LIB64, LIB64A, LIBBOTH, ARCH_64, ARCH_32,
                          ARCH_BOTH)
 from .test_libsana import get_ext_dict
+from .env_tools import TempDirWithoutEnvVars
 
 def _make_libtree(out_path):
     liba, libb, libc, test_lib = _copy_libs(
@@ -507,3 +508,67 @@ def test_bads_report():
                   set([(LIB64A, LIBBOTH, ARCH_32),
                        (LIB64, LIB64, ARCH_32, ARCH_64),
                        (LIB32, ARCH_32)]))
+
+
+def test_dyld_library_path_lookups():
+    # Test that DYLD_LIBRARY_PATH can be used to find libs during
+    # delocation
+    with TempDirWithoutEnvVars('DYLD_LIBRARY_PATH') as tmpdir:
+        # Copy libs into a temporary directory
+        subtree = pjoin(tmpdir, 'subtree')
+        all_local_libs = _make_libtree(subtree)
+        liba, libb, libc, test_lib, slibc, stest_lib = all_local_libs
+        # move libb and confirm that test_lib doesn't work
+        hidden_dir = 'hidden'
+        os.mkdir(hidden_dir)
+        new_libb = os.path.join(hidden_dir, os.path.basename(LIBB))
+        shutil.move(libb,
+                    new_libb)
+        assert_raises(RuntimeError, back_tick, [test_lib])
+        # Update DYLD_LIBRARY_PATH and confirm that we can now
+        # successfully delocate test_lib
+        os.environ['DYLD_LIBRARY_PATH'] = hidden_dir
+        delocate_path('subtree', 'deplibs')
+        back_tick(test_lib)
+
+
+def test_dyld_library_path_beats_basename():
+    # Test that we find libraries on DYLD_LIBRARY_PATH before basename
+    with TempDirWithoutEnvVars('DYLD_LIBRARY_PATH') as tmpdir:
+        # Copy libs into a temporary directory
+        subtree = pjoin(tmpdir, 'subtree')
+        all_local_libs = _make_libtree(subtree)
+        liba, libb, libc, test_lib, slibc, stest_lib = all_local_libs
+        # Copy liba into a subdirectory
+        subdir = os.path.join(subtree, 'subdir')
+        os.mkdir(subdir)
+        new_libb = os.path.join(subdir, os.path.basename(LIBB))
+        shutil.copyfile(libb, new_libb)
+        # Without updating the environment variable, we find the lib normally
+        predicted_lib_location = search_environment_for_lib(libb)
+        # tmpdir can end up in /var, and that can be symlinked to
+        # /private/var, so we'll use realpath to resolve the two
+        assert_equal(predicted_lib_location, os.path.realpath(libb))
+        # Updating shows us the new lib
+        os.environ['DYLD_LIBRARY_PATH'] = subdir
+        predicted_lib_location = search_environment_for_lib(libb)
+        assert_equal(predicted_lib_location, new_libb)
+
+
+def test_dyld_fallback_library_path_loses_to_basename():
+    # Test that we find libraries on basename before DYLD_FALLBACK_LIBRARY_PATH
+    with TempDirWithoutEnvVars('DYLD_FALLBACK_LIBRARY_PATH') as tmpdir:
+        # Copy libs into a temporary directory
+        subtree = pjoin(tmpdir, 'subtree')
+        all_local_libs = _make_libtree(subtree)
+        liba, libb, libc, test_lib, slibc, stest_lib = all_local_libs
+        # Copy liba into a subdirectory
+        subdir = 'subdir'
+        os.mkdir(subdir)
+        new_libb = os.path.join(subdir, os.path.basename(LIBB))
+        shutil.copyfile(libb, new_libb)
+        os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = subdir
+        predicted_lib_location = search_environment_for_lib(libb)
+        # tmpdir can end up in /var, and that can be symlinked to
+        # /private/var, so we'll use realpath to resolve the two
+        assert_equal(predicted_lib_location, os.path.realpath(libb))

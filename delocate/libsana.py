@@ -4,11 +4,12 @@ Analyze library dependencies in paths and wheel files
 """
 
 import os
-from os.path import join as pjoin, realpath
+from os.path import basename, join as pjoin, realpath
 
 import warnings
 
-from .tools import get_install_names, zip2dir, get_rpaths
+from .tools import (get_install_names, zip2dir, get_rpaths,
+                    get_environment_variable_paths)
 from .tmpdirs import TemporaryDirectory
 
 def tree_libs(start_path, filt_func=None):
@@ -48,16 +49,24 @@ def tree_libs(start_path, filt_func=None):
     * http://matthew-brett.github.io/pydagogue/mac_runtime_link.html
     """
     lib_dict = {}
+    env_var_paths = get_environment_variable_paths()
     for dirpath, dirnames, basenames in os.walk(start_path):
         for base in basenames:
             depending_libpath = realpath(pjoin(dirpath, base))
             if not filt_func is None and not filt_func(depending_libpath):
                 continue
             rpaths = get_rpaths(depending_libpath)
+            search_paths = rpaths + env_var_paths
             for install_name in get_install_names(depending_libpath):
-                lib_path = (install_name if install_name.startswith('@')
-                            else realpath(install_name))
-                lib_path = resolve_rpath(lib_path, rpaths)
+                # If the library starts with '@rpath' we'll try and resolve it
+                # We'll do nothing to other '@'-paths
+                # Otherwise we'll search for the library using env variables
+                if install_name.startswith('@rpath'):
+                    lib_path = resolve_rpath(install_name, search_paths)
+                elif install_name.startswith('@'):
+                    lib_path = install_name
+                else:
+                    lib_path = search_environment_for_lib(install_name)
                 if lib_path in lib_dict:
                     lib_dict[lib_path][depending_libpath] = install_name
                 else:
@@ -102,6 +111,57 @@ def resolve_rpath(lib_path, rpaths):
             )
         )
     return lib_path
+
+
+def search_environment_for_lib(lib_path):
+    """ Search common environment variables for `lib_path`
+
+    We'll use a single approach here:
+
+        1. Search for the basename of the library on DYLD_LIBRARY_PATH
+        2. Search for ``realpath(lib_path)``
+        3. Search for the basename of the library on DYLD_FALLBACK_LIBRARY_PATH
+
+    This follows the order that Apple defines for "searching for a
+    library that has a directory name in it" as defined in their
+    documentation here:
+
+    https://developer.apple.com/library/archive/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/DynamicLibraryUsageGuidelines.html#//apple_ref/doc/uid/TP40001928-SW10
+
+    See the script "testing_osx_rpath_env_variables.sh" in tests/data
+    for a more in-depth explanation. The case where LD_LIBRARY_PATH is
+    used is a narrow subset of that, so we'll ignore it here to keep
+    things simple.
+
+    Parameters
+    ----------
+    lib_path : str
+        Name of the library to search for
+
+    Returns
+    -------
+    lib_path : str
+        Full path of ``basename(lib_path)``'s location, if it can be found, or
+        ``realpath(lib_path)`` if it cannot.
+    """
+    lib_basename = basename(lib_path)
+    potential_library_locations = []
+
+    # 1. Search on DYLD_LIBRARY_PATH
+    potential_library_locations += _paths_from_var('DYLD_LIBRARY_PATH',
+                                                   lib_basename)
+
+    # 2. Search for realpath(lib_path)
+    potential_library_locations.append(realpath(lib_path))
+
+    # 3. Search on DYLD_FALLBACK_LIBRARY_PATH
+    potential_library_locations += \
+        _paths_from_var('DYLD_FALLBACK_LIBRARY_PATH', lib_basename)
+
+    for location in potential_library_locations:
+        if os.path.exists(location):
+            return location
+    return realpath(lib_path)
 
 
 def get_prefix_stripper(strip_prefix):
@@ -203,3 +263,10 @@ def wheel_libs(wheel_fname, filt_func = None):
         zip2dir(wheel_fname, tmpdir)
         lib_dict = tree_libs(tmpdir, filt_func)
     return stripped_lib_dict(lib_dict, realpath(tmpdir) + os.path.sep)
+
+
+def _paths_from_var(varname, lib_basename):
+    var = os.environ.get(varname)
+    if var is None:
+        return []
+    return [pjoin(path, lib_basename) for path in var.split(':')]

@@ -290,7 +290,7 @@ def set_install_id(filename, install_id):
 RPATH_RE = re.compile(r"path (.*) \(offset \d+\)")
 
 def get_rpaths(filename):
-    """ Return a tuple of rpaths from the library `filename`
+    """ Return a tuple of rpaths from the library `filename`.
 
     If `filename` is not a library then the returned tuple will be empty.
 
@@ -323,6 +323,30 @@ def get_rpaths(filename):
         paths.append(RPATH_RE.match(path).groups()[0])
         line_no += 2
     return tuple(paths)
+
+
+def get_environment_variable_paths():
+    """ Return a tuple of entries in `DYLD_LIBRARY_PATH` and
+    `DYLD_FALLBACK_LIBRARY_PATH`.
+
+    This will allow us to search those locations for dependcies of libraries as
+    well as `@rpath` entries.
+
+    Returns
+    -------
+    env_var_paths : tuple
+        path entries in environment variables
+    """
+    # We'll search the extra library paths in a specific order:
+    # DYLD_LIBRARY_PATH and then DYLD_FALLBACK_LIBRARY_PATH
+    env_var_paths = []
+    extra_paths = ['DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']
+    for pathname in extra_paths:
+        path_contents = os.environ.get(pathname)
+        if path_contents is not None:
+            for path in path_contents.split(':'):
+                env_var_paths.append(path)
+    return tuple(env_var_paths)
 
 
 @ensure_writable

@@ -165,6 +165,8 @@ BAD_OBJECT_TESTS = [
     lambda s: 'Invalid data was encountered while parsing the file' in s,
     # cctools-900
     lambda s : 'Object is not a Mach-O file type' in s,
+    # cctools-949
+    lambda s : 'object is not a Mach-O file type' in s,
     # File may not have read permissions
     lambda s : RE_PERM_DEN.search(s) is not None
 ]

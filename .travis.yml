@@ -3,7 +3,7 @@ language:
 
 env:
   global:
-    - VERSION="3.5.3"
+    - VERSION="3.7.5"
     - WHEEL_SPEC="wheel"
     - WHEELHOUSE_UPLOADER_USERNAME=travis-worker
     # Following generated with
@@ -17,7 +17,9 @@ matrix:
   include:
       - env: VERSION="2.7.13"
       - env: VERSION="3.4.4"
-      - env: VERSION="3.6.1"
+      - env: VERSION="3.5.4"
+      - env: VERSION="3.6.8"
+      - env: VERSION="3.8.0"
       # Wheel API changes
       - env: WHEEL_SPEC="wheel==0.31.1"
       # OS X 10.9

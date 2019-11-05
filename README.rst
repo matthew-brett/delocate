@@ -212,7 +212,7 @@ Released under the BSD two-clause license - see the file ``LICENSE`` in the
 source distribution.
 
 `travis-ci <https://travis-ci.org/matthew-brett/delocate>`_ kindly tests the
-code automatically under Python 2.7, and 3.4 through 3.8.
+code automatically under Python 2.7, and 3.5 through 3.8.
 
 The latest released version is at https://pypi.python.org/pypi/delocate
 

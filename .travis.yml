@@ -16,7 +16,6 @@ env:
 matrix:
   include:
       - env: MB_PYTHON_VERSION=2.7
-      - env: MB_PYTHON_VERSION=3.4
       - env: MB_PYTHON_VERSION=3.5
       - env: MB_PYTHON_VERSION=3.6
       - env: MB_PYTHON_VERSION=3.8

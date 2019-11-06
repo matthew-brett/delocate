@@ -14,6 +14,18 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* 0.8.0 (Wednesday November 6th 2019)
+
+  Bugfix and new feature release.
+
+  * More extensive search for libraries that code depends on, using macOS path
+    search algorithm (Forrest Brennen, Ofan Tester).
+  * Fix for newer XCode messages for "not an object" (Andy Wilson)
+  * Fixes to Wheel zip file permissions and attributes (Cosimo Lupo and MB).
+  * Some Windows path compatibility (Isuru Fernando)
+  * Bugfix for use of undefined variable in ``get_install_id`` (Anthony
+    Sottile).
+
 * 0.7.4 (Monday October 1st 2018)
 
   Bugfix release to deal with large number of breaking changes in wheel

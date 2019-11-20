@@ -22,7 +22,5 @@ def TempDirWithoutEnvVars(*env_vars):
             if old_vars[var] is not None:
                 os.environ[var] = old_vars[var]
             else:
-                try:
+                if var in os.environ:
                     del os.environ[var]
-                except:
-                    pass

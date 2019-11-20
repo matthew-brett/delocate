@@ -6,8 +6,9 @@
 #   copyright and license terms.
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
-''' Contexts for *with* statement providing temporary directories
-'''
+"""
+Contexts for *with* statement providing temporary directories
+"""
 from __future__ import division, print_function, absolute_import
 import os
 import shutil
@@ -72,7 +73,6 @@ class InTemporaryDirectory(TemporaryDirectory):
     def __exit__(self, exc, value, tb):
         os.chdir(self._pwd)
         return super(InTemporaryDirectory, self).__exit__(exc, value, tb)
-
 
 
 class InGivenDirectory(object):

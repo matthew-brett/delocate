@@ -4,7 +4,7 @@ This fake package has an extension which links against a library using @rpath
 in its install name.  The library will also be signed with an ad-hoc signature.
 """
 from os.path import join as pjoin, abspath, dirname
-import setuptools # for wheel builds
+import setuptools  # for wheel builds
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Build import cythonize
@@ -18,7 +18,7 @@ INSTALL_NAME = '@rpath/libextfunc_rpath.dylib'
 check_call([
     'cc', pjoin(LIBS, 'extfunc.c'),
     '-dynamiclib',
-    '-arch', 'i386', '-arch', 'x86_64', # dual arch
+    '-arch', 'i386', '-arch', 'x86_64',  # dual arch
     '-install_name', INSTALL_NAME,
     '-o', EXTLIB,
 ])
@@ -34,7 +34,7 @@ exts = [
 ]
 
 setup(
-    ext_modules = cythonize(exts),
+    ext_modules=cythonize(exts),
     name='fakepkg_rpath',
     version="1.0",
     packages=[

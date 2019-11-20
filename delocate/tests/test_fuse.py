@@ -11,9 +11,7 @@ from ..fuse import fuse_trees, fuse_wheels
 from ..tmpdirs import InTemporaryDirectory
 from ..wheeltools import rewrite_record
 
-from .pytest_tools import (assert_true, assert_false, assert_raises,
-                        assert_equal, assert_not_equal)
-
+from .pytest_tools import (assert_true, assert_false, assert_equal)
 
 from .test_tools import LIB32, LIB64, LIB64A
 from .test_wheelies import PURE_WHEEL
@@ -75,7 +73,7 @@ def test_fuse_trees():
         assert_false(cmp_contents(
             fused_fname,
             pjoin('tree2', 'tests', 'liba.dylib')))
-        assert_equal(get_archs(fused_fname), set(('i386', 'x86_64')))
+        assert_equal(get_archs(fused_fname), {'i386', 'x86_64'})
         os.unlink(fused_fname)
         # A file not present in tree2 stays in tree1
         with open(pjoin('tree1', 'anotherfile.txt'), 'wt') as fobj:

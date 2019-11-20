@@ -3,11 +3,11 @@
 fakepkg2 is a - fake package - with Python only. We use it to build a wheel,
 then test we can delocate it.
 """
-import setuptools # for wheel builds
+import setuptools  # for wheel builds
 from distutils.core import setup
 
 setup(
-    name = 'fakepkg2',
-    version = "1.0",
-    packages = ['fakepkg2', 'fakepkg2.subpkg', 'fakepkg2.tests'],
+    name='fakepkg2',
+    version="1.0",
+    packages=['fakepkg2', 'fakepkg2.subpkg', 'fakepkg2.tests'],
 )

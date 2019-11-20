@@ -15,14 +15,15 @@ from ..wheeltools import (rewrite_record, InWheel, InWheelCtx, WheelToolsError,
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import zip2dir, open_readable
 
-from .pytest_tools import (assert_true, assert_false, assert_raises, assert_equal)
+from .pytest_tools import (assert_true, assert_false, assert_raises,
+                           assert_equal)
 
 from .test_wheelies import PURE_WHEEL, PLAT_WHEEL
 
 
 def assert_record_equal(record_orig, record_new):
     assert_equal(sorted(record_orig.splitlines()),
-                        sorted(record_new.splitlines()))
+                 sorted(record_new.splitlines()))
 
 
 def test_rewrite_record():
@@ -57,12 +58,12 @@ def test_in_wheel():
     # Test in-wheel context managers
     # Stuff they share
     for ctx_mgr in InWheel, InWheelCtx:
-        with ctx_mgr(PURE_WHEEL): # No output wheel
+        with ctx_mgr(PURE_WHEEL):  # No output wheel
             shutil.rmtree('fakepkg2')
             res = sorted(os.listdir('.'))
         assert_equal(res, ['fakepkg2-1.0.dist-info'])
         # The original wheel unchanged
-        with ctx_mgr(PURE_WHEEL): # No output wheel
+        with ctx_mgr(PURE_WHEEL):  # No output wheel
             res = sorted(os.listdir('.'))
         assert_equal(res, ['fakepkg2', 'fakepkg2-1.0.dist-info'])
         # Make an output wheel file in a temporary directory
@@ -145,10 +146,10 @@ def test_add_platforms():
         assert_true(isfile(out_fname))
         # Expected output minus wheel-version (that might change)
         extra_exp = [('Generator', 'bdist_wheel {pip_version}'),
-                      ('Root-Is-Purelib', 'false'),
-                      ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
-                      ('Tag', '{pyver}-{abi}-macosx_10_9_intel'),
-                      ('Tag', '{pyver}-{abi}-macosx_10_9_x86_64')]
+                     ('Root-Is-Purelib', 'false'),
+                     ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
+                     ('Tag', '{pyver}-{abi}-macosx_10_9_intel'),
+                     ('Tag', '{pyver}-{abi}-macosx_10_9_x86_64')]
         assert_winfo_similar(out_fname, extra_exp)
         # If wheel exists (as it does) then raise error
         assert_raises(WheelToolsError,

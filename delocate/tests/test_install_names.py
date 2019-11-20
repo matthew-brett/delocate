@@ -11,13 +11,12 @@ from ..tools import (InstallNameError, get_install_names, set_install_name,
 
 from ..tmpdirs import InTemporaryDirectory
 
-from .pytest_tools import (assert_true, assert_false, assert_raises,
-                        assert_equal, assert_not_equal)
+from .pytest_tools import (assert_raises, assert_equal)
 from .env_tools import TempDirWithoutEnvVars
 
 # External libs linked from test data
-LIBSTDCXX='/usr/lib/libstdc++.6.dylib'
-LIBSYSTEMB='/usr/lib/libSystem.B.dylib'
+LIBSTDCXX = '/usr/lib/libstdc++.6.dylib'
+LIBSYSTEMB = '/usr/lib/libSystem.B.dylib'
 EXT_LIBS = (LIBSTDCXX, LIBSYSTEMB)
 
 DATA_PATH = pjoin(dirname(__file__), 'data')
@@ -47,7 +46,7 @@ def test_get_install_names():
     # Static archive and object files returns empty tuple
     assert_equal(get_install_names(A_OBJECT), ())
     assert_equal(get_install_names(LIBA_STATIC), ())
-    # ico file triggers another error message and should also return an empty tuple
+    # ico file triggers another error message and should also return an empty tuple  # noqa: E501
     assert_equal(get_install_names(ICO_FILE), ())
     # Python file (__file__ above may be a pyc file)
     assert_equal(get_install_names(PY_FILE), ())

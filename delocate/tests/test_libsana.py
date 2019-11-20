@@ -13,8 +13,7 @@ from ..tools import set_install_name
 
 from ..tmpdirs import InTemporaryDirectory
 
-from .pytest_tools import (assert_true, assert_false, assert_raises,
-                        assert_equal, assert_not_equal)
+from .pytest_tools import assert_equal
 
 from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
                                  EXT_LIBS, LIBSYSTEMB)
@@ -47,6 +46,7 @@ def test_tree_libs():
              rp_libc: {rp_test_lib: 'libc.dylib'}})
         # default - no filtering
         assert_equal(tree_libs(tmpdir), exp_dict)
+
         def filt(fname):
             return fname.endswith('.dylib')
         exp_dict = get_ext_dict([liba, libb, libc])
@@ -108,7 +108,7 @@ def test_get_rp_stripper():
     # realpath prefix stripper
     # Just does realpath and adds path sep
     cwd = realpath(os.getcwd())
-    f = get_rp_stripper('') # pwd
+    f = get_rp_stripper('')  # pwd
     test_path = pjoin('test', 'path')
     assert_equal(f(test_path), test_path)
     rp_test_path = pjoin(cwd, test_path)
@@ -153,13 +153,13 @@ def test_stripped_lib_dict():
             'liba.dylib': {'libb.dylib': 'liba.dylib',
                            'libc.dylib': 'liba.dylib',
                            'subtree/libc.dylib': 'liba.dylib',
-                          },
+                           },
             'libb.dylib': {'libc.dylib': 'libb.dylib',
                            'subtree/libc.dylib': 'libb.dylib',
-                          },
+                           },
             'libc.dylib': {'test-lib': 'libc.dylib',
                            'subtree/test-lib': 'libc.dylib',
-                          }})
+                           }})
         assert_equal(stripped_lib_dict(tree_libs(tmpdir), my_path), exp_dict)
 
 
@@ -170,6 +170,7 @@ def test_wheel_libs():
     assert_equal(wheel_libs(PLAT_WHEEL),
                  {STRAY_LIB_DEP: {mod2: STRAY_LIB_DEP},
                   realpath(LIBSYSTEMB): {mod2: LIBSYSTEMB}})
+
     def filt(fname):
         return not fname.endswith(mod2)
     assert_equal(wheel_libs(PLAT_WHEEL, filt), {})

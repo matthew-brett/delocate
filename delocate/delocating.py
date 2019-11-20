@@ -20,6 +20,7 @@ from .wheeltools import rewrite_record, InWheel
 # Prefix for install_name_id of copied libraries
 DLC_PREFIX = '/DLC/'
 
+
 class DelocationError(Exception):
     pass
 
@@ -65,7 +66,7 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
     rp_lib_path = realpath(lib_path)
     # Test for errors first to avoid getting half-way through changing the tree
     for required, requirings in lib_dict.items():
-        if required.startswith('@'): # assume @rpath etc are correct
+        if required.startswith('@'):  # assume @rpath etc are correct
             # But warn, because likely they are not
             warnings.warn('Not processing required path {0} because it '
                           'begins with @'.format(required))
@@ -81,7 +82,7 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
                     required))
             copied_libs[required] = requirings
             copied_basenames.add(r_ed_base)
-        else: # Is local, plan to set relative loader_path
+        else:  # Is local, plan to set relative loader_path
             delocated_libs.add(required)
     # Modify in place now that we've checked for errors
     for required in copied_libs:
@@ -101,7 +102,7 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
     return copied_libs
 
 
-def copy_recurse(lib_path, copy_filt_func = None, copied_libs = None):
+def copy_recurse(lib_path, copy_filt_func=None, copied_libs=None):
     """ Analyze `lib_path` for library dependencies and copy libraries
 
     `lib_path` is a directory containing libraries.  The libraries might
@@ -203,7 +204,7 @@ def _copy_required(lib_path, copy_filt_func, copied_libs):
     rp_lp = realpath(lib_path)
     copied2orig = dict((pjoin(rp_lp, basename(c)), c) for c in copied_libs)
     for required, requirings in lib_dict.items():
-        if not copy_filt_func is None and not copy_filt_func(required):
+        if copy_filt_func is not None and not copy_filt_func(required):
             continue
         if required.startswith('@'):
             # May have been processed by us, or have some rpath, loader_path of
@@ -244,8 +245,8 @@ def filter_system_libs(libname):
 
 
 def delocate_path(tree_path, lib_path,
-                  lib_filt_func = None,
-                  copy_filt_func = filter_system_libs):
+                  lib_filt_func=None,
+                  copy_filt_func=filter_system_libs):
     """ Copy required libraries for files in `tree_path` into `lib_path`
 
     Parameters
@@ -282,7 +283,7 @@ def delocate_path(tree_path, lib_path,
     if not exists(lib_path):
         os.makedirs(lib_path)
     lib_dict = tree_libs(tree_path, lib_filt_func)
-    if not copy_filt_func is None:
+    if copy_filt_func is not None:
         lib_dict = dict((key, value) for key, value in lib_dict.items()
                         if copy_filt_func(key))
     copied = delocate_tree_libs(lib_dict, lib_path, tree_path)
@@ -301,13 +302,13 @@ def _merge_lib_dict(d1, d2):
 
 
 def delocate_wheel(in_wheel,
-                   out_wheel = None,
-                   lib_sdir = '.dylibs',
-                   lib_filt_func = None,
-                   copy_filt_func = filter_system_libs,
-                   require_archs = None,
-                   check_verbose = False,
-                  ):
+                   out_wheel=None,
+                   lib_sdir='.dylibs',
+                   lib_filt_func=None,
+                   copy_filt_func=filter_system_libs,
+                   require_archs=None,
+                   check_verbose=False,
+                   ):
     """ Update wheel by copying required libraries to `lib_sdir` in wheel
 
     Create `lib_sdir` in wheel tree only if we are copying one or more
@@ -382,7 +383,7 @@ def delocate_wheel(in_wheel,
             if len(os.listdir(lib_path)) == 0:
                 shutil.rmtree(lib_path)
             # Check architectures
-            if not require_archs is None:
+            if require_archs is not None:
                 stop_fast = not check_verbose
                 bads = check_archs(copied_libs, require_archs, stop_fast)
                 if len(bads) != 0:
@@ -434,9 +435,9 @@ def patch_wheel(in_wheel, patch_fname, out_wheel=None):
     with InWheel(in_wheel, out_wheel):
         with open(patch_fname, 'rb') as fobj:
             patch_proc = Popen(['patch', '-p1'],
-                               stdin = fobj,
-                               stdout = PIPE,
-                               stderr = PIPE)
+                               stdin=fobj,
+                               stdout=PIPE,
+                               stderr=PIPE)
             stdout, stderr = patch_proc.communicate()
             if patch_proc.returncode != 0:
                 raise RuntimeError("Patch failed with stdout:\n" +
@@ -530,7 +531,7 @@ def bads_report(bads, path_prefix=None):
     report : str
         A nice report for printing
     """
-    path_processor = ((lambda x : x) if path_prefix is None
+    path_processor = ((lambda x: x) if path_prefix is None
                       else get_rp_stripper(path_prefix))
     reports = []
     for result in bads:

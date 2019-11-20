@@ -14,6 +14,7 @@ from optparse import OptionParser, Option
 
 from delocate import patch_wheel, __version__
 
+
 def main():
     parser = OptionParser(
         usage="%s WHEEL_FILENAME PATCH_FNAME\n\n" % sys.argv[0] + __doc__,

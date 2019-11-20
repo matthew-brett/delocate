@@ -2,7 +2,7 @@
 """ A fake script
 """
 
-import fakepkg1.subpkg.module2
+import fakepkg1.subpkg.module2  # noqa: F401
 
 
 def main():

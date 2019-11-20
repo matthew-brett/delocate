@@ -23,6 +23,7 @@ from .test_tools import (LIB32, LIB64, LIB64A, LIBBOTH, ARCH_64, ARCH_32,
 from .test_libsana import get_ext_dict
 from .env_tools import TempDirWithoutEnvVars
 
+
 def _make_libtree(out_path):
     liba, libb, libc, test_lib = _copy_libs(
         [LIBA, LIBB, LIBC, TEST_LIB], out_path)
@@ -79,8 +80,9 @@ def test_delocate_tree_libs():
         assert_equal(copied, exp_dict)
         assert_equal(set(os.listdir(copy_dir)),
                      set([basename(realpath(lib)) for lib in EXT_LIBS]))
-        # Libraries using the copied libraries now have an install name starting
-        # with @loader_path, then pointing to the copied library directory
+        # Libraries using the copied libraries now have an
+        # install name starting with @loader_path, then
+        # pointing to the copied library directory
         for lib in all_local_libs:
             pathto_copies = relpath(realpath(copy_dir), dirname(realpath(lib)))
             lib_inames = get_install_names(lib)
@@ -91,13 +93,13 @@ def test_delocate_tree_libs():
         # Libraries now have a relative loader_path to their corresponding
         # in-tree libraries
         for requiring, using, rel_path in (
-            (libb, 'liba.dylib', ''),
-            (libc, 'liba.dylib', ''),
-            (libc, 'libb.dylib', ''),
-            (test_lib, 'libc.dylib', ''),
-            (slibc, 'liba.dylib', '../'),
-            (slibc, 'libb.dylib', '../'),
-            (stest_lib, 'libc.dylib', '')):
+                (libb, 'liba.dylib', ''),
+                (libc, 'liba.dylib', ''),
+                (libc, 'libb.dylib', ''),
+                (test_lib, 'libc.dylib', ''),
+                (slibc, 'liba.dylib', '../'),
+                (slibc, 'libb.dylib', '../'),
+                (stest_lib, 'libc.dylib', '')):
             loader_path = '@loader_path/' + rel_path + using
             assert_true(loader_path in get_install_names(requiring))
         # Check test libs still work
@@ -128,7 +130,7 @@ def test_delocate_tree_libs():
         copied2 = delocate_tree_libs(lib_dict2, copy_dir2, '/fictional')
         local_libs = [liba, libb, libc, slibc, test_lib, stest_lib]
         rp_liba, rp_libb, rp_libc, rp_slibc, rp_test_lib, rp_stest_lib = \
-                [realpath(L) for L in local_libs]
+            [realpath(L) for L in local_libs]
         exp_dict = get_ext_dict(local_libs)
         exp_dict.update({
             rp_libc: {rp_test_lib: libc},
@@ -140,10 +142,10 @@ def test_delocate_tree_libs():
                       rp_libb: liba}})
         assert_equal(copied2, exp_dict)
         ext_local_libs = (set(realpath(L) for L in EXT_LIBS) |
-                          set([liba, libb, libc, slibc]))
+                          {liba, libb, libc, slibc})
         assert_equal(set(os.listdir(copy_dir2)),
                      set([basename(lib) for lib in ext_local_libs]))
-        # Libraries using the copied libraries now have an install name starting
+        # Libraries using the copied libraries now have an install name starting # noqa: E501
         # with @loader_path, then pointing to the copied library directory
         all_local_libs = liba, libb, libc, test_lib, slibc, stest_lib
         for lib in all_local_libs:
@@ -186,18 +188,20 @@ def test_copy_recurse():
         # Check system finds libraries
         back_tick(['./libcopy/test-lib'])
         # One library, depends only on system libs, system libs filtered
+
         def filt_func(libname):
             return not libname.startswith('/usr/lib')
         os.makedirs('subtree')
         _copy_fixpath([LIBA], 'subtree')
         # Nothing copied therefore
         assert_equal(copy_recurse('subtree', copy_filt_func=filt_func), {})
-        assert_equal(set(os.listdir('subtree')), set(['liba.dylib']))
+        assert_equal(set(os.listdir('subtree')), {'liba.dylib'})
         # shortcut
         _rp = realpath
         # An object that depends on a library that depends on two libraries
         # test_lib depends on libc, libc depends on liba and libb. libc gets
         # copied first, then liba, libb
+
         def _st(fname):
             return _rp(pjoin('subtree2', basename(fname)))
         os.makedirs('subtree2')
@@ -208,10 +212,7 @@ def test_copy_recurse():
                       _rp(liba): {_rp(libb): liba,
                                   _rp(libc): liba}})
         assert_equal(set(os.listdir('subtree2')),
-                     set(('liba.dylib',
-                          'libb.dylib',
-                          'libc.dylib',
-                          'test-lib')))
+                     {'liba.dylib', 'libb.dylib', 'libc.dylib', 'test-lib'})
         # A circular set of libraries
         os.makedirs('libcopy2')
         libw = _copy_to(LIBA, 'libcopy2', 'libw.dylib')
@@ -223,17 +224,17 @@ def test_copy_recurse():
         # second pass should install libz, libw (dependencies of liby, libx
         # respectively)
         t_dep1_dep2 = (
-            (libw, libx, liby), # libw depends on libx, liby
-            (libx, libw, liby), # libx depends on libw, liby
-            (liby, libw, libz), # liby depends on libw, libz
-            (libz, libw, libx)) # libz depends on libw, libx
+            (libw, libx, liby),  # libw depends on libx, liby
+            (libx, libw, liby),  # libx depends on libw, liby
+            (liby, libw, libz),  # liby depends on libw, libz
+            (libz, libw, libx))  # libz depends on libw, libx
         for tlib, dep1, dep2 in t_dep1_dep2:
             set_install_name(tlib, EXT_LIBS[0], dep1)
             set_install_name(tlib, EXT_LIBS[1], dep2)
         os.makedirs('subtree3')
         seed_path = pjoin('subtree3', 'seed')
         shutil.copy2(libw, seed_path)
-        assert_equal(copy_recurse('subtree3'), # not filtered
+        assert_equal(copy_recurse('subtree3'),  # not filtered
                      # First pass, libx, liby get copied
                      {_rp(libx): {_rp(seed_path): libx,
                                   _rp(libw): libx,
@@ -246,16 +247,13 @@ def test_copy_recurse():
                                   _rp(libz): libw},
                       _rp(libz): {_rp(liby): libz}})
         assert_equal(set(os.listdir('subtree3')),
-                     set(('seed',
-                         'libw.dylib',
-                          'libx.dylib',
-                          'liby.dylib',
-                          'libz.dylib')))
+                     {'seed', 'libw.dylib', 'libx.dylib',
+                      'liby.dylib', 'libz.dylib'})
         for tlib, dep1, dep2 in t_dep1_dep2:
             out_lib = pjoin('subtree3', basename(tlib))
             assert_equal(set(get_install_names(out_lib)),
-                         set(('@loader_path/' + basename(dep1),
-                              '@loader_path/' + basename(dep2))))
+                         {'@loader_path/' + basename(dep1),
+                          '@loader_path/' + basename(dep2)})
         # Check case of not-empty copied_libs
         os.makedirs('subtree4')
         shutil.copy2(libw, 'subtree4')
@@ -284,6 +282,7 @@ def test_copy_recurse_overwrite():
         test_lib, liba, libb, libc = _copy_fixpath(
             [TEST_LIB, LIBA, LIBB, LIBC], 'libcopy')
         # Filter system libs
+
         def filt_func(libname):
             return not libname.startswith('/usr/lib')
         os.makedirs('subtree')
@@ -327,6 +326,7 @@ def test_delocate_path():
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree3'))
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
+
         def filt(libname):
             return not (libname.startswith('/usr') or
                         'libfake' in libname)
@@ -336,6 +336,7 @@ def test_delocate_path():
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree4'))
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
+
         def lib_filt(filename):
             return not filename.endswith('subsub/libc.dylib')
         assert_equal(delocate_path('subtree4', 'deplibs4', lib_filt), {})
@@ -381,9 +382,13 @@ def test_delocate_path_dylibs():
     with InTemporaryDirectory():
         # Callable, dylibs only, does not inspect
         liba, bare_b = _make_bare_depends()
-        func = lambda fn : fn.endswith('.dylib')
+
+        def func(fn):
+            return fn.endswith('.dylib')
         assert_equal(delocate_path('subtree', 'deplibs', func), {})
-        func = lambda fn : fn.endswith('libb')
+
+        def func(fn):
+            return fn.endswith('libb')
         assert_equal(delocate_path('subtree', 'deplibs', None),
                      {_rp(pjoin('libs', 'liba.dylib')):
                       {_rp(bare_b): _rp(liba)}})
@@ -423,23 +428,23 @@ def test_check_archs():
         ded, value = list(in_libs.items())[0]
         ding, _ = list(value.items())[0]
         assert_equal(check_archs(in_libs, exp_arch),
-                     set([(ding, missing)]))
+                     {(ding, missing)})
     # Two libs
     assert_equal(check_archs(two_libs, ARCH_32),
-                 set([(LIB64, ARCH_32)]))
+                 {(LIB64, ARCH_32)})
     assert_equal(check_archs(two_libs, ARCH_64),
-                 set([(LIB32, ARCH_64)]))
+                 {(LIB32, ARCH_64)})
     assert_equal(check_archs(two_libs, ARCH_BOTH),
-                 set([(LIB64, ARCH_32), (LIB32, ARCH_64)]))
+                 {(LIB64, ARCH_32), (LIB32, ARCH_64)})
     # Libs must match architecture with second arg of None
     assert_equal(check_archs(
         {LIB64: {LIB32: 'install_name'}}),
-        set([(LIB64, LIB32, ARCH_32)]))
+        {(LIB64, LIB32, ARCH_32)})
     assert_equal(check_archs(
         {LIB64A: {LIB64: 'install_name'},
          LIB32: {LIB32: 'install_name'},
          LIB64: {LIB32: 'install_name'}}),
-        set([(LIB64, LIB32, ARCH_32)]))
+        {(LIB64, LIB32, ARCH_32)})
     # For single archs depending, dual archs in depended is OK
     assert_equal(check_archs(
         {LIBBOTH: {LIB64A: 'install_name'}}),
@@ -450,12 +455,11 @@ def test_check_archs():
         s0)
     assert_equal(check_archs(
         {LIB64A: {LIBBOTH: 'install_name'}}),
-        set([(LIB64A, LIBBOTH, ARCH_32)]))
+        {(LIB64A, LIBBOTH, ARCH_32)})
     # More than one bad
     in_dict = {LIB64A: {LIBBOTH: 'install_name'},
                LIB64: {LIB32: 'install_name'}}
-    exp_res = set([(LIB64A, LIBBOTH, ARCH_32),
-                   (LIB64, LIB32, ARCH_32)])
+    exp_res = {(LIB64A, LIBBOTH, ARCH_32), (LIB64, LIB32, ARCH_32)}
     assert_equal(check_archs(in_dict), exp_res)
     # Check stop_fast flag; can't predict return, but there should only be one
     stopped = check_archs(in_dict, (), True)
@@ -465,49 +469,44 @@ def test_check_archs():
         {LIB64A: {LIBBOTH: 'install_name',
                   LIB32: 'install_name'},
          LIB64: {LIB32: 'install_name'}}),
-        set([(LIB64A, LIBBOTH, ARCH_32),
-             (LIB64A, LIB32, ARCH_32),
-             (LIB64, LIB32, ARCH_32)]))
+        {(LIB64A, LIBBOTH, ARCH_32), (LIB64A, LIB32, ARCH_32),
+         (LIB64, LIB32, ARCH_32)})
 
 
 def test_bads_report():
     # Test bads_report of architecture errors
     # No bads, no report
-    assert_equal(bads_report([]), '')
+    assert_equal(bads_report(set()), '')
     fmt_str_2 = 'Required arch i386 missing from {0}'
     fmt_str_3 = '{0} needs arch i386 missing from {1}'
     # One line report
-    assert_equal(bads_report(set([(LIB64, LIB32, ARCH_32)])),
+    assert_equal(bads_report({(LIB64, LIB32, ARCH_32)}),
                  fmt_str_3.format(LIB32, LIB64))
     # One line report applying path stripper
-    assert_equal(bads_report(set([(LIB64, LIB32, ARCH_32)]), dirname(LIB64)),
+    assert_equal(bads_report({(LIB64, LIB32, ARCH_32)}, dirname(LIB64)),
                  fmt_str_3.format(basename(LIB32), basename(LIB64)))
     # Multi-line report
-    assert_equal(bads_report(set([(LIB64A, LIBBOTH, ARCH_32),
-                                  (LIB64A, LIB32, ARCH_32),
-                                  (LIB64, LIB32, ARCH_32)])),
-                 '\n'.join([fmt_str_3.format(LIB32, LIB64A),
-                            fmt_str_3.format(LIB32, LIB64),
-                            fmt_str_3.format(LIBBOTH, LIB64A)]))
+    assert_equal(
+        bads_report({(LIB64A, LIBBOTH, ARCH_32), (LIB64A, LIB32, ARCH_32),
+                     (LIB64, LIB32, ARCH_32)}),
+        '\n'.join([fmt_str_3.format(LIB32, LIB64A),
+                   fmt_str_3.format(LIB32, LIB64),
+                   fmt_str_3.format(LIBBOTH, LIB64A)]))
     # Two tuples and three tuples
-    assert_equal(bads_report(set([(LIB64A, LIBBOTH, ARCH_32),
-                                  (LIB64, ARCH_32),
-                                  (LIB32, ARCH_32)])),
+    assert_equal(bads_report(
+        {(LIB64A, LIBBOTH, ARCH_32), (LIB64, ARCH_32), (LIB32, ARCH_32)}),
                  '\n'.join([fmt_str_3.format(LIBBOTH, LIB64A),
                             fmt_str_2.format(LIB64),
                             fmt_str_2.format(LIB32)]))
     # Tuples must be length 2 or 3
     assert_raises(ValueError,
                   bads_report,
-                  set([(LIB64A, LIBBOTH, ARCH_32),
-                       (LIB64,),
-                       (LIB32, ARCH_32)]))
+                  {(LIB64A, LIBBOTH, ARCH_32), (LIB64,), (LIB32, ARCH_32)})
     # Tuples must be length 2 or 3
-    assert_raises(ValueError,
-                  bads_report,
-                  set([(LIB64A, LIBBOTH, ARCH_32),
-                       (LIB64, LIB64, ARCH_32, ARCH_64),
-                       (LIB32, ARCH_32)]))
+    assert_raises(
+        ValueError, bads_report,
+        {(LIB64A, LIBBOTH, ARCH_32), (LIB64, LIB64, ARCH_32, ARCH_64),
+         (LIB32, ARCH_32)})
 
 
 def test_dyld_library_path_lookups():

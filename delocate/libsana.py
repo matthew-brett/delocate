@@ -12,6 +12,7 @@ from .tools import (get_install_names, zip2dir, get_rpaths,
                     get_environment_variable_paths)
 from .tmpdirs import TemporaryDirectory
 
+
 def tree_libs(start_path, filt_func=None):
     """ Return analysis of library dependencies within `start_path`
 
@@ -45,7 +46,7 @@ def tree_libs(start_path, filt_func=None):
 
     See:
 
-    * https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/dyld.1.html
+    * https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/dyld.1.html  # noqa: E501
     * http://matthew-brett.github.io/pydagogue/mac_runtime_link.html
     """
     lib_dict = {}
@@ -53,7 +54,7 @@ def tree_libs(start_path, filt_func=None):
     for dirpath, dirnames, basenames in os.walk(start_path):
         for base in basenames:
             depending_libpath = realpath(pjoin(dirpath, base))
-            if not filt_func is None and not filt_func(depending_libpath):
+            if filt_func is not None and not filt_func(depending_libpath):
                 continue
             rpaths = get_rpaths(depending_libpath)
             search_paths = rpaths + env_var_paths
@@ -169,7 +170,7 @@ def get_prefix_stripper(strip_prefix):
 
     Parameters
     ----------
-    prefix : str
+    strip_prefix : str
         Prefix to strip from the beginning of string if present
 
     Returns
@@ -179,6 +180,7 @@ def get_prefix_stripper(strip_prefix):
         ``a_string`` if present, otherwise pass ``a_string`` unmodified
     """
     n = len(strip_prefix)
+
     def stripper(path):
         return path if not path.startswith(strip_prefix) else path[n:]
     return stripper
@@ -235,7 +237,7 @@ def stripped_lib_dict(lib_dict, strip_prefix):
     return relative_dict
 
 
-def wheel_libs(wheel_fname, filt_func = None):
+def wheel_libs(wheel_fname, filt_func=None):
     """ Return analysis of library dependencies with a Python wheel
 
     Use this routine for a dump of the dependency tree.

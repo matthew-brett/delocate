@@ -130,6 +130,7 @@ ensure_writable = ensure_permissions()
 IN_RE = re.compile(r"(.*) \(compatibility version (\d+\.\d+\.\d+), "
                    r"current version (\d+\.\d+\.\d+)\)")
 
+
 def parse_install_name(line):
     """ Parse a line of install name output
 
@@ -156,19 +157,19 @@ def parse_install_name(line):
 RE_PERM_DEN = re.compile(r"Permission denied[.) ]*$")
 BAD_OBJECT_TESTS = [
     # otool version cctools-862
-    lambda s : 'is not an object file' in s,
+    lambda s: 'is not an object file' in s,
     # cctools-862 (.ico)
-    lambda s : 'The end of the file was unexpectedly encountered' in s,
+    lambda s: 'The end of the file was unexpectedly encountered' in s,
     # cctools-895
-    lambda s : 'The file was not recognized as a valid object file' in s,
+    lambda s: 'The file was not recognized as a valid object file' in s,
     # 895 binary file
     lambda s: 'Invalid data was encountered while parsing the file' in s,
     # cctools-900
-    lambda s : 'Object is not a Mach-O file type' in s,
+    lambda s: 'Object is not a Mach-O file type' in s,
     # cctools-949
-    lambda s : 'object is not a Mach-O file type' in s,
+    lambda s: 'object is not a Mach-O file type' in s,
     # File may not have read permissions
-    lambda s : RE_PERM_DEN.search(s) is not None
+    lambda s: RE_PERM_DEN.search(s) is not None
 ]
 
 
@@ -218,7 +219,7 @@ def get_install_names(filename):
         return ()
     names = tuple(parse_install_name(line)[0] for line in lines[1:])
     install_id = get_install_id(filename)
-    if not install_id is None:
+    if install_id is not None:
         assert names[0] == install_id
         return names[1:]
     return names
@@ -291,6 +292,7 @@ def set_install_id(filename, install_id):
 
 RPATH_RE = re.compile(r"path (.*) \(offset \d+\)")
 
+
 def get_rpaths(filename):
     """ Return a tuple of rpaths from the library `filename`.
 
@@ -298,7 +300,7 @@ def get_rpaths(filename):
 
     Parameters
     ----------
-    filaname : str
+    filename : str
         filename of library
 
     Returns
@@ -409,7 +411,7 @@ def dir2zip(in_dir, zip_fname):
                 info.filename = relpath(in_fname, in_dir).replace('\\', '/')
             # Set time from modification time
             info.date_time = time.localtime(in_stat.st_mtime)
-            # See https://stackoverflow.com/questions/434641/how-do-i-set-permissions-attributes-on-a-file-in-a-zip-file-using-pythons-zip/48435482#48435482
+            # See https://stackoverflow.com/questions/434641/how-do-i-set-permissions-attributes-on-a-file-in-a-zip-file-using-pythons-zip/48435482#48435482 # noqa: E501
             # Also set regular file permissions
             perms = stat.S_IMODE(in_stat.st_mode) | stat.S_IFREG
             info.external_attr = perms << 16
@@ -492,11 +494,11 @@ def get_archs(libname):
         assert len(lines) == 1
         line = lines[0]
     for reggie in (
-        'Non-fat file: {0} is architecture: (.*)'.format(libname),
-        'Architectures in the fat file: {0} are: (.*)'.format(libname)):
+            'Non-fat file: {0} is architecture: (.*)'.format(libname),
+            'Architectures in the fat file: {0} are: (.*)'.format(libname)):
         reggie = re.compile(reggie)
         match = reggie.match(line)
-        if not match is None:
+        if match is not None:
             return frozenset(match.groups()[0].split(' '))
     raise ValueError("Unexpected output: '{0}' for {1}".format(
         stdout, libname))
@@ -552,9 +554,9 @@ def validate_signature(filename):
     out, err = back_tick(['codesign', '--verify', filename],
                          ret_err=True, as_str=True, raise_err=False)
     if not err:
-        return # The existing signature is valid
+        return  # The existing signature is valid
     if 'code object is not signed at all' in err:
-        return # File has no signature, and adding a new one isn't necessary
+        return  # File has no signature, and adding a new one isn't necessary
 
     # This file's signature is invalid and needs to be replaced
-    replace_signature(filename, '-') # Replace with an ad-hoc signature
+    replace_signature(filename, '-')  # Replace with an ad-hoc signature

@@ -18,8 +18,8 @@ from ..tools import back_tick, set_install_name, zip2dir, dir2zip
 from ..wheeltools import InWheel
 from .scriptrunner import ScriptRunner
 
-from .pytest_tools import (assert_true, assert_false, assert_equal, assert_raises,
-                        assert_not_equal)
+from .pytest_tools import (assert_true, assert_false, assert_equal,
+                           assert_raises)
 
 from .test_install_names import EXT_LIBS
 from .test_delocating import _make_libtree, _copy_to, _make_bare_depends
@@ -50,12 +50,13 @@ def _proc_lines(in_str):
     return [line.strip() for line in lines if line.strip() != '']
 
 
-lines_runner = ScriptRunner(output_processor = _proc_lines)
+lines_runner = ScriptRunner(output_processor=_proc_lines)
 run_command = lines_runner.run_command
 bytes_runner = ScriptRunner()
 
 
 DATA_PATH = abspath(pjoin(dirname(__file__), 'data'))
+
 
 def test_listdeps():
     # smokey tests of list dependencies command
@@ -75,7 +76,7 @@ def test_listdeps():
         code, stdout, stderr = run_command(
             ['delocate-listdeps', 'pure', 'plat'])
         assert_equal(stdout,
-                    ['pure:', 'plat:', STRAY_LIB_DEP])
+                     ['pure:', 'plat:', STRAY_LIB_DEP])
         assert_equal(code, 0)
         # With -d flag, get list of dependending modules
         code, stdout, stderr = run_command(
@@ -239,13 +240,16 @@ def test_fix_wheel_archs():
         # But if we check, raise error
         fmt_str = 'Fixing: {0}\n{1} needs arch {2} missing from {3}'
         archs = set(('x86_64', 'i386'))
+
         def _fix_break(arch):
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
+
         def _fix_break_fix(arch):
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
             _thin_mod(fixed_wheel, arch)
+
         for arch in archs:
             # Not checked
             _fix_break(arch)
@@ -293,7 +297,7 @@ def test_fix_wheel_archs():
                 code, stdout, stderr = run_command(
                     ['delocate-wheel', fixed_wheel,
                      '--require-archs=' + not_ok],
-                check_code=False)
+                    check_code=False)
                 assert_false(code == 0)
 
 
@@ -354,12 +358,13 @@ def test_add_platforms():
         out_fname = basename(PURE_WHEEL)
         # Need to specify at least one platform
         assert_raises(RuntimeError, run_command,
-            ['delocate-addplat', PURE_WHEEL, '-w', tmpdir])
+                      ['delocate-addplat', PURE_WHEEL, '-w', tmpdir])
         plat_args = ['-p', 'macosx_10_9_intel',
-                    '--plat-tag', 'macosx_10_9_x86_64']
+                     '--plat-tag', 'macosx_10_9_x86_64']
         # Can't add platforms to a pure wheel
         assert_raises(RuntimeError, run_command,
-            ['delocate-addplat', PURE_WHEEL, '-w', tmpdir] + plat_args)
+                      ['delocate-addplat', PURE_WHEEL, '-w', tmpdir] +
+                      plat_args)
         assert_false(exists(out_fname))
         # Error raised (as above) unless ``--skip-error`` flag set
         code, stdout, stderr = run_command(
@@ -374,14 +379,15 @@ def test_add_platforms():
         assert_true(isfile(out_fname))
         # Expected output minus wheel-version (that might change)
         extra_exp = [('Generator', 'bdist_wheel {pip_version}'),
-                      ('Root-Is-Purelib', 'false'),
-                      ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
-                      ('Tag', '{pyver}-{abi}-macosx_10_9_intel'),
-                      ('Tag', '{pyver}-{abi}-macosx_10_9_x86_64')]
+                     ('Root-Is-Purelib', 'false'),
+                     ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
+                     ('Tag', '{pyver}-{abi}-macosx_10_9_intel'),
+                     ('Tag', '{pyver}-{abi}-macosx_10_9_x86_64')]
         assert_winfo_similar(out_fname, extra_exp)
         # If wheel exists (as it does) then raise error
         assert_raises(RuntimeError, run_command,
-            ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir] + plat_args)
+                      ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir] +
+                      plat_args)
         # Unless clobber is set
         code, stdout, stderr = run_command(
             ['delocate-addplat', PLAT_WHEEL, '-c', '-w', tmpdir] + plat_args)
@@ -410,12 +416,12 @@ def test_add_platforms():
         local_plat = pjoin('wheels', basename(PLAT_WHEEL))
         local_out = pjoin('wheels', out_fname)
         code, stdout, stderr = run_command(
-            ['delocate-addplat', local_plat]  + plat_args)
+            ['delocate-addplat', local_plat] + plat_args)
         assert_true(exists(local_out))
         # With rm_orig flag, delete original unmodified wheel
         os.unlink(local_out)
         code, stdout, stderr = run_command(
-            ['delocate-addplat', '-r', local_plat]  + plat_args)
+            ['delocate-addplat', '-r', local_plat] + plat_args)
         assert_false(exists(local_plat))
         assert_true(exists(local_out))
         # Copy original back again
@@ -424,18 +430,18 @@ def test_add_platforms():
         res = sorted(os.listdir('wheels'))
         assert_winfo_similar(local_out, extra_exp)
         code, stdout, stderr = run_command(
-            ['delocate-addplat', local_out, '--clobber']  + plat_args)
+            ['delocate-addplat', local_out, '--clobber'] + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
         assert_winfo_similar(local_out, extra_exp)
         # The wheel doesn't get deleted output name same as input, as here
         code, stdout, stderr = run_command(
-            ['delocate-addplat', local_out, '-r', '--clobber']  + plat_args)
+            ['delocate-addplat', local_out, '-r', '--clobber'] + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
         # But adds WHEEL tags if missing, even if file name is OK
         shutil.copy2(local_plat, local_out)
         assert_raises(AssertionError,
                       assert_winfo_similar, local_out, extra_exp)
         code, stdout, stderr = run_command(
-            ['delocate-addplat', local_out, '--clobber']  + plat_args)
+            ['delocate-addplat', local_out, '--clobber'] + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
         assert_winfo_similar(local_out, extra_exp)

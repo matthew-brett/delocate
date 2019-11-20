@@ -13,7 +13,8 @@ from ..tools import (back_tick, unique_by_index, ensure_writable, chmod_perms,
 
 from ..tmpdirs import InTemporaryDirectory
 
-from .pytest_tools import assert_true, assert_false, assert_equal, assert_raises
+from .pytest_tools import assert_true, assert_false, assert_equal, \
+    assert_raises
 
 DATA_PATH = pjoin(dirname(__file__), 'data')
 LIB32 = pjoin(DATA_PATH, 'liba32.dylib')
@@ -23,6 +24,7 @@ LIB64A = pjoin(DATA_PATH, 'liba.a')
 ARCH_64 = frozenset(['x86_64'])
 ARCH_32 = frozenset(['i386'])
 ARCH_BOTH = ARCH_64 | ARCH_32
+
 
 def test_back_tick():
     cmd = 'python -c "print(\'Hello\')"'
@@ -40,6 +42,7 @@ def test_uniqe_by_index():
                  [1, 2, 4])
     assert_equal(unique_by_index([4, 2, 2, 1]),
                  [4, 2, 1])
+
     def gen():
         yield 4
         yield 2
@@ -163,14 +166,14 @@ def test_find_package_dirs():
             os.mkdir(dir)
         assert_equal(find_package_dirs('to_test'), set([]))
         _write_file(pjoin(a_dir, '__init__.py'), "# a package")
-        assert_equal(find_package_dirs('to_test'), set([a_dir]))
+        assert_equal(find_package_dirs('to_test'), {a_dir})
         _write_file(pjoin(c_dir, '__init__.py'), "# another package")
-        assert_equal(find_package_dirs('to_test'), set([a_dir, c_dir]))
+        assert_equal(find_package_dirs('to_test'), {a_dir, c_dir})
         # Not recursive
         assert_equal(find_package_dirs('.'), set())
         _write_file(pjoin('to_test', '__init__.py'), "# base package")
         # Also - strips '.' for current directory
-        assert_equal(find_package_dirs('.'), set(['to_test']))
+        assert_equal(find_package_dirs('.'), {'to_test'})
 
 
 def test_cmp_contents():
@@ -205,9 +208,11 @@ def test_get_archs_fuse():
         shutil.copyfile(LIB32, 'libcopy32')
         lipo_fuse('libcopy32', LIB64, 'anotherlib')
         assert_equal(get_archs('anotherlib'), ARCH_BOTH)
-        assert_raises(RuntimeError, lipo_fuse, 'libcopy32', LIB32, 'yetanother')
+        assert_raises(RuntimeError, lipo_fuse,
+                      'libcopy32', LIB32, 'yetanother')
         shutil.copyfile(LIB64, 'libcopy64')
-        assert_raises(RuntimeError, lipo_fuse, 'libcopy64', LIB64, 'yetanother')
+        assert_raises(RuntimeError, lipo_fuse,
+                      'libcopy64', LIB64, 'yetanother')
 
 
 def test_validate_signature():
@@ -226,10 +231,10 @@ def test_validate_signature():
         # codesign should raise an error (missing signature)
         assert_raises(RuntimeError, check_signature, 'libcopy')
 
-        replace_signature('libcopy', '-') # Force this file to be signed
-        validate_signature('libcopy') # Cover the `is already valid` code path
+        replace_signature('libcopy', '-')  # Force this file to be signed
+        validate_signature('libcopy')  # Cover the `is already valid` code path
 
-        check_signature('libcopy') # codesign now accepts the file
+        check_signature('libcopy')  # codesign now accepts the file
 
         # Alter the contents of this file, this will invalidate the signature
         add_rpath('libcopy', '/dummy/path')
@@ -237,5 +242,5 @@ def test_validate_signature():
         # codesign should raise a new error (invalid signature)
         assert_raises(RuntimeError, check_signature, 'libcopy')
 
-        validate_signature('libcopy') # Replace the broken signature
+        validate_signature('libcopy')  # Replace the broken signature
         check_signature('libcopy')

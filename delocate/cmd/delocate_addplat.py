@@ -72,7 +72,7 @@ def main():
     else:
         wheel_dir = None
     plat_tags = [] if opts.plat_tag is None else opts.plat_tag
-    if not opts.osx_ver is None:
+    if opts.osx_ver is not None:
         for ver in opts.osx_ver:
             plat_tags += ['macosx_{0}_intel'.format(ver),
                           'macosx_{0}_x86_64'.format(ver)]
@@ -96,8 +96,8 @@ def main():
                     wheel, ', '.join(plat_tags)))
             else:
                 print("Wrote {0}".format(fname))
-        if (opts.rm_orig and not fname is None
-            and realpath(fname) != realpath(wheel)):
+        if (opts.rm_orig and fname is not None
+                and realpath(fname) != realpath(wheel)):
             os.unlink(wheel)
             if opts.verbose:
                 print("Deleted old wheel " + wheel)

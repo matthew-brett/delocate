@@ -10,6 +10,7 @@ from optparse import OptionParser, Option
 
 from delocate import delocate_path, __version__
 
+
 def main():
     parser = OptionParser(
         usage="%s PATH_TO_ANALYZE\n\n" % sys.argv[0] + __doc__,

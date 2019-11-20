@@ -15,7 +15,8 @@ from ..wheeltools import InWheel
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
 
-from .pytest_tools import (assert_true, assert_false, assert_raises, assert_equal)
+from .pytest_tools import (assert_true, assert_false, assert_raises,
+                           assert_equal)
 
 from .test_install_names import DATA_PATH, EXT_LIBS
 from .test_tools import (ARCH_32, ARCH_BOTH)
@@ -174,7 +175,10 @@ def test_fix_plat_dylibs():
         assert_equal(delocate_wheel('test.whl', lib_filt_func='dylibs-only'),
                      {})
         # With func that doesn't find the module
-        func = lambda fn : fn.endswith('.so')
+
+        def func(fn):
+            return fn.endswith('.so')
+
         assert_equal(delocate_wheel('test.whl', lib_filt_func=func), {})
         # Default - looks in every file
         shutil.copyfile('test.whl', 'test2.whl')  # for following test
@@ -182,7 +186,10 @@ def test_fix_plat_dylibs():
         assert_equal(delocate_wheel('test.whl'),
                      {realpath(stray_lib): {dep_mod: stray_lib}})
         # With func that does find the module
-        func = lambda fn : fn.endswith('.other')
+
+        def func(fn):
+            return fn.endswith('.other')
+
         assert_equal(delocate_wheel('test2.whl', lib_filt_func=func),
                      {realpath(stray_lib): {dep_mod: stray_lib}})
 
@@ -220,13 +227,16 @@ def test_check_plat_archs():
         assert_equal(delocate_wheel(fixed_wheel, require_archs=()),
                      {realpath(stray_lib): {dep_mod: stray_lib}})
         # Make a new copy and break it and fix it again
-        def _fix_break(arch):
+
+        def _fix_break(arch_):
             _fixed_wheel(tmpdir)
-            _thin_lib(stray_lib, arch)
-        def _fix_break_fix(arch):
+            _thin_lib(stray_lib, arch_)
+
+        def _fix_break_fix(arch_):
             _fixed_wheel(tmpdir)
-            _thin_lib(stray_lib, arch)
-            _thin_mod(fixed_wheel, arch)
+            _thin_lib(stray_lib, arch_)
+            _thin_mod(fixed_wheel, arch_)
+
         for arch in ('x86_64', 'i386'):
             # OK unless we check
             _fix_break(arch)

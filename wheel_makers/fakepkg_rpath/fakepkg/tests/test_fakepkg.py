@@ -1,6 +1,4 @@
-from delocate.tests.pytest_tools import (assert_true, assert_false, assert_raises,
-                        assert_equal, assert_not_equal)
-
+from delocate.tests.pytest_tools import assert_equal
 
 from ..module1 import func1
 from ..subpkg.module2 import func2, func3

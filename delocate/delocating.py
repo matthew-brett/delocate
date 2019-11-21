@@ -3,7 +3,9 @@
 
 from __future__ import division, print_function
 
+import re
 import os
+import sys
 from os.path import (join as pjoin, dirname, basename, exists, abspath,
                      relpath, realpath)
 import shutil
@@ -308,6 +310,8 @@ def delocate_wheel(in_wheel,
                    copy_filt_func=filter_system_libs,
                    require_archs=None,
                    check_verbose=False,
+                   check_wheel_name=False,
+                   fix_wheel_name=False
                    ):
     """ Update wheel by copying required libraries to `lib_sdir` in wheel
 
@@ -347,6 +351,10 @@ def delocate_wheel(in_wheel,
         (e.g "i386" or "x86_64").
     check_verbose : bool, optional
         If True, print warning messages about missing required architectures
+    check_wheel_name: bool, optional
+        If true check if wheel name correctly inform about minimal dependencies
+    fix_wheel_name: bool, optional
+        If true then change wheel name to satisfy minimal system requirements
 
     Returns
     -------
@@ -391,6 +399,7 @@ def delocate_wheel(in_wheel,
                         print(bads_report(bads, pjoin(tmpdir, 'wheel')))
                     raise DelocationError(
                         "Some missing architectures in wheel")
+
             # Change install ids to be unique within Python space
             install_id_root = (DLC_PREFIX +
                                relpath(package_path, wheel_dir) +
@@ -401,11 +410,96 @@ def delocate_wheel(in_wheel,
                 set_install_id(copied_path, install_id_root + lib_base)
                 validate_signature(copied_path)
             _merge_lib_dict(all_copied, copied_libs)
+        if check_wheel_name or fix_wheel_name:
+            wheel_name = os.path.basename(in_wheel)
+            new_name = update_wheel_name(wheel_name, wheel_dir)
+            if check_wheel_name and new_name != wheel_name:
+                raise DelocationError("Wheel name do not satisfy minimal package requirements")
+            if new_name != wheel_name:
+                in_place = False  # maybe something better
+                out_wheel = os.path.join(os.path.basename(out_wheel), new_name)
         if len(all_copied):
             rewrite_record(wheel_dir)
         if len(all_copied) or not in_place:
             dir2zip(wheel_dir, out_wheel)
     return stripped_lib_dict(all_copied, wheel_dir + os.path.sep)
+
+
+def analise_lib_file(file_path):
+    """
+    file_path: str
+        path to lib file to analise
+
+    Returns
+    -------
+    system_requirements per architecture
+    """
+    return {"x86_64": (10, 10)}
+
+
+def version_to_str(version, sep="."):
+    return sep.join([str(x) for x in version])
+
+
+def update_wheel_name(wheel_name, root_dir):
+    """
+    wheel_name: str
+        current name of wheel.
+    copied_libs:
+
+    Returns
+    -------
+    new_wheel_name: str
+        new wheel name which proper inform about minimal dependencies.
+    """
+    # from pep 427
+    # The wheel filename is {distribution}-{version}(-{build tag})?-{python tag}-{abi tag}-{platform tag}.whl.
+    tag_reg = re.compile(r"(.*)-macosx_(\d+)_(\d+)_(.*)")
+    parsed_wheel_name = tag_reg.match(wheel_name)
+    if parsed_wheel_name is None:
+        raise DelocationError("Cannot parse wheel name. Do not use check_wheel_name or fix_wheel_name options")
+
+    package_name, major, minor, arch_list = parsed_wheel_name.groups()
+    arch_list = ['i386', 'x86_64'] if arch_list == "intel" else [arch_list]
+    versions_dict = {}
+    current_version = major, minor
+    final_version = {arch: current_version for arch in arch_list}
+    for (dir_path, dir_names, filenames) in os.walk(root_dir):
+        for filename in filenames:
+            if filename.endswith('.dylib') or filename.endswith('.so'):
+                lib_path = os.path.join(dir_path, filename)
+                versions_dict[os.path.relpath(lib_path, root_dir)] = analise_lib_file(lib_path)
+    for library_path, arch_version_dict in versions_dict.items():
+        if not arch_version_dict:
+            continue
+        for arch_name in arch_list:
+            if arch_name not in arch_version_dict:
+                if arch_name in final_version:
+                    del final_version["arch"]
+                print("Library {} force to remove {} from list of supported architectures".format(
+                    library_path, arch_name), file=sys.stderr)
+            if not final_version:
+                raise DelocationError("Empty list of architectures")
+
+    for library_path, arch_version_dict in versions_dict.items():
+        for arch_name, value in final_version.items():
+            if current_version < arch_version_dict[arch_name]:
+                print("Library {} force tu bump macos version to {}".format(
+                    library_path, ".".join(version_to_str(arch_version_dict[arch_name]))), file=sys.stderr)
+            if value < arch_version_dict[arch_name]:
+                final_version[arch_name] = arch_version_dict[arch_name]
+
+    if "i386" in final_version and "x86_64" in final_version:
+        if final_version["x86_64"] >= final_version["i386"]:
+            final_version["intel"] = final_version["x86_64"]
+        if final_version["x86_64"] > final_version["i386"]:
+            final_version["intel"] = final_version["i386"]
+        del final_version["x86_64"]
+        del final_version["i386"]
+
+    assert len(final_version) == 1
+    arch, version = next(iter(final_version.items()))
+    return package_name + "-macosx_" + version_to_str(version, "_") + "_" + arch
 
 
 def patch_wheel(in_wheel, patch_fname, out_wheel=None):

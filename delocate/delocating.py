@@ -18,6 +18,7 @@ from .tools import (set_install_name, zip2dir, dir2zip, validate_signature,
                     find_package_dirs, set_install_id, get_archs)
 from .tmpdirs import TemporaryDirectory
 from .wheeltools import rewrite_record, InWheel
+from .parse_macho_header import extract_macosx_min_system_version
 
 # Prefix for install_name_id of copied libraries
 DLC_PREFIX = '/DLC/'
@@ -434,7 +435,8 @@ def analise_lib_file(file_path):
     -------
     system_requirements per architecture
     """
-    return {"x86_64": (10, 10)}
+    res = extract_macosx_min_system_version(file_path)
+    return res
 
 
 def version_to_str(version, sep="."):
@@ -460,7 +462,7 @@ def update_wheel_name(wheel_name, root_dir):
         raise DelocationError("Cannot parse wheel name. Do not use check_wheel_name or fix_wheel_name options")
 
     package_name, major, minor, arch_list = parsed_wheel_name.groups()
-    arch_list = ['i386', 'x86_64'] if arch_list[0] == "intel" else [arch_list]
+    arch_list = ['i386', 'x86_64'] if arch_list == "intel" else [arch_list]
     versions_dict = {}
     current_version = int(major), int(minor)
     final_version = {arch: current_version for arch in arch_list}
@@ -492,7 +494,7 @@ def update_wheel_name(wheel_name, root_dir):
     if "i386" in final_version and "x86_64" in final_version:
         if final_version["x86_64"] >= final_version["i386"]:
             final_version["intel"] = final_version["x86_64"]
-        if final_version["x86_64"] > final_version["i386"]:
+        if final_version["x86_64"] < final_version["i386"]:
             final_version["intel"] = final_version["i386"]
         del final_version["x86_64"]
         del final_version["i386"]

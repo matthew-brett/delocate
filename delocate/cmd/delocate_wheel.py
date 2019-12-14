@@ -40,7 +40,12 @@ def main():
         Option("--require-archs",
                action="store", type='string',
                help="Architectures that all wheel libraries should "
-               "have (from 'intel', 'i386', 'x86_64', 'i386,x86_64')")])
+               "have (from 'intel', 'i386', 'x86_64', 'i386,x86_64')"),
+        Option("--verify-name", action="store_true",
+               help="Verify if platform tag in wheel name is proper"),
+        Option("--fix-name", action="store_true",
+               help="calculate proper platform tag base on libraries requirements")
+    ])
     (opts, wheels) = parser.parse_args()
     if len(wheels) < 1:
         parser.print_help()
@@ -69,7 +74,10 @@ def main():
         copied = delocate_wheel(wheel, out_wheel, lib_filt_func=lib_filt_func,
                                 lib_sdir=opts.lib_sdir,
                                 require_archs=require_archs,
-                                check_verbose=opts.verbose)
+                                check_verbose=opts.verbose,
+                                check_wheel_name=opts.verify_name,
+                                fix_wheel_name=opts.fix_name
+                                )
         if opts.verbose and len(copied):
             print("Copied to package {0} directory:".format(opts.lib_sdir))
             copy_lines = ['  ' + name for name in sorted(copied)]

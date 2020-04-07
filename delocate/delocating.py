@@ -15,7 +15,7 @@ from subprocess import Popen, PIPE
 from .pycompat import string_types
 from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
 from .tools import (set_install_name, zip2dir, dir2zip, validate_signature,
-                    find_package_dirs, set_install_id, get_archs)
+                    find_package_dirs, set_install_id, get_archs, back_tick)
 from .tmpdirs import TemporaryDirectory
 from .wheeltools import rewrite_record, InWheel
 
@@ -434,7 +434,35 @@ def analise_lib_file(file_path):
     -------
     system_requirements per architecture
     """
-    return {"x86_64": (10, 10)}
+    arches = get_archs(file_path)
+    needed_os_version = {}
+    for arch in arches:
+        lines = back_tick(["otool", "-arch", arch, "-l", file_path]).split("\n")
+        for i, line in enumerate(lines):
+            if "LC_BUILD_VERSION" in line:
+                for line in lines[i+1: i+5]:
+                    cmd, val = line.split()
+                    if cmd == "platform" and val != "macos":
+                        if arch in needed_os_version:
+                            del needed_os_version[arch]
+                            break
+                    if cmd == "minos":
+                        version = [int(x) for x in val.split(".")]
+                        if len(version) == 3:
+                            version = version[:2]
+                        needed_os_version[arch] = tuple(version)
+                break
+            if "LC_VERSION_MIN_MACOSX" in line:
+                for line in lines[i+1: i+4]:
+                    cmd, val = line.split()
+                    if cmd == "version":
+                        version = [int(x) for x in val.split(".")]
+                        if len(version) == 3:
+                            version = version[:2]
+                        needed_os_version[arch] = tuple(version)
+                        break
+
+    return needed_os_version
 
 
 def version_to_str(version, sep="."):
@@ -460,7 +488,7 @@ def update_wheel_name(wheel_name, root_dir):
         raise DelocationError("Cannot parse wheel name. Do not use check_wheel_name or fix_wheel_name options")
 
     package_name, major, minor, arch_list = parsed_wheel_name.groups()
-    arch_list = ['i386', 'x86_64'] if arch_list[0] == "intel" else [arch_list]
+    arch_list = ['i386', 'x86_64'] if arch_list == "intel" else [arch_list]
     versions_dict = {}
     current_version = int(major), int(minor)
     final_version = {arch: current_version for arch in arch_list}
@@ -492,7 +520,7 @@ def update_wheel_name(wheel_name, root_dir):
     if "i386" in final_version and "x86_64" in final_version:
         if final_version["x86_64"] >= final_version["i386"]:
             final_version["intel"] = final_version["x86_64"]
-        if final_version["x86_64"] > final_version["i386"]:
+        if final_version["x86_64"] < final_version["i386"]:
             final_version["intel"] = final_version["i386"]
         del final_version["x86_64"]
         del final_version["i386"]

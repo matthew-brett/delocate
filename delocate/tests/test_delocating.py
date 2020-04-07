@@ -2,13 +2,16 @@
 
 from __future__ import division, print_function
 
+import itertools
 import os
 from os.path import (join as pjoin, dirname, basename, relpath, realpath,
                      splitext)
 import shutil
 
+import pytest
+
 from ..delocating import (DelocationError, delocate_tree_libs, copy_recurse,
-                          delocate_path, check_archs, bads_report)
+                          delocate_path, check_archs, bads_report, update_wheel_name, analise_lib_file)
 from ..libsana import (tree_libs, search_environment_for_lib)
 from ..tools import (get_install_names, set_install_name, back_tick)
 
@@ -571,3 +574,58 @@ def test_dyld_fallback_library_path_loses_to_basename():
         # tmpdir can end up in /var, and that can be symlinked to
         # /private/var, so we'll use realpath to resolve the two
         assert_equal(predicted_lib_location, os.path.realpath(libb))
+
+
+def walk_mock(file_list, base_path):
+    def _walk_mock(top, topdown=True, onerror=None, followlinks=False):
+        yield (base_path, [], file_list)
+
+    return _walk_mock
+
+@pytest.fixture
+def tag_data():
+    return os.path.join(os.path.dirname(__file__), "data_platform_tag")
+
+
+@pytest.mark.parametrize(
+    "file_name,expected_result",
+    [("lib{}.{}.dylib".format(l, v),
+      {"x86_64": (10, v)})  for l, v in itertools.product(["a", "b", "c"], [6, 9, 14])] +
+    [("libc.9.1.dylib", {"x86_64": (10, 9)}), ("liba_both.dylib", {"x86_64": (10, 9), "i386": (10, 14)})] +
+    [("liba32.{}.dylib".format(v), {"i386": (10, v)})  for v in  [6, 9, 14]] +
+    [("liba.{}.so".format(v), {"x86_64": (10, v)})  for v in  [6, 9, 14]]
+)
+def test_analise_lib_file(file_name, expected_result, tag_data):
+    assert analise_lib_file(os.path.join(tag_data, file_name)) == expected_result
+
+
+@pytest.mark.parametrize("start_version,expected_version,files", [
+    ("10_10_x86_64", "10_10_x86_64", ["liba.6.dylib"]),
+    ("10_6_x86_64", "10_9_x86_64", ["liba.9.dylib"]),
+    ("10_10_x86_64", "10_10_x86_64", ["liba.9.dylib"]),
+    ("10_10_intel", "10_10_x86_64", ["liba.9.dylib"]),
+    ("10_10_intel", "10_10_i386", ["liba32.9.dylib"]),
+    ("10_10_intel", "10_14_intel", ["liba_both.dylib"]),
+    ("10_9_x86_64", "10_9_x86_64", ["liba_both.dylib"]),  # ignore i386 requirements
+    ("10_10_x86_64", "10_14_x86_64", ["liba.6.dylib", "libb.14.dylib"]),
+    ("10_10_x86_64", "10_14_x86_64", ["liba.6.dylib", "liba.14.so"]),
+    ("10_6_x86_64", "10_9_x86_64", ["liba.6.dylib", "liba.9.so", "test-lib"])  # test-lib is compiled against 10.14
+])
+def test_update_wheel_name(start_version, expected_version, files, monkeypatch, tag_data):
+    wheel_name_template = "test-0.1-cp36-cp36m-macosx_{}.whl"
+    monkeypatch.setattr(os, "walk", walk_mock(files, tag_data))
+    assert update_wheel_name(wheel_name_template.format(start_version), tag_data) ==\
+           wheel_name_template.format(expected_version)
+
+@pytest.mark.parametrize("start_version,files", [
+    ("stupid_text", ["liba.6.dylib"]),
+    ("10_6_x86_64", ["liba32.9.dylib"]),
+    ("10_6_i386", ["liba.9.dylib"]),
+    ("10_6_intel", ["liba.9.dylib", "liba32.9.dylib"]),
+    ("10_6_stupid_arch", ["liba32.9.dylib"]),
+])
+def test_update_wheel_name_fail(start_version, files, monkeypatch, tag_data):
+    wheel_name_template = "test-0.1-cp36-cp36m-macosx_{}.whl"
+    monkeypatch.setattr(os, "walk", walk_mock(files, tag_data))
+    with pytest.raises(DelocationError):
+        update_wheel_name(wheel_name_template.format(start_version), tag_data)

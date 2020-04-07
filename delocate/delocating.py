@@ -454,15 +454,15 @@ def update_wheel_name(wheel_name, root_dir):
     """
     # from pep 427
     # The wheel filename is {distribution}-{version}(-{build tag})?-{python tag}-{abi tag}-{platform tag}.whl.
-    tag_reg = re.compile(r"(.*)-macosx_(\d+)_(\d+)_(.*)")
+    tag_reg = re.compile(r"(.*)-macosx_(\d+)_(\d+)_(.+).whl")
     parsed_wheel_name = tag_reg.match(wheel_name)
     if parsed_wheel_name is None:
         raise DelocationError("Cannot parse wheel name. Do not use check_wheel_name or fix_wheel_name options")
 
     package_name, major, minor, arch_list = parsed_wheel_name.groups()
-    arch_list = ['i386', 'x86_64'] if arch_list == "intel" else [arch_list]
+    arch_list = ['i386', 'x86_64'] if arch_list[0] == "intel" else [arch_list]
     versions_dict = {}
-    current_version = major, minor
+    current_version = int(major), int(minor)
     final_version = {arch: current_version for arch in arch_list}
     for (dir_path, dir_names, filenames) in os.walk(root_dir):
         for filename in filenames:
@@ -475,7 +475,7 @@ def update_wheel_name(wheel_name, root_dir):
         for arch_name in arch_list:
             if arch_name not in arch_version_dict:
                 if arch_name in final_version:
-                    del final_version["arch"]
+                    del final_version[arch_name]
                 print("Library {} force to remove {} from list of supported architectures".format(
                     library_path, arch_name), file=sys.stderr)
             if not final_version:
@@ -499,7 +499,7 @@ def update_wheel_name(wheel_name, root_dir):
 
     assert len(final_version) == 1
     arch, version = next(iter(final_version.items()))
-    return package_name + "-macosx_" + version_to_str(version, "_") + "_" + arch
+    return package_name + "-macosx_" + version_to_str(version, "_") + "_" + arch + ".whl"
 
 
 def patch_wheel(in_wheel, patch_fname, out_wheel=None):

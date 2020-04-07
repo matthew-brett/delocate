@@ -6,6 +6,7 @@ import itertools
 import os
 from os.path import (join as pjoin, dirname, basename, relpath, realpath,
                      splitext)
+import platform
 import shutil
 
 import pytest
@@ -596,6 +597,10 @@ def tag_data():
     [("liba.{}.so".format(v), {"x86_64": (10, v)})  for v in  [6, 9, 14]]
 )
 def test_analise_lib_file(file_name, expected_result, tag_data):
+    if (".14." in file_name or "liba_both.dylib" == file_name) and platform.mac_ver()[0]:
+        ver = tuple([int(x) for x in platform.mac_ver()[0].split(".")[:2]])
+        if ver < (10, 13):
+            pytest.xfail("To low version of otool to support LC_BUILD_VERSION")
     assert analise_lib_file(os.path.join(tag_data, file_name)) == expected_result
 
 
@@ -612,6 +617,10 @@ def test_analise_lib_file(file_name, expected_result, tag_data):
     ("10_6_x86_64", "10_9_x86_64", ["liba.6.dylib", "liba.9.so", "test-lib"])  # test-lib is compiled against 10.14
 ])
 def test_update_wheel_name(start_version, expected_version, files, monkeypatch, tag_data):
+    if expected_version.startswith("10_14") and platform.mac_ver()[0]:
+        ver = tuple([int(x) for x in platform.mac_ver()[0].split(".")[:2]])
+        if ver < (10, 13):
+            pytest.xfail("To low version of otool to support LC_BUILD_VERSION")
     wheel_name_template = "test-0.1-cp36-cp36m-macosx_{}.whl"
     monkeypatch.setattr(os, "walk", walk_mock(files, tag_data))
     assert update_wheel_name(wheel_name_template.format(start_version), tag_data) ==\

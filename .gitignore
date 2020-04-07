@@ -5,3 +5,4 @@ MANIFEST
 .coverage
 delocate*info/
 .cache
+delocate/tests/data_platform_tag/*.cc

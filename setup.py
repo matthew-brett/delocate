@@ -36,7 +36,11 @@ setup(name='delocate',
                      pjoin('data', 'test-lib'),
                      pjoin('data', '*patch'),
                      pjoin('data', 'make_libs.sh'),
-                     pjoin('data', 'icon.ico')]},
+                     pjoin('data', 'icon.ico'),
+                     pjoin('data_platform_tag', '*.dylib'),
+                     pjoin('data_platform_tag', '*.so'),
+                     pjoin('data_platform_tag', 'test-lib'),
+                     ]},
       entry_points={
           'console_scripts': [
               'delocate-{} = delocate.cmd.delocate_{}:main'.format(name, name)

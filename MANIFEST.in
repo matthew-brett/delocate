@@ -4,3 +4,4 @@ include LICENSE
 include README.rst
 include AUTHORS
 recursive-include delocate/tests/data *
+recursive-include delocate/tests/data_platform_tag *

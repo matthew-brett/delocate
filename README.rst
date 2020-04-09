@@ -165,7 +165,7 @@ Troubleshooting
 ===============
 
 DelocationError: "library does not exist"
----------------------------------------
+-----------------------------------------
 
 When running ``delocate-wheel`` or its sister command ``delocate-path``, you
 may get errors like this::

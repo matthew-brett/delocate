@@ -210,7 +210,7 @@ External library is not bundled into wheel
 
 If your project is structured as a standalone Python module rather
 than package, ``delocate-wheel`` may not find the extension modules
-that you want to patch.::
+that you want to patch::
 
     $ delocate-wheel -w fixed_wheels -v my-wheel-name.whl
     Fixing: my-wheel-name.whl
@@ -224,7 +224,7 @@ To show this visually, this project layout will **not** work::
     ├── setup.py
     └── README.md
 
-Instead, `delocate-wheel` requires a project organized as a Python
+Instead, ``delocate-wheel`` requires a project organized as a Python
 package rather than single standalone module::
 
     ├── proj/

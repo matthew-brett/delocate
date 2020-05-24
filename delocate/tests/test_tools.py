@@ -106,6 +106,7 @@ def test_ensure_writable():
         # Set to user rw, else r
         os.chmod('test.bin', 0o644)
         st = os.stat('test.bin')
+
         @ensure_writable
         def foo(fname):
             pass

@@ -334,8 +334,8 @@ def get_environment_variable_paths():
     """ Return a tuple of entries in `DYLD_LIBRARY_PATH` and
     `DYLD_FALLBACK_LIBRARY_PATH`.
 
-    This will allow us to search those locations for dependencies of libraries as
-    well as `@rpath` entries.
+    This will allow us to search those locations for dependencies of
+    libraries as well as `@rpath` entries.
 
     Returns
     -------

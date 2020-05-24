@@ -13,7 +13,7 @@ from subprocess import Popen, PIPE
 from .pycompat import string_types
 from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
 from .tools import (set_install_name, zip2dir, dir2zip, validate_signature,
-                    find_package_dirs, set_install_id, get_archs)
+                    find_package_dirs, set_install_id, get_archs, _dylibs_only)
 from .tmpdirs import TemporaryDirectory
 from .wheeltools import rewrite_record, InWheel
 
@@ -232,11 +232,6 @@ def _copy_required(lib_path, copy_filt_func, copied_libs):
         shutil.copy(required, lib_path)
         copied2orig[out_path] = required
         copied_libs[required] = procd_requirings
-
-
-def _dylibs_only(filename):
-    return (filename.endswith('.so') or
-            filename.endswith('.dylib'))
 
 
 def filter_system_libs(libname):

@@ -560,3 +560,8 @@ def validate_signature(filename):
 
     # This file's signature is invalid and needs to be replaced
     replace_signature(filename, '-')  # Replace with an ad-hoc signature
+
+
+def _dylibs_only(filename):
+    return (filename.endswith('.so') or
+            filename.endswith('.dylib'))

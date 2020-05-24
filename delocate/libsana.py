@@ -4,7 +4,7 @@ Analyze library dependencies in paths and wheel files
 """
 
 import os
-from os.path import basename, join as pjoin, realpath
+from os.path import basename, join as pjoin, isfile, realpath
 
 import warnings
 
@@ -272,3 +272,17 @@ def _paths_from_var(varname, lib_basename):
     if var is None:
         return []
     return [pjoin(path, lib_basename) for path in var.split(':')]
+
+
+def _analyze_path(depending_libpath, lib_dict, filt_func):
+    if filt_func is not None and not filt_func(depending_libpath):
+        return
+    rpaths = get_rpaths(depending_libpath)
+    for install_name in get_install_names(depending_libpath):
+        lib_path = (install_name if install_name.startswith('@')
+                    else realpath(install_name))
+        lib_path = resolve_rpath(lib_path, rpaths)
+        if lib_path in lib_dict:
+            lib_dict[lib_path][depending_libpath] = install_name
+        else:
+            lib_dict[lib_path] = {depending_libpath: install_name}

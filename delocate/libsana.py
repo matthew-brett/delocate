@@ -28,12 +28,12 @@ def tree_libs(start_path, filt_func=None):
     Returns
     -------
     lib_dict : dict
-        dictionary with (key, value) pairs of (``libpath``,
-        ``dependings_dict``).
+        dictionary with (key, value) pairs of
+        (``libpath``,``dependings_dict``).
 
         ``libpath`` is canonical (``os.path.realpath``) filename of library, or
-        library name starting with {'@rpath', '@loader_path',
-        '@executable_path'}.
+        library name starting with
+        {'@rpath', '@loader_path', '@executable_path'}.
 
         ``dependings_dict`` is a dict with (key, value) pairs of
         (``depending_libpath``, ``install_name``), where ``dependings_libpath``
@@ -46,7 +46,7 @@ def tree_libs(start_path, filt_func=None):
 
     See:
 
-    * https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/dyld.1.html  # noqa: E501
+    * https://www.unix.com/man-page/mojave/1/dyld/
     * http://matthew-brett.github.io/pydagogue/mac_runtime_link.html
     """
     lib_dict = {}

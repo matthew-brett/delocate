@@ -19,7 +19,8 @@ def tree_libs(start_path, filt_func=None):
     Parameters
     ----------
     start_path : str
-        root path of tree to search for libraries depending on other libraries.
+        root path of tree to search for libraries depending on other libraries,
+        or a top-level extension module.
     filt_func : None or callable, optional
         If None, inspect all files for library dependencies. If callable,
         accepts filename as argument, returns True if we should inspect the
@@ -51,27 +52,14 @@ def tree_libs(start_path, filt_func=None):
     """
     lib_dict = {}
     env_var_paths = get_environment_variable_paths()
-    for dirpath, dirnames, basenames in os.walk(start_path):
-        for base in basenames:
-            depending_libpath = realpath(pjoin(dirpath, base))
-            if filt_func is not None and not filt_func(depending_libpath):
-                continue
-            rpaths = get_rpaths(depending_libpath)
-            search_paths = rpaths + env_var_paths
-            for install_name in get_install_names(depending_libpath):
-                # If the library starts with '@rpath' we'll try and resolve it
-                # We'll do nothing to other '@'-paths
-                # Otherwise we'll search for the library using env variables
-                if install_name.startswith('@rpath'):
-                    lib_path = resolve_rpath(install_name, search_paths)
-                elif install_name.startswith('@'):
-                    lib_path = install_name
-                else:
-                    lib_path = search_environment_for_lib(install_name)
-                if lib_path in lib_dict:
-                    lib_dict[lib_path][depending_libpath] = install_name
-                else:
-                    lib_dict[lib_path] = {depending_libpath: install_name}
+    if isfile(start_path):
+        _analyze_path(start_path, lib_dict, filt_func, env_var_paths)
+    else:
+        for dirpath, dirnames, basenames in os.walk(start_path):
+            for base in basenames:
+                depending_libpath = realpath(pjoin(dirpath, base))
+                _analyze_path(depending_libpath, lib_dict, filt_func,
+                              env_var_paths)
     return lib_dict
 
 
@@ -274,14 +262,21 @@ def _paths_from_var(varname, lib_basename):
     return [pjoin(path, lib_basename) for path in var.split(':')]
 
 
-def _analyze_path(depending_libpath, lib_dict, filt_func):
+def _analyze_path(depending_libpath, lib_dict, filt_func, env_var_paths):
     if filt_func is not None and not filt_func(depending_libpath):
         return
     rpaths = get_rpaths(depending_libpath)
+    search_paths = rpaths + env_var_paths
     for install_name in get_install_names(depending_libpath):
-        lib_path = (install_name if install_name.startswith('@')
-                    else realpath(install_name))
-        lib_path = resolve_rpath(lib_path, rpaths)
+        # If the library starts with '@rpath' we'll try and resolve it
+        # We'll do nothing to other '@'-paths
+        # Otherwise we'll search for the library using env variables
+        if install_name.startswith('@rpath'):
+            lib_path = resolve_rpath(install_name, search_paths)
+        elif install_name.startswith('@'):
+            lib_path = install_name
+        else:
+            lib_path = search_environment_for_lib(install_name)
         if lib_path in lib_dict:
             lib_dict[lib_path][depending_libpath] = install_name
         else:

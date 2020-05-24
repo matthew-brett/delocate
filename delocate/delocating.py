@@ -13,7 +13,8 @@ from subprocess import Popen, PIPE
 from .pycompat import string_types
 from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
 from .tools import (set_install_name, zip2dir, dir2zip, validate_signature,
-                    find_package_dirs, set_install_id, get_archs, _dylibs_only)
+                    find_packages, set_install_id, get_archs, _dylibs_only)
+from .tools import find_package_dirs  # noqa: F401
 from .tmpdirs import TemporaryDirectory
 from .wheeltools import rewrite_record, InWheel
 
@@ -366,8 +367,13 @@ def delocate_wheel(in_wheel,
         all_copied = {}
         wheel_dir = realpath(pjoin(tmpdir, 'wheel'))
         zip2dir(in_wheel, wheel_dir)
-        for package_path in find_package_dirs(wheel_dir):
-            lib_path = pjoin(package_path, lib_sdir)
+        for package_path, is_dir in find_packages(wheel_dir):
+            if is_dir:
+                lib_path = pjoin(package_path, lib_sdir)
+            else:
+                # Top-level module
+                root_name = basename(package_path).split('.', 1)[0]
+                lib_path = pjoin(dirname(package_path), lib_sdir + root_name)
             lib_path_exists = exists(lib_path)
             copied_libs = delocate_path(package_path, lib_path,
                                         lib_filt_func, copy_filt_func)

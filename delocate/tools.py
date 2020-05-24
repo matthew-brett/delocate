@@ -3,11 +3,12 @@
 from subprocess import Popen, PIPE
 
 import os
-from os.path import join as pjoin, relpath, isdir, exists
+from os.path import join as pjoin, relpath, isdir, isfile, exists
 import zipfile
 import re
 import stat
 import time
+import warnings
 
 
 class InstallNameError(Exception):
@@ -424,6 +425,9 @@ def dir2zip(in_dir, zip_fname):
 def find_package_dirs(root_path):
     """ Find python package directories in directory `root_path`
 
+    Deprecated; prefer ``find_packages`` to include standalone
+    top-level modules in the result set.
+
     Parameters
     ----------
     root_path : str
@@ -435,11 +439,41 @@ def find_package_dirs(root_path):
         Set of strings where each is a subdirectory of `root_path`, containing
         an ``__init__.py`` file.  Paths prefixed by `root_path`
     """
+    warnings.warn(
+        "`find_package_dirs` is deprecated; prefer `find_packages`",
+        DeprecationWarning
+    )
+    return {p for p, is_dir in find_packages(root_path) if is_dir}
+
+
+def find_packages(root_path):
+    """ Find python packages and modules `root_path`
+
+    Unlike ``find_package_dirs``, this function will also discover
+    top-level standalone modules that are not technically a member
+    of a Python package.
+
+    Parameters
+    ----------
+    root_path : str
+        Directory to search for package subdirectories
+
+    Returns
+    -------
+    package_sdirs : set
+        Set of (string, is_dir) tuples where each 'string' is a subdirectory of
+        `root_path` containing an ``__init__.py`` file, or a C extension
+        single-file module directly in `root_path`, and 'is_dir' indicates
+        whether the package is a subdirectory module or a single-file module.
+        Paths prefixed by `root_path`
+    """
     package_sdirs = set()
     for entry in os.listdir(root_path):
         fname = entry if root_path == '.' else pjoin(root_path, entry)
         if isdir(fname) and exists(pjoin(fname, '__init__.py')):
-            package_sdirs.add(fname)
+            package_sdirs.add((fname, True))
+        elif isfile(fname) and _dylibs_only(fname):
+            package_sdirs.add((fname, False))
     return package_sdirs
 
 

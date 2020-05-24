@@ -9,12 +9,12 @@ import shutil
 from ..tools import (back_tick, unique_by_index, ensure_writable, chmod_perms,
                      ensure_permissions, zip2dir, dir2zip, find_package_dirs,
                      cmp_contents, get_archs, lipo_fuse, replace_signature,
-                     validate_signature, add_rpath)
+                     validate_signature, add_rpath, find_packages)
 
 from ..tmpdirs import InTemporaryDirectory
 
 from .pytest_tools import assert_true, assert_false, assert_equal, \
-    assert_raises
+    assert_raises, assert_warns
 
 DATA_PATH = pjoin(dirname(__file__), 'data')
 LIB32 = pjoin(DATA_PATH, 'liba32.dylib')
@@ -164,16 +164,46 @@ def test_find_package_dirs():
         c_dir = pjoin('to_test', 'c_dir')
         for dir in (a_dir, b_dir, c_dir):
             os.mkdir(dir)
-        assert_equal(find_package_dirs('to_test'), set([]))
+        with assert_warns(DeprecationWarning):
+            assert_equal(find_package_dirs('to_test'), set([]))
+            _write_file(pjoin(a_dir, '__init__.py'), "# a package")
+            assert_equal(find_package_dirs('to_test'), {a_dir})
+            _write_file(pjoin(c_dir, '__init__.py'), "# another package")
+            assert_equal(find_package_dirs('to_test'), {a_dir, c_dir})
+            # Not recursive
+            assert_equal(find_package_dirs('.'), set())
+            _write_file(pjoin('to_test', '__init__.py'), "# base package")
+            # Also - strips '.' for current directory
+            assert_equal(find_package_dirs('.'), {'to_test'})
+
+
+def test_find_packages():
+    with InTemporaryDirectory():
+        os.mkdir('to_test')
+        a_dir = pjoin('to_test', 'a_dir')
+        b_dir = pjoin('to_test', 'b_dir')
+        c_dir = pjoin('to_test', 'c_dir')
+        for dir in (a_dir, b_dir, c_dir):
+            os.mkdir(dir)
+        assert_equal(find_packages('to_test'), set([]))
         _write_file(pjoin(a_dir, '__init__.py'), "# a package")
-        assert_equal(find_package_dirs('to_test'), {a_dir})
+        assert_equal(find_packages('to_test'), {(a_dir, True)})
         _write_file(pjoin(c_dir, '__init__.py'), "# another package")
-        assert_equal(find_package_dirs('to_test'), {a_dir, c_dir})
+        assert_equal(find_packages('to_test'), {(a_dir, True), (c_dir, True)})
         # Not recursive
-        assert_equal(find_package_dirs('.'), set())
+        assert_equal(find_packages('.'), set())
         _write_file(pjoin('to_test', '__init__.py'), "# base package")
         # Also - strips '.' for current directory
-        assert_equal(find_package_dirs('.'), {'to_test'})
+        assert_equal(find_packages('.'), {('to_test', True)})
+    with InTemporaryDirectory():
+        # Additionally, find C Extension modules in the root
+        _write_file('_so_mod.so', "# .so c extension")
+        assert_equal(find_packages('.'), {('_so_mod.so', False)})
+        _write_file('_dylib_mod.dylib', "# .dylib c extension")
+        assert_equal(
+            find_packages('.'),
+            {('_so_mod.so', False), ('_dylib_mod.dylib', False)}
+        )
 
 
 def test_cmp_contents():

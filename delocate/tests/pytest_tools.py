@@ -16,6 +16,11 @@ def assert_raises(expected_exception, *args, **kwargs):
     return pytest.raises(expected_exception, *args, **kwargs)
 
 
+def assert_warns(*args, **kwargs):
+    __tracebackhide__ = True
+    return pytest.warns(*args, **kwargs)
+
+
 def assert_equal(first, second):
     __tracebackhide__ = True
     assert first == second

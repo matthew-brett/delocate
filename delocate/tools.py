@@ -447,7 +447,7 @@ def find_package_dirs(root_path):
 
 
 def find_packages(root_path):
-    """ Find python packages and modules `root_path`
+    """ Find python packages and modules in directory `root_path`
 
     Unlike ``find_package_dirs``, this function will also discover
     top-level standalone modules that are not technically a member

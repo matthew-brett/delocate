@@ -7,9 +7,9 @@ import stat
 import shutil
 
 from ..tools import (back_tick, unique_by_index, ensure_writable, chmod_perms,
-                     ensure_permissions, zip2dir, dir2zip, find_package_dirs,
-                     cmp_contents, get_archs, lipo_fuse, replace_signature,
-                     validate_signature, add_rpath)
+                     ensure_permissions, parse_install_name, zip2dir, dir2zip,
+                     find_package_dirs, cmp_contents, get_archs, lipo_fuse,
+                     replace_signature, validate_signature, add_rpath)
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -116,6 +116,20 @@ def test_ensure_writable():
         st = os.stat('test.bin')
         foo('test.bin')
         assert_equal(os.stat('test.bin'), st)
+
+
+def test_parse_install_name():
+    # otool on versions previous to Catalina
+    line0 = ('/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore '
+            '(compatibility version 1.2.0, current version 1.11.0)')
+    name, cpver, cuver = (
+        '/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore',
+        '1.2.0', '1.11.0')
+    assert parse_install_name(line0) == (name, cpver, cuver)
+    # otool on Catalina
+    line1 = ('/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore '
+             '(compatibility version 1.2.0, current version 1.11.0, weak)')
+    assert parse_install_name(line1) == (name, cpver, cuver)
 
 
 def _write_file(filename, contents):

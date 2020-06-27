@@ -126,9 +126,9 @@ open_rw = ensure_permissions(stat.S_IRUSR | stat.S_IWUSR)(open)
 # For backward compatibility
 ensure_writable = ensure_permissions()
 
-
+# otool on 10.15 appends more information after versions.
 IN_RE = re.compile(r"(.*) \(compatibility version (\d+\.\d+\.\d+), "
-                   r"current version (\d+\.\d+\.\d+)\)")
+                   r"current version (\d+\.\d+\.\d+)(?:, \w+)?\)")
 
 
 def parse_install_name(line):

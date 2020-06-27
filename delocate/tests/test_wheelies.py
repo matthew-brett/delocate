@@ -1,6 +1,7 @@
 """ Direct tests of fixes to wheels """
 
 import os
+import sys
 from os.path import (join as pjoin, basename, realpath, abspath, exists, isdir)
 import stat
 from glob import glob
@@ -127,7 +128,7 @@ def test_fix_plat():
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         assert_equal(delocate_wheel(fixed_wheel),
                      {_rp(stray_lib): {dep_mod: stray_lib}})
-        back_tick(['wheel', 'unpack', fixed_wheel])
+        back_tick([sys.executable, '-m', 'wheel', 'unpack', fixed_wheel])
         # Check that copied libraries have modified install_name_ids
         zip2dir(fixed_wheel, 'plat_pkg3')
         base_stray = basename(stray_lib)
@@ -275,7 +276,7 @@ def test_patch_wheel():
         with open(pjoin('wheel1', 'fakepkg2', '__init__.py'), 'rt') as fobj:
             assert_equal(fobj.read(), 'print("Am in init")\n')
         # Check that wheel unpack works
-        back_tick(['wheel', 'unpack', out_fname])
+        back_tick([sys.executable, '-m', 'wheel', 'unpack', out_fname])
         # Copy the original, check it doesn't have patch
         shutil.copyfile(PURE_WHEEL, 'copied.whl')
         zip2dir('copied.whl', 'wheel2')

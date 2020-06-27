@@ -2,6 +2,7 @@
 """
 
 import os
+import sys
 from os.path import (join as pjoin, relpath, isdir, dirname, basename)
 import shutil
 
@@ -96,7 +97,7 @@ def test_fuse_wheels():
         zip2dir(wheel_base, 'fused_wheel')
         assert_same_tree('to_wheel', 'fused_wheel')
         # Check unpacking works on fused wheel
-        back_tick(['wheel', 'unpack', wheel_base])
+        back_tick([sys.executable, '-m', 'wheel', 'unpack', wheel_base])
         # Put lib into wheel
         shutil.copyfile(LIB64A, pjoin('from_wheel', 'fakepkg2', 'liba.a'))
         rewrite_record('from_wheel')

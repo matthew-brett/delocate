@@ -3,4 +3,5 @@ include delocate/_version.py
 include LICENSE
 include README.rst
 include AUTHORS
+include *requirements.txt
 recursive-include delocate/tests/data *

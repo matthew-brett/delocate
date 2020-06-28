@@ -14,6 +14,17 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* 0.8.1 (Sunday June 28th 2020)
+
+  Bugfix release.
+
+  * Adapt parsing of otool output to Catalina, avoiding crash in delocate
+    (thanks to Github use `matham` for the report)
+  * Adapt to possibility that `wheel` binary is not on PATH.
+  * Various improvements to documentation, including explanation of Delocate's
+    problems in dealing with single module extensions (Brad Solomon)
+  * PEP8 maintenance by Grzegorz Bokota.
+
 * 0.8.0 (Wednesday November 6th 2019)
 
   Bugfix and new feature release.

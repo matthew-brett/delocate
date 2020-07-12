@@ -3,6 +3,7 @@
 import sys
 from os.path import join as pjoin
 from setuptools import setup, find_packages
+import codecs
 
 # For some commands, use setuptools.
 if len(set(('develop', 'bdist_egg', 'bdist_rpm', 'bdist', 'bdist_dumb',
@@ -67,5 +68,5 @@ setup(name='delocate',
                    'Topic :: Software Development :: Libraries :: '
                    'Python Modules',
                    'Topic :: Software Development :: Build Tools'],
-      long_description=open('README.rst', 'rt').read(),
+      long_description=codecs.open('README.rst', 'r', encoding='utf-8').read(),
       )

@@ -14,6 +14,15 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* 0.8.2 (Sunday July 12th 2020)
+
+  Bugfix release.
+
+  * Force UTF-8 for import of README file.  0.8.1 introduced non-ascii
+    characters, so unguarded `open('README.rst', 'rt').read()` in `setup.py`
+    gives an encoding error.  See GH issue 81.  Thanks to Joshua Haberman for
+    the report.
+
 * 0.8.1 (Sunday June 28th 2020)
 
   Bugfix release.

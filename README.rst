@@ -5,11 +5,11 @@
 Delocate
 ########
 
-OSX utilities to:
+macOS utilities to:
 
 * find dynamic libraries imported from python extensions
 * copy needed dynamic libraries to directory within package
-* update OSX ``install_names`` and ``rpath`` to cause code to load from copies
+* update macOS ``install_names`` and ``rpath`` to cause code to load from copies
   of libraries
 
 Provides scripts:
@@ -19,8 +19,8 @@ Provides scripts:
 * ``delocate-wheel`` -- rewrite wheel having copied and relinked library
   dependencies into the wheel tree.
 
-`auditwheel <https://github.com/pypa/auditwheel>`_ is a tool for Linux
-similar to ``delocate``, on which it was based.
+`Auditwheel <https://github.com/pypa/auditwheel>`_ is a similar tool for Linux.
+Auditwheel started life as a partial fork of Delocate.
 
 ***********
 The problem
@@ -47,13 +47,13 @@ See those too with::
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgfortran.3.dylib
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libquadmath.0.dylib
 
-The output tells me that scipy has picked up dynamic libraries from my homebrew
-installation of ``gfortran`` (as well as the system libs).
+The output tells me that Scipy has picked up dynamic libraries from my
+Homebrew installation of ``gfortran`` (as well as the system libs).
 
 .. warning::
 
     Dependency paths starting with ``@loader_path/`` or ``@executable_path/``
-    are ignored by delocate.  These files will be skipped by the
+    are ignored by Delocate.  These files will be skipped by the
     ``delocate-wheel`` command.
 
 You can get a listing of the files depending on each of the libraries,
@@ -79,13 +79,13 @@ We can fix like this::
         /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgfortran.3.dylib
         /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libquadmath.0.dylib
 
-The ``-w`` flag tells delocate-wheel to output to a new wheel directory instead
-of overwriting the old wheel.  ``-v`` (verbose) tells you what delocate-wheel is
-doing.  In this case it has made a new directory in the wheel zipfile, named
-``scipy/.dylibs``. It has copied all the library dependencies that are outside
-the OSX system trees into this directory, and patched the python ``.so``
-extensions in the wheel to use these copies instead of looking in
-``/usr/local/Cellar/gfortran/4.8.2/gfortran/lib``.
+The ``-w`` flag tells `delocate-wheel` to output to a new wheel directory
+instead of overwriting the old wheel.  ``-v`` (verbose) tells you what
+`delocate-wheel` is doing.  In this case it has made a new directory in the
+wheel zipfile, named ``scipy/.dylibs``. It has copied all the library
+dependencies that are outside the macOS system trees into this directory, and
+patched the python ``.so`` extensions in the wheel to use these copies instead
+of looking in ``/usr/local/Cellar/gfortran/4.8.2/gfortran/lib``.
 
 Check the links again to confirm::
 
@@ -111,28 +111,28 @@ Check the links again to confirm::
 So - system dylibs the same, but the others moved into the wheel tree.
 
 This makes the wheel more likely to work on another machine which does not have
-the same version of gfortran installed - in this example.
+the same version of Gfortran installed - in this example.
 
 Checking required architectures
 ===============================
 
 Current Python.org Python and the macOS system Python (``/usr/bin/python``)
-are dual architecture binaries.  For example::
+are both dual architecture binaries.  For example::
 
     $ lipo -info /usr/bin/python
     Architectures in the fat file: /usr/bin/python are: x86_64 arm64e
 
-This Big Sur macOS Python has both x86_64 and arm64 (M1) versions fused into
-one file.  Earlier versions of macOS had dual architectures that were 32-bit
-(`i386`) and 64-bit (`x86_64`).
+This Big Sur macOS Python has both ``x86_64`` and ``arm64`` (M1) versions
+fused into one file.  Earlier versions of macOS had dual architectures that
+were 32-bit (``i386``) and 64-bit (``x86_64``).
 
 For full compatibility with system and Python.org Python, wheels built for
 Python.org Python or system Python should have the corresponding architectures
-- e.g. `x86_64` and `arm64` versions of the Python extensions and their
+— e.g. ``x86_64`` and ``arm64`` versions of the Python extensions and their
 libraries.  It is easy to link Python extensions against single architecture
-libraries by mistake, and therefore get single architecture extensions and
-/ or libraries. In fact my Scipy wheel above was one such example, because
-I inadvertently linked against the Homebrew libraries, which were `x86_64`
+libraries by mistake, and therefore get single architecture extensions and /
+or libraries. In fact my Scipy wheel is one such example, because I
+inadvertently linked against the Homebrew libraries, which were ``x86_64``
 only. To check this you can use the ``--require-archs`` flag::
 
     $ delocate-wheel --require-archs=intel scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
@@ -145,11 +145,11 @@ only. To check this you can use the ``--require-archs`` flag::
         "Some missing architectures in wheel")
     delocate.delocating.DelocationError: Some missing architectures in wheel
 
-Notice that this command was using an earlier version of `delocate` that
+Notice that this command was using an earlier version of Delocate that
 supported Python 2; we now support Python 3 only.
 
-The "intel" argument to `--require-arch` above requires dual 32- and 64- bit
-architecture extensions and libraries. You can see which extensions are at
+The ``intel`` argument to ``--require-arch`` above requires dual 32- and 64-
+bit architecture extensions and libraries. You can see which extensions are at
 fault by adding the ``-v`` (verbose) flag::
 
     $ delocate-wheel -w fixed_wheels --require-archs=intel -v scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
@@ -202,7 +202,7 @@ something like::
 where the first line is the `install name id`_ that the linker picked up when
 linking ``myext.so`` to ``libme.dylib``.  You job is to fix the build process
 so that ``libme.dylib`` has install name id ``/path/to/libme.dylib``.
-This is not a problem specific to ``delocate``; you will need to do this to
+This is not a problem specific to Delocate; you will need to do this to
 make sure that ``myext.so`` can load ``libme.dylib`` without ``libme.dylib``
 being in the current working directory.  For ``CMAKE`` builds you may want to
 check out CMAKE_INSTALL_NAME_DIR_.
@@ -287,7 +287,7 @@ The latest released version is at https://pypi.python.org/pypi/delocate
 Support
 *******
 
-Please put up issues on the `delocate issue tracker
+Please put up issues on the `Delocate issue tracker
 <https://github.com/matthew-brett/delocate/issues>`_.
 
 .. _install name id:

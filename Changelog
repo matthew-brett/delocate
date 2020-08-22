@@ -77,7 +77,7 @@ Releases
   More changes for compatibility with newer OSX Xcode messages.  Thanks to
   Sean Gillies.
 
-  * more adaptations to chanages to output of ``otool``.
+  * more adaptations to changes to output of ``otool``.
 
 * 0.6.4 (Wednesday November 23 2016)
 

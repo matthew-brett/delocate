@@ -217,6 +217,8 @@ def test_get_archs_fuse():
     with InTemporaryDirectory():
         lipo_fuse(LIB32, LIB64, 'anotherlib')
         assert_equal(get_archs('anotherlib'), ARCH_BOTH)
+        lipo_fuse(LIB32, LIB64, 'anotherlib++')
+        assert_equal(get_archs('anotherlib++'), ARCH_BOTH)
         lipo_fuse(LIB64, LIB32, 'anotherlib')
         assert_equal(get_archs('anotherlib'), ARCH_BOTH)
         shutil.copyfile(LIB32, 'libcopy32')

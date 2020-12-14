@@ -22,13 +22,6 @@ Provides scripts:
 `auditwheel <https://github.com/pypa/auditwheel>`_ is a tool for Linux
 similar to ``delocate``, on which it was based.
 
-.. warning::
-
-    Please be careful - this software is alpha quality and has not been much
-    tested in the wild.  Make backups of your paths and wheels before trying the
-    utilities on them, please report any problems on the issue tracker (see
-    below).
-
 ***********
 The problem
 ***********

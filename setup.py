@@ -64,7 +64,7 @@ setup(name='delocate',
                    'License :: OSI Approved :: BSD License',
                    'Programming Language :: Python',
                    'Operating System :: MacOS :: MacOS X',
-                   'Development Status :: 3 - Alpha',
+                   "Development Status :: 5 - Production/Stable",
                    'Topic :: Software Development :: Libraries :: '
                    'Python Modules',
                    'Topic :: Software Development :: Build Tools'],

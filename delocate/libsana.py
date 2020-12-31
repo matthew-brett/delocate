@@ -17,11 +17,8 @@ class DependencyNotFound(Exception):
     """
 
 
-def tree_libs(start_path, filt_func=None, ignore_missing=False):
+def tree_libs(start_path, filt_func=None, skip_missing=False):
     """ Return analysis of library dependencies within `start_path`
-    
-    DependencyNotFound is raised if any `@rpath` dependencies can not be
-    resolved.
 
     Parameters
     ----------
@@ -31,9 +28,9 @@ def tree_libs(start_path, filt_func=None, ignore_missing=False):
         If None, inspect all files for library dependencies. If callable,
         accepts filename as argument, returns True if we should inspect the
         file, False otherwise.
-    ignore_missing : bool
+    skip_missing : {False, True}, optional
         Determines if dependency resolution failures are considered a critical
-        error to be raised.  Otherwise ignored libraries are only printed out.
+        error to be raised.  Otherwise missing libraries are only warned about.
 
     Returns
     -------
@@ -50,6 +47,12 @@ def tree_libs(start_path, filt_func=None, ignore_missing=False):
         is the canonical (``os.path.realpath``) filename of the library
         depending on ``libpath``, and ``install_name`` is the "install_name" by
         which ``depending_libpath`` refers to ``libpath``.
+
+    Raises
+    ------
+    DependencyNotFound
+        When any `@rpath` dependencies can not be located and `skip_missing`
+        is False.
 
     Notes
     -----
@@ -90,7 +93,7 @@ def tree_libs(start_path, filt_func=None, ignore_missing=False):
                 else:
                     lib_dict[lib_path] = {depending_libpath: install_name}
 
-    if not ignore_missing and missing_dependencies:
+    if not skip_missing and missing_dependencies:
         error_msg = "Could not find these dependencies:"
         for missing, rpaths, dependant in missing_dependencies:
             error_msg += (
@@ -111,8 +114,6 @@ def tree_libs(start_path, filt_func=None, ignore_missing=False):
 def resolve_rpath(lib_path, rpaths):
     """ Return `lib_path` with its `@rpath` resolved
 
-    If the `lib_path` doesn't have `@rpath` then DependencyNotFound is raised.
-
     If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
     combination found.  If the library can't be found in `rpaths` then a
     detailed warning is printed and `lib_path` is returned as is.
@@ -128,6 +129,12 @@ def resolve_rpath(lib_path, rpaths):
     -------
     lib_path : str
         A str with the resolved libraries realpath.
+
+    Raises
+    ------
+    DependencyNotFound
+        When `lib_path` has `@rpath` in it but can not be found on any of the
+        provided `rpaths`.
     """
     if not lib_path.startswith('@rpath/'):
         return lib_path

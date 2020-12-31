@@ -6,15 +6,22 @@ Analyze library dependencies in paths and wheel files
 import os
 from os.path import basename, join as pjoin, realpath
 
-import warnings
-
 from .tools import (get_install_names, zip2dir, get_rpaths,
                     get_environment_variable_paths)
 from .tmpdirs import TemporaryDirectory
 
 
-def tree_libs(start_path, filt_func=None):
+class DependencyNotFound(Exception):
+    """Raised by tree_libs or resolve_rpath if an expected dependency is
+    missing.
+    """
+
+
+def tree_libs(start_path, filt_func=None, ignore_missing=False):
     """ Return analysis of library dependencies within `start_path`
+    
+    DependencyNotFound is raised if any `@rpath` dependencies can not be
+    resolved.
 
     Parameters
     ----------
@@ -24,6 +31,9 @@ def tree_libs(start_path, filt_func=None):
         If None, inspect all files for library dependencies. If callable,
         accepts filename as argument, returns True if we should inspect the
         file, False otherwise.
+    ignore_missing : bool
+        Determines if dependency resolution failures are considered a critical
+        error to be raised.  Otherwise ignored libraries are only printed out.
 
     Returns
     -------
@@ -50,6 +60,7 @@ def tree_libs(start_path, filt_func=None):
     * http://matthew-brett.github.io/pydagogue/mac_runtime_link.html
     """
     lib_dict = {}
+    missing_dependencies = []  # Info on libraries not found by resolve_rpath.
     env_var_paths = get_environment_variable_paths()
     for dirpath, dirnames, basenames in os.walk(start_path):
         for base in basenames:
@@ -63,7 +74,13 @@ def tree_libs(start_path, filt_func=None):
                 # We'll do nothing to other '@'-paths
                 # Otherwise we'll search for the library using env variables
                 if install_name.startswith('@rpath'):
-                    lib_path = resolve_rpath(install_name, search_paths)
+                    try:
+                        lib_path = resolve_rpath(install_name, search_paths)
+                    except DependencyNotFound:
+                        lib_path = install_name
+                        missing_dependencies.append(
+                            (install_name, search_paths, depending_libpath)
+                        )
                 elif install_name.startswith('@'):
                     lib_path = install_name
                 else:
@@ -72,13 +89,29 @@ def tree_libs(start_path, filt_func=None):
                     lib_dict[lib_path][depending_libpath] = install_name
                 else:
                     lib_dict[lib_path] = {depending_libpath: install_name}
+
+    if not ignore_missing and missing_dependencies:
+        error_msg = "Could not find these dependencies:"
+        for missing, rpaths, dependant in missing_dependencies:
+            error_msg += (
+                "\n{0} not found:"
+                "\n  Needed by: {1}"
+                "\n  Search path:\n    {2}".format(
+                    missing, dependant, "\n    ".join(rpaths)
+                )
+            )
+        raise DependencyNotFound(error_msg)
+
+    for missing, _, _ in missing_dependencies:
+        print("Ignoring missing dependency: {0}".format(missing))
+
     return lib_dict
 
 
 def resolve_rpath(lib_path, rpaths):
     """ Return `lib_path` with its `@rpath` resolved
 
-    If the `lib_path` doesn't have `@rpath` then it's returned as is.
+    If the `lib_path` doesn't have `@rpath` then DependencyNotFound is raised.
 
     If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
     combination found.  If the library can't be found in `rpaths` then a
@@ -105,13 +138,7 @@ def resolve_rpath(lib_path, rpaths):
         if os.path.exists(rpath_lib):
             return rpath_lib
 
-    warnings.warn(
-        "Couldn't find {0} on paths:\n\t{1}".format(
-            lib_path,
-            '\n\t'.join(realpath(path) for path in rpaths),
-            )
-        )
-    return lib_path
+    raise DependencyNotFound(lib_path)
 
 
 def search_environment_for_lib(lib_path):

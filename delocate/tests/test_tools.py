@@ -106,6 +106,7 @@ def test_ensure_writable():
         # Set to user rw, else r
         os.chmod('test.bin', 0o644)
         st = os.stat('test.bin')
+
         @ensure_writable
         def foo(fname):
             pass
@@ -120,15 +121,17 @@ def test_ensure_writable():
 
 def test_parse_install_name():
     # otool on versions previous to Catalina
-    line0 = ('/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore '
-            '(compatibility version 1.2.0, current version 1.11.0)')
+    line0 = (
+        '/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore '
+        '(compatibility version 1.2.0, current version 1.11.0)')
     name, cpver, cuver = (
         '/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore',
         '1.2.0', '1.11.0')
     assert parse_install_name(line0) == (name, cpver, cuver)
     # otool on Catalina
-    line1 = ('/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore '
-             '(compatibility version 1.2.0, current version 1.11.0, weak)')
+    line1 = (
+        '/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore '
+        '(compatibility version 1.2.0, current version 1.11.0, weak)')
     assert parse_install_name(line1) == (name, cpver, cuver)
 
 

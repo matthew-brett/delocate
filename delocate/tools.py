@@ -333,8 +333,8 @@ def get_environment_variable_paths():
     """ Return a tuple of entries in `DYLD_LIBRARY_PATH` and
     `DYLD_FALLBACK_LIBRARY_PATH`.
 
-    This will allow us to search those locations for dependencies of libraries as
-    well as `@rpath` entries.
+    This will allow us to search those locations for dependencies of libraries
+    as well as `@rpath` entries.
 
     Returns
     -------
@@ -494,8 +494,10 @@ def get_archs(libname):
         assert len(lines) == 1
         line = lines[0]
     for reggie in (
-            'Non-fat file: {0} is architecture: (.*)'.format(re.escape(libname)),
-            'Architectures in the fat file: {0} are: (.*)'.format(re.escape(libname))):
+        'Non-fat file: {0} is architecture: (.*)'.format(re.escape(libname)),
+        'Architectures in the fat file: {0} are: (.*)'.format(
+                                                            re.escape(libname))
+    ):
         reggie = re.compile(reggie)
         match = reggie.match(line)
         if match is not None:

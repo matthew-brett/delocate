@@ -6,6 +6,8 @@ Analyze library dependencies in paths and wheel files
 import os
 from os.path import basename, join as pjoin, realpath
 
+import warnings
+
 from .tools import (get_install_names, zip2dir, get_rpaths,
                     get_environment_variable_paths)
 from .tmpdirs import TemporaryDirectory
@@ -53,6 +55,11 @@ def tree_libs(start_path, filt_func=None, skip_missing=False):
     DependencyNotFound
         When any `@rpath` dependencies can not be located and `skip_missing`
         is False.
+
+    Warns
+    -----
+    UserWarning
+        Instead of DependencyNotFound when `skip_missing` is True.
 
     Notes
     -----
@@ -105,8 +112,12 @@ def tree_libs(start_path, filt_func=None, skip_missing=False):
             )
         raise DependencyNotFound(error_msg)
 
-    for missing, _, _ in missing_dependencies:
-        print("Ignoring missing dependency: {0}".format(missing))
+    if missing_dependencies:
+        warnings.warn(
+            "Ignored missing dependencies:\n  {0}".format(
+                "\n  ".join(missing for missing, _, _ in missing_dependencies),
+            )
+        )
 
     return lib_dict
 

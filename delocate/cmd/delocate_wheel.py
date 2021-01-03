@@ -9,6 +9,7 @@ from __future__ import division, print_function, absolute_import
 import os
 from os.path import join as pjoin, basename, exists, expanduser
 import sys
+from typing import List, Optional, Text
 
 from optparse import OptionParser, Option
 
@@ -16,6 +17,7 @@ from delocate import delocate_wheel, __version__
 
 
 def main():
+    # type: () -> None
     parser = OptionParser(
         usage="%s WHEEL_FILENAME\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__)
@@ -52,6 +54,7 @@ def main():
             os.makedirs(wheel_dir)
     else:
         wheel_dir = None
+    require_archs = None  # type: Optional[List[Text]]
     if opts.require_archs is None:
         require_archs = [] if opts.check_archs else None
     elif ',' in opts.require_archs:

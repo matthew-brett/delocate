@@ -5,8 +5,9 @@ import os
 import sys
 from os.path import (join as pjoin, relpath, isdir, dirname, basename)
 import shutil
+from typing import Iterable, Text
 
-from ..tools import (cmp_contents, get_archs, zip2dir, dir2zip, back_tick,
+from ..tools import (cmp_contents, get_archs, zip2dir, dir2zip, check_call,
                      open_readable)
 from ..fuse import fuse_trees, fuse_wheels
 from ..tmpdirs import InTemporaryDirectory
@@ -20,6 +21,7 @@ from .test_wheeltools import assert_record_equal
 
 
 def assert_same_tree(tree1, tree2):
+    # type: (Text, Text) -> None
     for dirpath, dirnames, filenames in os.walk(tree1):
         tree2_dirpath = pjoin(tree2, relpath(dirpath, tree1))
         for dname in dirnames:
@@ -37,10 +39,12 @@ def assert_same_tree(tree1, tree2):
 
 
 def assert_listdir_equal(path, listing):
+    # type: (Text, Iterable[Text]) -> None
     assert sorted(os.listdir(path)) == sorted(listing)
 
 
 def test_fuse_trees():
+    # type: () -> None
     # Test function to fuse two paths
     with InTemporaryDirectory():
         os.mkdir('tree1')
@@ -86,6 +90,7 @@ def test_fuse_trees():
 
 
 def test_fuse_wheels():
+    # type: () -> None
     # Test function to fuse two wheels
     wheel_base = basename(PURE_WHEEL)
     with InTemporaryDirectory():
@@ -97,7 +102,7 @@ def test_fuse_wheels():
         zip2dir(wheel_base, 'fused_wheel')
         assert_same_tree('to_wheel', 'fused_wheel')
         # Check unpacking works on fused wheel
-        back_tick([sys.executable, '-m', 'wheel', 'unpack', wheel_base])
+        check_call([sys.executable, '-m', 'wheel', 'unpack', wheel_base])
         # Put lib into wheel
         shutil.copyfile(LIB64A, pjoin('from_wheel', 'fakepkg2', 'liba.a'))
         rewrite_record('from_wheel')

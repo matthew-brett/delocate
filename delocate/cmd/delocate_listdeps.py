@@ -15,6 +15,7 @@ from delocate.libsana import stripped_lib_dict
 
 
 def main():
+    # type: () -> None
     parser = OptionParser(
         usage="%s WHEEL_OR_PATH_TO_ANALYZE\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__)

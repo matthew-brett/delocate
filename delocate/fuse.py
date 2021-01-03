@@ -16,6 +16,7 @@ libraries.
 import os
 from os.path import (join as pjoin, exists, splitext, relpath, abspath)
 import shutil
+from typing import Container, Text
 
 from .tools import (zip2dir, dir2zip, cmp_contents, lipo_fuse,
                     open_rw, chmod_perms)
@@ -24,6 +25,7 @@ from .wheeltools import rewrite_record
 
 
 def _copyfile(in_fname, out_fname):
+    # type: (Text, Text) -> None
     # Copies files without read / write permission
     perms = chmod_perms(in_fname)
     with open_rw(in_fname, 'rb') as fobj:
@@ -34,6 +36,7 @@ def _copyfile(in_fname, out_fname):
 
 
 def fuse_trees(to_tree, from_tree, lib_exts=('.so', '.dylib', '.a')):
+    # type: (Text, Text, Container[Text]) -> None
     """ Fuse path `from_tree` into path `to_tree`
 
     For each file in `from_tree` - check for library file extension (in
@@ -78,6 +81,7 @@ def fuse_trees(to_tree, from_tree, lib_exts=('.so', '.dylib', '.a')):
 
 
 def fuse_wheels(to_wheel, from_wheel, out_wheel):
+    # type: (Text, Text, Text) -> None
     """ Fuse `from_wheel` into `to_wheel`, write to `out_wheel`
 
     Parameters

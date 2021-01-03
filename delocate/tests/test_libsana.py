@@ -5,6 +5,7 @@ Utilities for analyzing library dependencies in trees and wheels
 
 import os
 from os.path import (join as pjoin, dirname, realpath, relpath, split)
+from typing import Dict, Iterable, Text
 
 from ..libsana import (tree_libs, get_prefix_stripper, get_rp_stripper,
                        stripped_lib_dict, wheel_libs, resolve_rpath)
@@ -21,6 +22,7 @@ from .test_wheelies import (PLAT_WHEEL, PURE_WHEEL, STRAY_LIB_DEP)
 
 
 def get_ext_dict(local_libs):
+    # type: (Iterable[Text]) -> Dict[Text, Dict[Text, Text]]
     ext_deps = {}
     for ext_lib in EXT_LIBS:
         lib_deps = {}
@@ -31,6 +33,7 @@ def get_ext_dict(local_libs):
 
 
 def test_tree_libs():
+    # type: () -> None
     # Test ability to walk through tree, finding dynamic libary refs
     # Copy specific files to avoid working tree cruft
     to_copy = [LIBA, LIBB, LIBC, TEST_LIB]
@@ -48,6 +51,7 @@ def test_tree_libs():
         assert_equal(tree_libs(tmpdir), exp_dict)
 
         def filt(fname):
+            # type: (Text) -> bool
             return fname.endswith('.dylib')
         exp_dict = get_ext_dict([liba, libb, libc])
         exp_dict.update({
@@ -95,6 +99,7 @@ def test_tree_libs():
 
 
 def test_get_prefix_stripper():
+    # type: () -> None
     # Test function factory to strip prefixes
     f = get_prefix_stripper('')
     assert_equal(f('a string'), 'a string')
@@ -105,6 +110,7 @@ def test_get_prefix_stripper():
 
 
 def test_get_rp_stripper():
+    # type: () -> None
     # realpath prefix stripper
     # Just does realpath and adds path sep
     cwd = realpath(os.getcwd())
@@ -118,6 +124,7 @@ def test_get_rp_stripper():
 
 
 def get_ext_dict_stripped(local_libs, start_path):
+    # type: (Iterable[Text], Text) -> Dict[Text, Dict[Text, Text]]
     ext_dict = {}
     for ext_lib in EXT_LIBS:
         lib_deps = {}
@@ -131,6 +138,7 @@ def get_ext_dict_stripped(local_libs, start_path):
 
 
 def test_stripped_lib_dict():
+    # type: () -> None
     # Test routine to return lib_dict with relative paths
     to_copy = [LIBA, LIBB, LIBC, TEST_LIB]
     with InTemporaryDirectory() as tmpdir:
@@ -164,6 +172,7 @@ def test_stripped_lib_dict():
 
 
 def test_wheel_libs():
+    # type: () -> None
     # Test routine to list dependencies from wheels
     assert_equal(wheel_libs(PURE_WHEEL), {})
     mod2 = pjoin('fakepkg1', 'subpkg', 'module2.so')
@@ -172,11 +181,13 @@ def test_wheel_libs():
                   realpath(LIBSYSTEMB): {mod2: LIBSYSTEMB}})
 
     def filt(fname):
+        # type: (Text) -> bool
         return not fname.endswith(mod2)
     assert_equal(wheel_libs(PLAT_WHEEL, filt), {})
 
 
 def test_resolve_rpath():
+    # type: () -> None
     # A minimal test of the resolve_rpath function
     path, lib = split(LIBA)
     lib_rpath = pjoin('@rpath', lib)

@@ -13,6 +13,8 @@ from __future__ import division, print_function, absolute_import
 import os
 import shutil
 from tempfile import template, mkdtemp
+from typing import Any, Optional, Text
+from typing_extensions import Literal
 
 
 class TemporaryDirectory(object):
@@ -33,18 +35,22 @@ class TemporaryDirectory(object):
     False
     """
     def __init__(self, suffix="", prefix=template, dir=None):
+        # type: (Text, Text, Optional[Text]) -> None
         self.name = mkdtemp(suffix, prefix, dir)
         self._closed = False
 
     def __enter__(self):
+        # type: () -> Text
         return self.name
 
     def cleanup(self):
+        # type: () -> None
         if not self._closed:
             shutil.rmtree(self.name)
             self._closed = True
 
     def __exit__(self, exc, value, tb):
+        # type: (Any, Any, Any) -> Literal[False]
         self.cleanup()
         return False
 
@@ -66,11 +72,13 @@ class InTemporaryDirectory(TemporaryDirectory):
     True
     '''
     def __enter__(self):
+        # type: () -> Text
         self._pwd = os.getcwd()
         os.chdir(self.name)
         return super(InTemporaryDirectory, self).__enter__()
 
     def __exit__(self, exc, value, tb):
+        # type: (Any, Any, Any) -> Literal[False]
         os.chdir(self._pwd)
         return super(InTemporaryDirectory, self).__exit__(exc, value, tb)
 
@@ -99,6 +107,7 @@ class InGivenDirectory(object):
     again.
     """
     def __init__(self, path=None):
+        # type: (Optional[Text]) -> None
         """ Initialize directory context manager
 
         Parameters
@@ -112,6 +121,7 @@ class InGivenDirectory(object):
         self.path = os.path.abspath(path)
 
     def __enter__(self):
+        # type: () -> Text
         self._pwd = os.path.abspath(os.getcwd())
         if not os.path.isdir(self.path):
             os.mkdir(self.path)
@@ -119,4 +129,5 @@ class InGivenDirectory(object):
         return self.path
 
     def __exit__(self, exc, value, tb):
+        # type: (Any, Any, Any) -> None
         os.chdir(self._pwd)

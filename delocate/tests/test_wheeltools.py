@@ -4,6 +4,7 @@
 import os
 from os.path import join as pjoin, exists, isfile, basename, realpath, splitext
 import shutil
+from typing import Any, Iterable, List, Sequence, Text, Tuple, TypeVar
 
 try:
     from wheel.install import WheelFile
@@ -21,12 +22,18 @@ from .pytest_tools import (assert_true, assert_false, assert_raises,
 from .test_wheelies import PURE_WHEEL, PLAT_WHEEL
 
 
+KT = TypeVar("KT")
+VT = TypeVar("VT")
+
+
 def assert_record_equal(record_orig, record_new):
+    # type: (Text, Text) -> None
     assert_equal(sorted(record_orig.splitlines()),
                  sorted(record_new.splitlines()))
 
 
 def test_rewrite_record():
+    # type: () -> None
     dist_info_sdir = 'fakepkg2-1.0.dist-info'
     with InTemporaryDirectory():
         zip2dir(PURE_WHEEL, 'wheel')
@@ -55,24 +62,25 @@ def test_rewrite_record():
 
 
 def test_in_wheel():
+    # type: () -> None
     # Test in-wheel context managers
     # Stuff they share
     for ctx_mgr in InWheel, InWheelCtx:
-        with ctx_mgr(PURE_WHEEL):  # No output wheel
+        with ctx_mgr(PURE_WHEEL):  # type: ignore  # No output wheel
             shutil.rmtree('fakepkg2')
             res = sorted(os.listdir('.'))
         assert_equal(res, ['fakepkg2-1.0.dist-info'])
         # The original wheel unchanged
-        with ctx_mgr(PURE_WHEEL):  # No output wheel
+        with ctx_mgr(PURE_WHEEL):  # type: ignore  # No output wheel
             res = sorted(os.listdir('.'))
         assert_equal(res, ['fakepkg2', 'fakepkg2-1.0.dist-info'])
         # Make an output wheel file in a temporary directory
         with InTemporaryDirectory():
             mod_path = pjoin('fakepkg2', 'module1.py')
-            with ctx_mgr(PURE_WHEEL, 'mungled.whl'):
+            with ctx_mgr(PURE_WHEEL, 'mungled.whl'):  # type: ignore
                 assert_true(isfile(mod_path))
                 os.unlink(mod_path)
-            with ctx_mgr('mungled.whl'):
+            with ctx_mgr('mungled.whl'):  # type: ignore
                 assert_false(isfile(mod_path))
     # Different return from context manager
     with InWheel(PURE_WHEEL) as wheel_path:
@@ -92,10 +100,12 @@ def test_in_wheel():
 
 
 def _filter_key(items, key):
+    # type: (Iterable[Tuple[KT, VT]], KT) -> List[Tuple[KT, VT]]
     return [(k, v) for k, v in items if k != key]
 
 
 def get_info(wheelfile):
+    # type: (WheelFile) -> Any
     # Work round wheel API changes
     try:
         return wheelfile.parsed_wheel_info
@@ -108,6 +118,7 @@ def get_info(wheelfile):
 
 
 def assert_winfo_similar(whl_fname, exp_items, drop_version=True):
+    # type: (Text, Sequence[Tuple[Text, Text]], bool) -> None
     wf = WheelFile(whl_fname)
     wheel_parts = wf.parsed_filename.groupdict()
     # Info can contain duplicate keys (e.g. Tag)
@@ -125,6 +136,7 @@ def assert_winfo_similar(whl_fname, exp_items, drop_version=True):
 
 
 def test_add_platforms():
+    # type: () -> None
     # Check adding platform to wheel name and tag section
     exp_items = [('Generator', 'bdist_wheel {pip_version}'),
                  ('Root-Is-Purelib', 'false'),
@@ -141,7 +153,7 @@ def test_add_platforms():
         assert_false(exists(out_fname))
         out_fname = (splitext(basename(PLAT_WHEEL))[0] +
                      '.macosx_10_9_intel.macosx_10_9_x86_64.whl')
-        assert_equal(realpath(add_platforms(PLAT_WHEEL, plats, tmpdir)),
+        assert_equal(realpath(add_platforms(PLAT_WHEEL, plats, tmpdir) or ""),
                      realpath(out_fname))
         assert_true(isfile(out_fname))
         # Expected output minus wheel-version (that might change)
@@ -159,12 +171,14 @@ def test_add_platforms():
         # Assemble platform tags in two waves to check tags are not being
         # multiplied
         out_1 = splitext(basename(PLAT_WHEEL))[0] + '.macosx_10_9_intel.whl'
-        assert_equal(realpath(add_platforms(PLAT_WHEEL, plats[0:1], tmpdir)),
-                     realpath(out_1))
+        assert_equal(
+            realpath(add_platforms(PLAT_WHEEL, plats[0:1], tmpdir) or ""),
+            realpath(out_1))
         assert_winfo_similar(out_1, extra_exp[:-1])
         out_2 = splitext(out_1)[0] + '.macosx_10_9_x86_64.whl'
-        assert_equal(realpath(add_platforms(out_1, plats[1:], tmpdir, True)),
-                     realpath(out_2))
+        assert_equal(
+            realpath(add_platforms(out_1, plats[1:], tmpdir, True) or ""),
+            realpath(out_2))
         assert_winfo_similar(out_2, extra_exp)
         # Default is to write into directory of wheel
         os.mkdir('wheels')

@@ -5,37 +5,40 @@ import os
 from os.path import join as pjoin, dirname
 import stat
 import shutil
+from typing import Iterator, Text
 
-from ..tools import (back_tick, unique_by_index, ensure_writable, chmod_perms,
+from ..tools import (unique_by_index, ensure_writable, chmod_perms,
                      ensure_permissions, parse_install_name, zip2dir, dir2zip,
                      find_package_dirs, cmp_contents, get_archs, lipo_fuse,
-                     replace_signature, validate_signature, add_rpath)
+                     replace_signature, validate_signature, add_rpath,
+                     run_call, check_call)
 
 from ..tmpdirs import InTemporaryDirectory
 
 from .pytest_tools import assert_true, assert_false, assert_equal, \
     assert_raises
 
-DATA_PATH = pjoin(dirname(__file__), 'data')
-LIB32 = pjoin(DATA_PATH, 'liba32.dylib')
-LIB64 = pjoin(DATA_PATH, 'liba.dylib')
-LIBBOTH = pjoin(DATA_PATH, 'liba_both.dylib')
-LIB64A = pjoin(DATA_PATH, 'liba.a')
-ARCH_64 = frozenset(['x86_64'])
-ARCH_32 = frozenset(['i386'])
+DATA_PATH = pjoin(dirname(__file__), u'data')
+LIB32 = pjoin(DATA_PATH, u'liba32.dylib')
+LIB64 = pjoin(DATA_PATH, u'liba.dylib')
+LIBBOTH = pjoin(DATA_PATH, u'liba_both.dylib')
+LIB64A = pjoin(DATA_PATH, u'liba.a')
+ARCH_64 = frozenset([u'x86_64'])
+ARCH_32 = frozenset([u'i386'])
 ARCH_BOTH = ARCH_64 | ARCH_32
 
 
-def test_back_tick():
+def test_call():
+    # type: () -> None
     cmd = 'python -c "print(\'Hello\')"'
-    assert_equal(back_tick(cmd), "Hello")
-    assert_equal(back_tick(cmd, ret_err=True), ("Hello", ""))
-    assert_equal(back_tick(cmd, True, False), (b"Hello", b""))
+    assert_equal(check_call(cmd), "Hello")
+    assert_equal(run_call(cmd), (0, "Hello", ""))
     cmd = 'python -c "raise ValueError()"'
-    assert_raises(RuntimeError, back_tick, cmd)
+    assert_raises(RuntimeError, check_call, cmd)
 
 
 def test_uniqe_by_index():
+    # type: () -> None
     assert_equal(unique_by_index([1, 2, 3, 4]),
                  [1, 2, 3, 4])
     assert_equal(unique_by_index([1, 2, 2, 4]),
@@ -44,6 +47,7 @@ def test_uniqe_by_index():
                  [4, 2, 1])
 
     def gen():
+        # type: () -> Iterator[int]
         yield 4
         yield 2
         yield 2
@@ -52,6 +56,7 @@ def test_uniqe_by_index():
 
 
 def test_ensure_permissions():
+    # type: () -> None
     # Test decorator to ensure permissions
     with InTemporaryDirectory():
         # Write, set zero permissions
@@ -64,6 +69,7 @@ def test_ensure_permissions():
             sts[fname] = chmod_perms(fname)
 
         def read_file(fname):
+            # type: (Text) -> Text
             with open(fname, 'rt') as fobj:
                 contents = fobj.read()
             return contents
@@ -72,6 +78,7 @@ def test_ensure_permissions():
         non_read_file = ensure_permissions(stat.S_IWUSR)(read_file)
 
         def write_file(fname, contents):
+            # type: (Text, str) -> None
             with open(fname, 'wt') as fobj:
                 fobj.write(contents)
 
@@ -99,6 +106,7 @@ def test_ensure_permissions():
 
 
 def test_ensure_writable():
+    # type: () -> None
     # Test ensure writable decorator
     with InTemporaryDirectory():
         with open('test.bin', 'wt') as fobj:
@@ -109,6 +117,7 @@ def test_ensure_writable():
 
         @ensure_writable
         def foo(fname):
+            # type: (Text) -> None
             pass
         foo('test.bin')
         assert_equal(os.stat('test.bin'), st)
@@ -120,6 +129,7 @@ def test_ensure_writable():
 
 
 def test_parse_install_name():
+    # type: () -> None
     # otool on versions previous to Catalina
     line0 = (
         '/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore '
@@ -136,11 +146,13 @@ def test_parse_install_name():
 
 
 def _write_file(filename, contents):
+    # type: (Text, str) -> None
     with open(filename, 'wt') as fobj:
         fobj.write(contents)
 
 
 def test_zip2():
+    # type: () -> None
     # Test utilities to unzip and zip up
     with InTemporaryDirectory():
         os.mkdir('a_dir')
@@ -173,6 +185,7 @@ def test_zip2():
 
 
 def test_find_package_dirs():
+    # type: () -> None
     # Test utility for finding package directories
     with InTemporaryDirectory():
         os.mkdir('to_test')
@@ -194,6 +207,7 @@ def test_find_package_dirs():
 
 
 def test_cmp_contents():
+    # type: () -> None
     # Binary compare of filenames
     assert_true(cmp_contents(__file__, __file__))
     with InTemporaryDirectory():
@@ -211,6 +225,7 @@ def test_cmp_contents():
 
 
 def test_get_archs_fuse():
+    # type: () -> None
     # Test routine to get architecture types from file
     assert_equal(get_archs(LIB32), ARCH_32)
     assert_equal(get_archs(LIB64), ARCH_64)
@@ -235,10 +250,12 @@ def test_get_archs_fuse():
 
 
 def test_validate_signature():
+    # type: () -> None
     # Fully test the validate_signature tool
     def check_signature(filename):
+        # type: (Text) -> None
         """Raises RuntimeError if codesign can not verify the signature."""
-        back_tick(['codesign', '--verify', filename], raise_err=True)
+        check_call(['codesign', '--verify', filename])
 
     with InTemporaryDirectory():
         # Copy a binary file to test with, any binary file would work

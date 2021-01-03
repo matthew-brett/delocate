@@ -12,6 +12,7 @@ from delocate import delocate_path, __version__
 
 
 def main():
+    # type: () -> None
     parser = OptionParser(
         usage="%s PATH_TO_ANALYZE\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__)

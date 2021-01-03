@@ -8,14 +8,66 @@ import zipfile
 import re
 import stat
 import time
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    FrozenSet,
+    Text,
+    Tuple,
+    TypeVar,
+    Union,
+)
+
+
+T = TypeVar("T")
+F = TypeVar('F', bound=Callable[..., Any])
 
 
 class InstallNameError(Exception):
     pass
 
 
-def back_tick(cmd, ret_err=False, as_str=True, raise_err=None):
-    """ Run command `cmd`, return stdout, or stdout, stderr if `ret_err`
+def run_call(cmd):
+    # type: (Union[Text, Sequence[Text]]) -> Tuple[int, Text, Text]
+    """ Run a command and return the exit code as well as stdout and stderr.
+
+    If unsure, then use the `check_call` function instead.
+
+    Parameters
+    ----------
+    cmd : sequence
+        command to execute
+
+    Returns
+    -------
+    returncode : int
+        The return code the call exited with.
+    stdout : str
+        The stripped output from the calls stdout pipe.
+    stderr : str
+        The stripped output from the calls stderr pipe.
+    """
+    cmd_is_seq = not isinstance(cmd, str)
+    proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=not cmd_is_seq,
+                 universal_newlines=True)
+    out = ""
+    err = ""
+    while proc.returncode is None:
+        out_, err_ = proc.communicate()
+        out += out_
+        err += err_
+    return proc.returncode, out.strip(), err.strip()
+
+
+def check_call(cmd):
+    # type: (Union[Text, Sequence[Text]]) -> Text
+    """ Run a command and return the output on success or raise an exception on
+    an error.
 
     Roughly equivalent to ``check_output`` in Python 2.7
 
@@ -23,53 +75,31 @@ def back_tick(cmd, ret_err=False, as_str=True, raise_err=None):
     ----------
     cmd : sequence
         command to execute
-    ret_err : bool, optional
-        If True, return stderr in addition to stdout.  If False, just return
-        stdout
-    as_str : bool, optional
-        Whether to decode outputs to unicode string on exit.
-    raise_err : None or bool, optional
-        If True, raise RuntimeError for non-zero return code. If None, set to
-        True when `ret_err` is False, False if `ret_err` is True
 
     Returns
     -------
-    out : str or tuple
-        If `ret_err` is False, return stripped string containing stdout from
-        `cmd`.  If `ret_err` is True, return tuple of (stdout, stderr) where
-        ``stdout`` is the stripped stdout, and ``stderr`` is the stripped
-        stderr.
+    stdout : str
+        The stripped output from the calls stdout pipe.
 
     Raises
     ------
-    Raises RuntimeError if command returns non-zero exit code and `raise_err`
-    is True
+    RuntimeError
+        If the call returns a non-zero exit code.
     """
-    if raise_err is None:
-        raise_err = False if ret_err else True
-    cmd_is_seq = isinstance(cmd, (list, tuple))
-    proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=not cmd_is_seq)
-    out, err = proc.communicate()
-    retcode = proc.returncode
-    cmd_str = ' '.join(cmd) if cmd_is_seq else cmd
-    if retcode is None:
-        proc.terminate()
-        raise RuntimeError(cmd_str + ' process did not terminate')
-    if raise_err and retcode != 0:
-        raise RuntimeError('{0} returned code {1} with error {2}'.format(
-                           cmd_str, retcode, err.decode('latin-1')))
-    out = out.strip()
-    if as_str:
-        out = out.decode('latin-1')
-    if not ret_err:
-        return out
-    err = err.strip()
-    if as_str:
-        err = err.decode('latin-1')
-    return out, err
+    returncode, out, err = run_call(cmd)
+    if returncode != 0:
+        cmd_is_seq = not isinstance(cmd, str)
+        cmd_str = ' '.join(cmd) if cmd_is_seq else cmd
+        raise RuntimeError(
+            '{0} returned code {1} with error {2}'.format(
+                cmd_str, returncode, err
+            )
+        )
+    return out
 
 
 def unique_by_index(sequence):
+    # type: (Iterable[T]) -> List[T]
     """ unique elements in `sequence` in the order in which they occur
 
     Parameters
@@ -90,11 +120,13 @@ def unique_by_index(sequence):
 
 
 def chmod_perms(fname):
+    # type: (Text) -> int
     # Permissions relevant to chmod
     return stat.S_IMODE(os.stat(fname).st_mode)
 
 
 def ensure_permissions(mode_flags=stat.S_IWUSR):
+    # type: (int) -> Callable[[F], F]
     """decorator to ensure a filename has given permissions.
 
     If changed, original permissions are restored after the decorated
@@ -102,7 +134,9 @@ def ensure_permissions(mode_flags=stat.S_IWUSR):
     """
 
     def decorator(f):
+        # type: (F) -> F
         def modify(filename, *args, **kwargs):
+            # type: (str, *Any, **Any) -> Any
             m = chmod_perms(filename) if exists(filename) else mode_flags
             if not m & mode_flags:
                 os.chmod(filename, m | mode_flags)
@@ -112,7 +146,7 @@ def ensure_permissions(mode_flags=stat.S_IWUSR):
                 # restore original permissions
                 if not m & mode_flags:
                     os.chmod(filename, m)
-        return modify
+        return modify  # type: ignore  # Cast to F
 
     return decorator
 
@@ -132,6 +166,7 @@ IN_RE = re.compile(r"(.*) \(compatibility version (\d+\.\d+\.\d+), "
 
 
 def parse_install_name(line):
+    # type: (Text) -> Tuple[Text, Text, Text]
     """ Parse a line of install name output
 
     Parameters
@@ -149,7 +184,11 @@ def parse_install_name(line):
         current version
     """
     line = line.strip()
-    return IN_RE.match(line).groups()
+    match = IN_RE.match(line)
+    if not match:
+        raise RuntimeError("Could not parse {0!r}.".format(line))
+    libname, compat_version, current_version = match.groups()
+    return libname, compat_version, current_version
 
 
 # otool -L strings indicating this is not an object file. The string changes
@@ -170,17 +209,19 @@ BAD_OBJECT_TESTS = [
     lambda s: 'object is not a Mach-O file type' in s,
     # File may not have read permissions
     lambda s: RE_PERM_DEN.search(s) is not None
-]
+]  # type: List[Callable[[Text], bool]]
 
 
 def _cmd_out_err(cmd):
+    # type: (Union[Text, Sequence[Text]]) -> List[Text]
     # Run command, return stdout or stderr if stdout is empty
-    out, err = back_tick(cmd, ret_err=True)
+    _, out, err = run_call(cmd)
     out = err if not len(out) else out
     return out.split('\n')
 
 
 def _line0_says_object(line0, filename):
+    # type: (Text, Text) -> bool
     line0 = line0.strip()
     for test in BAD_OBJECT_TESTS:
         if test(line0):
@@ -198,6 +239,7 @@ def _line0_says_object(line0, filename):
 
 
 def get_install_names(filename):
+    # type: (Text) -> Tuple[Text, ...]
     """ Return install names from library named in `filename`
 
     Returns tuple of install names
@@ -226,6 +268,7 @@ def get_install_names(filename):
 
 
 def get_install_id(filename):
+    # type: (Text) -> Optional[Text]
     """ Return install id from library named in `filename`
 
     Returns None if no install id, or if this is not an object file.
@@ -252,6 +295,7 @@ def get_install_id(filename):
 
 @ensure_writable
 def set_install_name(filename, oldname, newname):
+    # type: (Text, Text, Text) -> None
     """ Set install name `oldname` to `newname` in library filename
 
     Parameters
@@ -267,11 +311,12 @@ def set_install_name(filename, oldname, newname):
     if oldname not in names:
         raise InstallNameError('{0} not in install names for {1}'.format(
             oldname, filename))
-    back_tick(['install_name_tool', '-change', oldname, newname, filename])
+    check_call(['install_name_tool', '-change', oldname, newname, filename])
 
 
 @ensure_writable
 def set_install_id(filename, install_id):
+    # type: (Text, Text) -> None
     """ Set install id for library named in `filename`
 
     Parameters
@@ -287,13 +332,14 @@ def set_install_id(filename, install_id):
     """
     if get_install_id(filename) is None:
         raise InstallNameError('{0} has no install id'.format(filename))
-    back_tick(['install_name_tool', '-id', install_id, filename])
+    check_call(['install_name_tool', '-id', install_id, filename])
 
 
 RPATH_RE = re.compile(r"path (.*) \(offset \d+\)")
 
 
 def get_rpaths(filename):
+    # type: (Text) -> Tuple[Text, ...]
     """ Return a tuple of rpaths from the library `filename`.
 
     If `filename` is not a library then the returned tuple will be empty.
@@ -324,12 +370,15 @@ def get_rpaths(filename):
             continue
         cmdsize, path = lines[line_no:line_no+2]
         assert cmdsize.startswith('cmdsize ')
-        paths.append(RPATH_RE.match(path).groups()[0])
+        match = RPATH_RE.match(path)
+        assert match
+        paths.append(match.groups()[0])
         line_no += 2
     return tuple(paths)
 
 
 def get_environment_variable_paths():
+    # type: () -> Tuple[Text, ...]
     """ Return a tuple of entries in `DYLD_LIBRARY_PATH` and
     `DYLD_FALLBACK_LIBRARY_PATH`.
 
@@ -355,6 +404,7 @@ def get_environment_variable_paths():
 
 @ensure_writable
 def add_rpath(filename, newpath):
+    # type: (Text, Text) -> None
     """ Add rpath `newpath` to library `filename`
 
     Parameters
@@ -364,10 +414,11 @@ def add_rpath(filename, newpath):
     newpath : str
         rpath to add
     """
-    back_tick(['install_name_tool', '-add_rpath', newpath, filename])
+    check_call(['install_name_tool', '-add_rpath', newpath, filename])
 
 
 def zip2dir(zip_fname, out_dir):
+    # type: (Text, Text) -> None
     """ Extract `zip_fname` into output directory `out_dir`
 
     Parameters
@@ -379,10 +430,11 @@ def zip2dir(zip_fname, out_dir):
     """
     # Use unzip command rather than zipfile module to preserve permissions
     # http://bugs.python.org/issue15795
-    back_tick(['unzip', '-o', '-d', out_dir, zip_fname])
+    check_call(['unzip', '-o', '-d', out_dir, zip_fname])
 
 
 def dir2zip(in_dir, zip_fname):
+    # type: (Text, Text) -> None
     """ Make a zip file `zip_fname` with contents of directory `in_dir`
 
     The recorded filenames are relative to `in_dir`, so doing a standard zip
@@ -410,7 +462,7 @@ def dir2zip(in_dir, zip_fname):
                 # PyPI won't accept wheels with windows path separators
                 info.filename = relpath(in_fname, in_dir).replace('\\', '/')
             # Set time from modification time
-            info.date_time = time.localtime(in_stat.st_mtime)
+            info.date_time = time.localtime(in_stat.st_mtime)  # type: ignore
             # See https://stackoverflow.com/questions/434641/how-do-i-set-permissions-attributes-on-a-file-in-a-zip-file-using-pythons-zip/48435482#48435482 # noqa: E501
             # Also set regular file permissions
             perms = stat.S_IMODE(in_stat.st_mode) | stat.S_IFREG
@@ -422,6 +474,7 @@ def dir2zip(in_dir, zip_fname):
 
 
 def find_package_dirs(root_path):
+    # type: (Text) -> Set[Text]
     """ Find python package directories in directory `root_path`
 
     Parameters
@@ -444,6 +497,7 @@ def find_package_dirs(root_path):
 
 
 def cmp_contents(filename1, filename2):
+    # type: (Text, Text) -> bool
     """ Returns True if contents of the files are the same
 
     Parameters
@@ -467,6 +521,7 @@ def cmp_contents(filename1, filename2):
 
 
 def get_archs(libname):
+    # type: (Text) -> FrozenSet[Text]
     """ Return architecture types from library `libname`
 
     Parameters
@@ -483,7 +538,7 @@ def get_archs(libname):
     if not exists(libname):
         raise RuntimeError(libname + " is not a file")
     try:
-        stdout = back_tick(['lipo', '-info', libname])
+        stdout = check_call(['lipo', '-info', libname])
     except RuntimeError:
         return frozenset()
     lines = [line.strip() for line in stdout.split('\n') if line.strip()]
@@ -498,8 +553,7 @@ def get_archs(libname):
         'Architectures in the fat file: {0} are: (.*)'.format(
                                                             re.escape(libname))
     ):
-        reggie = re.compile(reggie)
-        match = reggie.match(line)
+        match = re.match(reggie, line)
         if match is not None:
             return frozenset(match.groups()[0].split(' '))
     raise ValueError("Unexpected output: '{0}' for {1}".format(
@@ -507,6 +561,7 @@ def get_archs(libname):
 
 
 def lipo_fuse(in_fname1, in_fname2, out_fname):
+    # type: (Text, Text, Text) -> Text
     """ Use lipo to merge libs `filename1`, `filename2`, store in `out_fname`
 
     Parameters
@@ -518,13 +573,13 @@ def lipo_fuse(in_fname1, in_fname2, out_fname):
     out_fname : str
         filename to which to write new fused library
     """
-    return back_tick(['lipo', '-create',
-                      in_fname1, in_fname2,
-                      '-output', out_fname])
+    return check_call(
+        ['lipo', '-create', in_fname1, in_fname2, '-output', out_fname])
 
 
 @ensure_writable
 def replace_signature(filename, identity):
+    # type: (Text, Text) -> None
     """ Replace the signature of a binary file using `identity`
 
     See the codesign documentation for more info
@@ -536,11 +591,11 @@ def replace_signature(filename, identity):
     identity : str
         The signing identity to use.
     """
-    back_tick(['codesign', '--force', '--sign', identity, filename],
-              raise_err=True)
+    check_call(['codesign', '--force', '--sign', identity, filename])
 
 
 def validate_signature(filename):
+    # type: (Text) -> None
     """ Remove invalid signatures from a binary file
 
     If the file signature is missing or valid then it will be ignored
@@ -553,8 +608,7 @@ def validate_signature(filename):
     filename : str
         Filepath to a binary file
     """
-    out, err = back_tick(['codesign', '--verify', filename],
-                         ret_err=True, as_str=True, raise_err=False)
+    _, out, err = run_call(['codesign', '--verify', filename])
     if not err:
         return  # The existing signature is valid
     if 'code object is not signed at all' in err:

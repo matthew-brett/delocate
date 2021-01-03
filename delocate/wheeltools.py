@@ -10,7 +10,10 @@ from os.path import (join as pjoin, abspath, relpath, exists, sep as psep,
 import glob
 import hashlib
 import csv
+import contextlib
 from itertools import product
+from typing import Any, BinaryIO, Iterable, Iterator, Optional, Text, Union
+from typing_extensions import Literal
 
 from wheel.util import urlsafe_b64encode, native
 from wheel.pkginfo import read_pkg_info, write_pkg_info
@@ -27,6 +30,7 @@ class WheelToolsError(Exception):
 
 
 def _open_for_csv(name, mode):
+    # type: (Text, Text) -> BinaryIO
     """ Deal with Python 2/3 open API differences """
     if sys.version_info[0] < 3:
         return open_rw(name, mode + 'b')
@@ -34,6 +38,7 @@ def _open_for_csv(name, mode):
 
 
 def rewrite_record(bdist_dir):
+    # type: (Text) -> None
     """ Rewrite RECORD file with hashes for all files in `wheel_sdir`
 
     Copied from :method:`wheel.bdist_wheel.bdist_wheel.write_record`
@@ -56,11 +61,13 @@ def rewrite_record(bdist_dir):
         os.unlink(sig_path)
 
     def walk():
+        # type: () -> Iterator[Text]
         for dir, dirs, files in os.walk(bdist_dir):
             for f in files:
                 yield pjoin(dir, f)
 
     def skip(path):
+        # type: (Text) -> bool
         """Wheel hashes every possible file."""
         return (path == record_relpath)
 
@@ -70,7 +77,7 @@ def rewrite_record(bdist_dir):
             relative_path = relpath(path, bdist_dir)
             if skip(relative_path):
                 hash = ''
-                size = ''
+                size = ''  # type: Union[str, int]
             else:
                 with open(path, 'rb') as f:
                     data = f.read()
@@ -89,7 +96,10 @@ class InWheel(InTemporaryDirectory):
     asked for an output wheel, then on exit we'll rewrite the wheel record and
     pack stuff up for you.
     """
+    wheel_path = None  # type: Text
+
     def __init__(self, in_wheel, out_wheel=None, ret_self=False):
+        # type: (Text, Optional[Text], bool) -> None
         """ Initialize in-wheel context manager
 
         Parameters
@@ -108,17 +118,22 @@ class InWheel(InTemporaryDirectory):
         super(InWheel, self).__init__()
 
     def __enter__(self):
+        # type: () -> Text
         zip2dir(self.in_wheel, self.name)
-        return super(InWheel, self).__enter__()
+        self.wheel_path = super(InWheel, self).__enter__()
+        return self.wheel_path
 
     def __exit__(self, exc, value, tb):
+        # type: (Any, Any, Any) -> Literal[False]
         if self.out_wheel is not None:
             rewrite_record(self.name)
             dir2zip(self.name, self.out_wheel)
         return super(InWheel, self).__exit__(exc, value, tb)
 
 
-class InWheelCtx(InWheel):
+@contextlib.contextmanager
+def InWheelCtx(in_wheel, out_wheel=None):
+    # type: (Text, Optional[Text]) -> Iterator[InWheel]
     """ Context manager for doing things inside wheels
 
     On entering, you'll find yourself in the root tree of the wheel.  If you've
@@ -127,32 +142,27 @@ class InWheelCtx(InWheel):
 
     The context manager returns itself from the __enter__ method, so you can
     set things like ``out_wheel``.  This is useful when processing in the wheel
-    will dicate what the output wheel name is, or whether you want to save at
+    will dictate what the output wheel name is, or whether you want to save at
     all.
 
     The current path of the wheel contents is set in the attribute
     ``wheel_path``.
+
+    Parameters
+    ----------
+    in_wheel : str
+        filename of wheel to unpack and work inside
+    out_wheel : None or str:
+        filename of wheel to write after exiting.  If None, don't write and
+        discard
     """
-    def __init__(self, in_wheel, out_wheel=None):
-        """ Init in-wheel context manager returning self from enter
-
-        Parameters
-        ----------
-        in_wheel : str
-            filename of wheel to unpack and work inside
-        out_wheel : None or str:
-            filename of wheel to write after exiting.  If None, don't write and
-            discard
-        """
-        super(InWheelCtx, self).__init__(in_wheel, out_wheel)
-        self.wheel_path = None
-
-    def __enter__(self):
-        self.wheel_path = super(InWheelCtx, self).__enter__()
-        return self
+    wheel = InWheel(in_wheel, out_wheel)
+    with wheel:
+        yield wheel
 
 
 def _get_wheelinfo_name(wheelfile):
+    # type: (WheelFile) -> Text
     # Work round wheel API compatibility
     try:
         return wheelfile.wheelinfo_name
@@ -161,6 +171,7 @@ def _get_wheelinfo_name(wheelfile):
 
 
 def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
+    # type: (Text, Iterable[Text], Optional[Text], bool) -> Optional[Text]
     """ Add platform tags `platforms` to `in_wheel` filename and WHEEL tags
 
     Add any platform tags in `platforms` that are missing from `in_wheel`

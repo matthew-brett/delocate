@@ -12,9 +12,12 @@ import os
 from os.path import (dirname, join as pjoin, isfile, abspath, realpath,
                      basename, exists, splitext)
 import shutil
+from typing import List, Text
+
+import six
 
 from ..tmpdirs import InTemporaryDirectory
-from ..tools import back_tick, set_install_name, zip2dir, dir2zip
+from ..tools import check_call, set_install_name, zip2dir, dir2zip
 from ..wheeltools import InWheel
 from .scriptrunner import ScriptRunner
 
@@ -31,6 +34,7 @@ from .test_wheeltools import assert_winfo_similar
 
 
 def _proc_lines(in_str):
+    # type: (bytes) -> List[Text]
     """ Decode `in_string` to str, split lines, strip whitespace
 
     Remove any empty lines.
@@ -52,13 +56,14 @@ def _proc_lines(in_str):
 
 lines_runner = ScriptRunner(output_processor=_proc_lines)
 run_command = lines_runner.run_command
-bytes_runner = ScriptRunner()
+bytes_runner = ScriptRunner()  # type: ScriptRunner[bytes]
 
 
 DATA_PATH = abspath(pjoin(dirname(__file__), 'data'))
 
 
 def test_listdeps():
+    # type: () -> None
     # smokey tests of list dependencies command
     local_libs = set(['liba.dylib', 'libb.dylib', 'libc.dylib'])
     # single path, with libs
@@ -116,6 +121,7 @@ def test_listdeps():
 
 
 def test_path():
+    # type: () -> None
     # Test path cleaning
     with InTemporaryDirectory():
         # Make a tree; use realpath for OSX /private/var - /var
@@ -126,8 +132,8 @@ def test_path():
         fake_lib = realpath(_copy_to(liba, 'fakelibs', 'libfake.dylib'))
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree2'))
-        back_tick([test_lib])
-        back_tick([stest_lib])
+        check_call([test_lib])
+        check_call([stest_lib])
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
         # Check it fixes up correctly
         code, stdout, stderr = run_command(
@@ -139,6 +145,7 @@ def test_path():
 
 
 def test_path_dylibs():
+    # type: () -> None
     # Test delocate-path with and without dylib extensions
     with InTemporaryDirectory():
         # With 'dylibs-only' - does not inspect non-dylib files
@@ -157,6 +164,7 @@ def test_path_dylibs():
 
 
 def _check_wheel(wheel_fname, lib_sdir):
+    # type: (Text, Text) -> None
     wheel_fname = abspath(wheel_fname)
     with InTemporaryDirectory():
         zip2dir(wheel_fname, 'plat_pkg')
@@ -166,6 +174,7 @@ def _check_wheel(wheel_fname, lib_sdir):
 
 
 def test_wheel():
+    # type: () -> None
     # Some tests for wheel fixing
     with InTemporaryDirectory() as tmpdir:
         # Default in-place fix
@@ -210,6 +219,7 @@ def test_wheel():
 
 
 def test_fix_wheel_dylibs():
+    # type: () -> None
     # Check default and non-default search for dynamic libraries
     with InTemporaryDirectory() as tmpdir:
         # Default in-place fix
@@ -228,12 +238,13 @@ def test_fix_wheel_dylibs():
 
 
 def test_fix_wheel_archs():
+    # type: () -> None
     # Some tests for wheel fixing
     with InTemporaryDirectory() as tmpdir:
         # Test check of architectures
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         # Fixed wheel, architectures are OK
-        code, stdout, stderr = run_command(
+        code, lines_out, lines_err = run_command(
             ['delocate-wheel', fixed_wheel, '-k'])
         _check_wheel(fixed_wheel, '.dylibs')
         # Broken with one architecture removed still OK without checking
@@ -242,10 +253,12 @@ def test_fix_wheel_archs():
         archs = set(('x86_64', 'i386'))
 
         def _fix_break(arch):
+            # type: (Text) -> None
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
 
         def _fix_break_fix(arch):
+            # type: (Text) -> None
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
             _thin_mod(fixed_wheel, arch)
@@ -253,7 +266,7 @@ def test_fix_wheel_archs():
         for arch in archs:
             # Not checked
             _fix_break(arch)
-            code, stdout, stderr = run_command(
+            code, lines_out, lines_err = run_command(
                 ['delocate-wheel', fixed_wheel])
             _check_wheel(fixed_wheel, '.dylibs')
             # Checked
@@ -262,9 +275,9 @@ def test_fix_wheel_archs():
                 ['delocate-wheel', fixed_wheel, '--check-archs'],
                 check_code=False)
             assert_false(code == 0)
-            stderr = stderr.decode('latin1').strip()
-            assert_true(stderr.startswith('Traceback'))
-            assert_true(stderr.endswith(
+            stderr_unicode = stderr.decode('latin1').strip()
+            assert_true(stderr_unicode.startswith('Traceback'))
+            assert_true(stderr_unicode.endswith(
                 "Some missing architectures in wheel"))
             assert_equal(stdout.strip(), b'')
             # Checked, verbose
@@ -273,12 +286,12 @@ def test_fix_wheel_archs():
                 ['delocate-wheel', fixed_wheel, '--check-archs', '-v'],
                 check_code=False)
             assert_false(code == 0)
-            stderr = stderr.decode('latin1').strip()
-            assert_true(stderr.startswith('Traceback'))
-            assert_true(stderr.endswith(
+            stderr_unicode = stderr.decode('latin1').strip()
+            assert_true(stderr_unicode.startswith('Traceback'))
+            assert_true(stderr_unicode.endswith(
                 "Some missing architectures in wheel"))
-            stdout = stdout.decode('latin1').strip()
-            assert_equal(stdout,
+            stdout_unicode = stdout.decode('latin1').strip()
+            assert_equal(stdout_unicode,
                          fmt_str.format(
                              fixed_wheel,
                              'fakepkg1/subpkg/module2.so',
@@ -288,13 +301,13 @@ def test_fix_wheel_archs():
         both_archs = 'i386,x86_64'
         for ok in ('intel', 'i386', 'x86_64', both_archs):
             _fixed_wheel(tmpdir)
-            code, stdout, stderr = run_command(
+            code, lines_out, lines_err = run_command(
                 ['delocate-wheel', fixed_wheel, '--require-archs=' + ok])
         for arch in archs:
             other_arch = archs.difference([arch]).pop()
             for not_ok in ('intel', both_archs, other_arch):
                 _fix_break_fix(arch)
-                code, stdout, stderr = run_command(
+                code, lines_out, lines_err = run_command(
                     ['delocate-wheel', fixed_wheel,
                      '--require-archs=' + not_ok],
                     check_code=False)
@@ -302,6 +315,7 @@ def test_fix_wheel_archs():
 
 
 def test_fuse_wheels():
+    # type: () -> None
     # Some tests for wheel fusing
     with InTemporaryDirectory():
         zip2dir(PLAT_WHEEL, 'to_wheel')
@@ -323,30 +337,34 @@ def test_fuse_wheels():
 
 
 def test_patch_wheel():
+    # type: () -> None
     # Some tests for patching wheel
     with InTemporaryDirectory():
         shutil.copyfile(PURE_WHEEL, 'example.whl')
         # Default is to overwrite input
         code, stdout, stderr = run_command(
-            ['delocate-patch', 'example.whl', WHEEL_PATCH])
+            ['delocate-patch', 'example.whl', six.ensure_str(WHEEL_PATCH)])
         zip2dir('example.whl', 'wheel1')
         with open(pjoin('wheel1', 'fakepkg2', '__init__.py'), 'rt') as fobj:
             assert_equal(fobj.read(), 'print("Am in init")\n')
         # Pass output directory
         shutil.copyfile(PURE_WHEEL, 'example.whl')
         code, stdout, stderr = run_command(
-            ['delocate-patch', 'example.whl', WHEEL_PATCH, '-w', 'wheels'])
+            ['delocate-patch', 'example.whl', six.ensure_str(WHEEL_PATCH), '-w',
+             'wheels'])
         zip2dir(pjoin('wheels', 'example.whl'), 'wheel2')
         with open(pjoin('wheel2', 'fakepkg2', '__init__.py'), 'rt') as fobj:
             assert_equal(fobj.read(), 'print("Am in init")\n')
         # Bad patch fails
         shutil.copyfile(PURE_WHEEL, 'example.whl')
-        assert_raises(RuntimeError,
-                      run_command,
-                      ['delocate-patch', 'example.whl', WHEEL_PATCH_BAD])
+        assert_raises(
+            RuntimeError,
+            run_command,
+            ['delocate-patch', 'example.whl', six.ensure_str(WHEEL_PATCH_BAD)])
 
 
 def test_add_platforms():
+    # type: () -> None
     # Check adding platform to wheel name and tag section
     exp_items = [('Generator', 'bdist_wheel {pip_version}'),
                  ('Root-Is-Purelib', 'false'),
@@ -359,8 +377,8 @@ def test_add_platforms():
         # Need to specify at least one platform
         assert_raises(RuntimeError, run_command,
                       ['delocate-addplat', PURE_WHEEL, '-w', tmpdir])
-        plat_args = ['-p', 'macosx_10_9_intel',
-                     '--plat-tag', 'macosx_10_9_x86_64']
+        plat_args = [u'-p', u'macosx_10_9_intel',
+                     u'--plat-tag', u'macosx_10_9_x86_64']
         # Can't add platforms to a pure wheel
         assert_raises(RuntimeError, run_command,
                       ['delocate-addplat', PURE_WHEEL, '-w', tmpdir] +
@@ -393,7 +411,8 @@ def test_add_platforms():
             ['delocate-addplat', PLAT_WHEEL, '-c', '-w', tmpdir] + plat_args)
         # Can also specify platform tags via --osx-ver flags
         code, stdout, stderr = run_command(
-            ['delocate-addplat', PLAT_WHEEL, '-c', '-w', tmpdir, '-x', '10_9'])
+            ['delocate-addplat', PLAT_WHEEL, '-c', '-w', six.ensure_str(tmpdir),
+             '-x', '10_9'])
         assert_winfo_similar(out_fname, extra_exp)
         # Can mix plat_tag and osx_ver
         out_big_fname = (splitext(basename(PLAT_WHEEL))[0] +

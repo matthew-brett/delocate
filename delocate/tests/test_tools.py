@@ -7,7 +7,7 @@ import stat
 import shutil
 from typing import Iterator, Text
 
-from ..tools import (unique_by_index, ensure_writable, chmod_perms,
+from ..tools import (back_tick, unique_by_index, ensure_writable, chmod_perms,
                      ensure_permissions, parse_install_name, zip2dir, dir2zip,
                      find_package_dirs, cmp_contents, get_archs, lipo_fuse,
                      replace_signature, validate_signature, add_rpath,
@@ -35,6 +35,16 @@ def test_call():
     assert_equal(run_call(cmd), (0, "Hello", ""))
     cmd = 'python -c "raise ValueError()"'
     assert_raises(RuntimeError, check_call, cmd)
+
+
+def test_back_tick():
+    # type: () -> None
+    cmd = 'python -c "print(\'Hello\')"'
+    assert_equal(back_tick(cmd), "Hello")
+    assert_equal(back_tick(cmd, ret_err=True), ("Hello", ""))
+    assert_equal(back_tick(cmd, True, False), (b"Hello", b""))
+    cmd = 'python -c "raise ValueError()"'
+    assert_raises(RuntimeError, back_tick, cmd)
 
 
 def test_uniqe_by_index():

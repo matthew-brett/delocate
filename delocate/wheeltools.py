@@ -10,7 +10,6 @@ from os.path import (join as pjoin, abspath, relpath, exists, sep as psep,
 import glob
 import hashlib
 import csv
-import contextlib
 from itertools import product
 from typing import Any, BinaryIO, Iterable, Iterator, Optional, Text, Union
 from typing_extensions import Literal
@@ -131,9 +130,7 @@ class InWheel(InTemporaryDirectory):
         return super(InWheel, self).__exit__(exc, value, tb)
 
 
-@contextlib.contextmanager
-def InWheelCtx(in_wheel, out_wheel=None):
-    # type: (Text, Optional[Text]) -> Iterator[InWheel]
+class InWheelCtx(object):
     """ Context manager for doing things inside wheels
 
     On entering, you'll find yourself in the root tree of the wheel.  If you've
@@ -147,18 +144,29 @@ def InWheelCtx(in_wheel, out_wheel=None):
 
     The current path of the wheel contents is set in the attribute
     ``wheel_path``.
-
-    Parameters
-    ----------
-    in_wheel : str
-        filename of wheel to unpack and work inside
-    out_wheel : None or str:
-        filename of wheel to write after exiting.  If None, don't write and
-        discard
     """
-    wheel = InWheel(in_wheel, out_wheel)
-    with wheel:
-        yield wheel
+    def __init__(self, in_wheel, out_wheel=None):
+        # type: (Text, Optional[Text]) -> None
+        """ Initialize in-wheel context manager
+
+        Parameters
+        ----------
+        in_wheel : str
+            filename of wheel to unpack and work inside
+        out_wheel : None or str:
+            filename of wheel to write after exiting.  If None, don't write and
+            discard
+        """
+        self.inwheel = InWheel(in_wheel, out_wheel)
+
+    def __enter__(self):
+        # type: () -> InWheel
+        self.inwheel.__enter__()
+        return self.inwheel
+
+    def __exit__(self, exc, value, tb):
+        # type: (Any, Any, Any) -> Literal[False]
+        return self.inwheel.__exit__(exc, value, tb)
 
 
 def _get_wheelinfo_name(wheelfile):

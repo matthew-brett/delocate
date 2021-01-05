@@ -66,21 +66,21 @@ def test_in_wheel():
     # Test in-wheel context managers
     # Stuff they share
     for ctx_mgr in InWheel, InWheelCtx:
-        with ctx_mgr(PURE_WHEEL):  # type: ignore  # No output wheel
+        with ctx_mgr(PURE_WHEEL):  # No output wheel
             shutil.rmtree('fakepkg2')
             res = sorted(os.listdir('.'))
         assert_equal(res, ['fakepkg2-1.0.dist-info'])
         # The original wheel unchanged
-        with ctx_mgr(PURE_WHEEL):  # type: ignore  # No output wheel
+        with ctx_mgr(PURE_WHEEL):  # No output wheel
             res = sorted(os.listdir('.'))
         assert_equal(res, ['fakepkg2', 'fakepkg2-1.0.dist-info'])
         # Make an output wheel file in a temporary directory
         with InTemporaryDirectory():
             mod_path = pjoin('fakepkg2', 'module1.py')
-            with ctx_mgr(PURE_WHEEL, 'mungled.whl'):  # type: ignore
+            with ctx_mgr(PURE_WHEEL, 'mungled.whl'):
                 assert_true(isfile(mod_path))
                 os.unlink(mod_path)
-            with ctx_mgr('mungled.whl'):  # type: ignore
+            with ctx_mgr('mungled.whl'):
                 assert_false(isfile(mod_path))
     # Different return from context manager
     with InWheel(PURE_WHEEL) as wheel_path:

@@ -11,7 +11,8 @@ import glob
 import hashlib
 import csv
 from itertools import product
-from typing import Any, BinaryIO, Iterable, Iterator, Optional, Text, Union
+from typing import (Any, BinaryIO, Iterable, Iterator, Optional, Text, TypeVar,
+                    Union)
 from typing_extensions import Literal
 
 from wheel.util import urlsafe_b64encode, native
@@ -95,10 +96,8 @@ class InWheel(InTemporaryDirectory):
     asked for an output wheel, then on exit we'll rewrite the wheel record and
     pack stuff up for you.
     """
-    wheel_path = None  # type: Text
-
-    def __init__(self, in_wheel, out_wheel=None, ret_self=False):
-        # type: (Text, Optional[Text], bool) -> None
+    def __init__(self, in_wheel, out_wheel=None):
+        # type: (Text, Optional[Text]) -> None
         """ Initialize in-wheel context manager
 
         Parameters
@@ -108,9 +107,6 @@ class InWheel(InTemporaryDirectory):
         out_wheel : None or str:
             filename of wheel to write after exiting.  If None, don't write and
             discard
-        ret_self : bool, optional
-            If True, return ``self`` from ``__enter__``, otherwise return the
-            directory path.
         """
         self.in_wheel = abspath(in_wheel)
         self.out_wheel = None if out_wheel is None else abspath(out_wheel)
@@ -119,8 +115,7 @@ class InWheel(InTemporaryDirectory):
     def __enter__(self):
         # type: () -> Text
         zip2dir(self.in_wheel, self.name)
-        self.wheel_path = super(InWheel, self).__enter__()
-        return self.wheel_path
+        return super(InWheel, self).__enter__()
 
     def __exit__(self, exc, value, tb):
         # type: (Any, Any, Any) -> Literal[False]
@@ -128,6 +123,9 @@ class InWheel(InTemporaryDirectory):
             rewrite_record(self.name)
             dir2zip(self.name, self.out_wheel)
         return super(InWheel, self).__exit__(exc, value, tb)
+
+
+WHEELCTX_T = TypeVar("WHEELCTX_T", bound="InWheelCtx")
 
 
 class InWheelCtx(object):
@@ -159,14 +157,39 @@ class InWheelCtx(object):
         """
         self.inwheel = InWheel(in_wheel, out_wheel)
 
-    def __enter__(self):
-        # type: () -> InWheel
+    def __enter__(
+        self  # type: WHEELCTX_T
+    ):
+        # type: (...) -> WHEELCTX_T
         self.inwheel.__enter__()
-        return self.inwheel
+        return self
 
     def __exit__(self, exc, value, tb):
         # type: (Any, Any, Any) -> Literal[False]
         return self.inwheel.__exit__(exc, value, tb)
+
+    @property
+    def wheel_path(self):
+        # type: () -> Text
+        """ The path to the unpacked files from this wheel. """
+        return self.inwheel.name
+
+    @property
+    def in_wheel(self):
+        # type: () -> Text
+        """ The path of the wheel being worked on. """
+        return self.inwheel.in_wheel
+
+    @property
+    def out_wheel(self):
+        # type: () -> Optional[Text]
+        """ The file path to write to on closing. """
+        return self.inwheel.out_wheel
+
+    @out_wheel.setter
+    def out_wheel(self, value):
+        # type: (Optional[Text]) -> None
+        self.inwheel.out_wheel = value
 
 
 def _get_wheelinfo_name(wheelfile):

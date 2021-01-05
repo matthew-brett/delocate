@@ -4,7 +4,8 @@
 import os
 from os.path import join as pjoin, exists, isfile, basename, realpath, splitext
 import shutil
-from typing import Any, Iterable, List, Sequence, Text, Tuple, TypeVar
+from typing import (Any, Iterable, List, Sequence, Text, Tuple, Type, TypeVar,
+                    Union)
 
 try:
     from wheel.install import WheelFile
@@ -65,7 +66,10 @@ def test_in_wheel():
     # type: () -> None
     # Test in-wheel context managers
     # Stuff they share
-    for ctx_mgr in InWheel, InWheelCtx:
+    wheel_classes = (
+        InWheel, InWheelCtx
+    )  # type: Tuple[Union[Type[InWheel], Type[InWheelCtx]], ...]
+    for ctx_mgr in wheel_classes:
         with ctx_mgr(PURE_WHEEL):  # No output wheel
             shutil.rmtree('fakepkg2')
             res = sorted(os.listdir('.'))

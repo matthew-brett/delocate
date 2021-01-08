@@ -193,6 +193,10 @@ def test_resolve_rpath():
     path, lib = split(LIBA)
     lib_rpath = pjoin('@rpath', lib)
     # Should skip '/nonexist' path
-    assert_equal(resolve_rpath(lib_rpath, ['/nonexist', path]), realpath(LIBA))
+    assert_equal(
+        resolve_rpath(lib_rpath, ['/nonexist', path], path), realpath(LIBA)
+    )
     # Should raise DependencyNotFound if the dependency can not be resolved.
-    assert_raises(DependencyNotFound, lambda: resolve_rpath(lib_rpath, []))
+    assert_raises(
+        DependencyNotFound, lambda: resolve_rpath(lib_rpath, [], path)
+    )

@@ -4,7 +4,7 @@ Analyze library dependencies in paths and wheel files
 """
 
 import os
-from os.path import basename, join as pjoin, realpath
+from os.path import basename, dirname, join as pjoin, realpath
 
 import warnings
 from typing import Callable, Dict, Iterable, List, Optional, Text
@@ -93,7 +93,11 @@ def tree_libs(
                 # Otherwise we'll search for the library using env variables
                 if install_name.startswith('@rpath'):
                     try:
-                        lib_path = resolve_rpath(install_name, search_paths)
+                        lib_path = resolve_rpath(
+                            install_name,
+                            search_paths,
+                            loader_path=dirname(depending_libpath),
+                        )
                     except DependencyNotFound:
                         lib_path = install_name
                         missing_dependencies.append(
@@ -130,20 +134,30 @@ def tree_libs(
     return lib_dict
 
 
-def resolve_rpath(lib_path, rpaths):
-    # type: (Text, Iterable[Text]) -> Text
-    """ Return `lib_path` with its `@rpath` resolved
+def resolve_rpath(lib_path, rpaths, loader_path, executable_path="."):
+    # type: (Text, Iterable[Text], Text, Text) -> Text
+    """ Return `lib_path` with any special runtime linking names resolved.
 
     If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
-    combination found.  If the library can't be found in `rpaths` then a
-    detailed warning is printed and `lib_path` is returned as is.
+    combination found.  If the library can't be found in `rpaths` then
+    DependencyNotFound is raised.
+
+    `@loader_path` and `@executable_path` are resolved with their respective
+    parameters.
 
     Parameters
     ----------
     lib_path : str
-        The path to a library file, which may or may not start with `@rpath`.
+        The path to a library file, which may or may not be a relative path
+        starting with `@rpath`, `@loader_path`, or `@executable_path`.
     rpaths : sequence of str
         A sequence of search paths, usually gotten from a call to `get_rpaths`.
+    loader_path : str
+        The path to be used for `@loader_path`.
+        This must be the directory of the library which is loading `lib_path`.
+    executable_path : str, optional
+        The path to be used for `@executable_path`.
+        Assumed to be the working directory by default.
 
     Returns
     -------
@@ -156,14 +170,20 @@ def resolve_rpath(lib_path, rpaths):
         When `lib_path` has `@rpath` in it but can not be found on any of the
         provided `rpaths`.
     """
+    if lib_path.startswith('@loader_path/'):
+        return realpath(pjoin(loader_path, lib_path.split('/', 1)[1]))
+    if lib_path.startswith('@executable_path/'):
+        return realpath(pjoin(executable_path, lib_path.split('/', 1)[1]))
     if not lib_path.startswith('@rpath/'):
-        return lib_path
+        return realpath(lib_path)
 
     lib_rpath = lib_path.split('/', 1)[1]
     for rpath in rpaths:
-        rpath_lib = realpath(pjoin(rpath, lib_rpath))
+        rpath_lib = resolve_rpath(
+            pjoin(rpath, lib_rpath), (), loader_path, executable_path
+        )
         if os.path.exists(rpath_lib):
-            return rpath_lib
+            return realpath(rpath_lib)
 
     raise DependencyNotFound(lib_path)
 

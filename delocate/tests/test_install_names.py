@@ -4,6 +4,7 @@ import os
 from os.path import (join as pjoin, exists, dirname, basename)
 
 import shutil
+from typing import Iterable, List, Text
 
 from ..tools import (InstallNameError, get_install_names, set_install_name,
                      get_install_id, get_rpaths, add_rpath, parse_install_name,
@@ -15,23 +16,24 @@ from .pytest_tools import (assert_raises, assert_equal)
 from .env_tools import TempDirWithoutEnvVars
 
 # External libs linked from test data
-LIBSTDCXX = '/usr/lib/libstdc++.6.dylib'
-LIBSYSTEMB = '/usr/lib/libSystem.B.dylib'
+LIBSTDCXX = u'/usr/lib/libstdc++.6.dylib'
+LIBSYSTEMB = u'/usr/lib/libSystem.B.dylib'
 EXT_LIBS = (LIBSTDCXX, LIBSYSTEMB)
 
-DATA_PATH = pjoin(dirname(__file__), 'data')
-LIBA = pjoin(DATA_PATH, 'liba.dylib')
-LIBB = pjoin(DATA_PATH, 'libb.dylib')
-LIBC = pjoin(DATA_PATH, 'libc.dylib')
-LIBA_STATIC = pjoin(DATA_PATH, 'liba.a')
-A_OBJECT = pjoin(DATA_PATH, 'a.o')
-TEST_LIB = pjoin(DATA_PATH, 'test-lib')
-ICO_FILE = pjoin(DATA_PATH, 'icon.ico')
-PY_FILE = pjoin(DATA_PATH, 'some_code.py')
-BIN_FILE = pjoin(DATA_PATH, 'binary_example.bin')
+DATA_PATH = pjoin(dirname(__file__), u'data')
+LIBA = pjoin(DATA_PATH, u'liba.dylib')
+LIBB = pjoin(DATA_PATH, u'libb.dylib')
+LIBC = pjoin(DATA_PATH, u'libc.dylib')
+LIBA_STATIC = pjoin(DATA_PATH, u'liba.a')
+A_OBJECT = pjoin(DATA_PATH, u'a.o')
+TEST_LIB = pjoin(DATA_PATH, u'test-lib')
+ICO_FILE = pjoin(DATA_PATH, u'icon.ico')
+PY_FILE = pjoin(DATA_PATH, u'some_code.py')
+BIN_FILE = pjoin(DATA_PATH, u'binary_example.bin')
 
 
 def test_get_install_names():
+    # type: () -> None
     # Test install name listing
     assert_equal(set(get_install_names(LIBA)),
                  set(EXT_LIBS))
@@ -63,6 +65,7 @@ def test_get_install_names():
 
 
 def test_parse_install_name():
+    # type: () -> None
     assert_equal(parse_install_name(
         "liba.dylib (compatibility version 0.0.0, current version 0.0.0)"),
         ("liba.dylib", "0.0.0", "0.0.0"))
@@ -77,6 +80,7 @@ def test_parse_install_name():
 
 
 def test_install_id():
+    # type: () -> None
     # Test basic otool library listing
     assert_equal(get_install_id(LIBA), 'liba.dylib')
     assert_equal(get_install_id(LIBB), 'libb.dylib')
@@ -88,6 +92,7 @@ def test_install_id():
 
 
 def test_change_install_name():
+    # type: () -> None
     # Test ability to change install names in library
     libb_names = get_install_names(LIBB)
     with InTemporaryDirectory() as tmpdir:
@@ -103,6 +108,7 @@ def test_change_install_name():
 
 
 def test_set_install_id():
+    # type: () -> None
     # Test ability to change install id in library
     liba_id = get_install_id(LIBA)
     with InTemporaryDirectory() as tmpdir:
@@ -116,6 +122,7 @@ def test_set_install_id():
 
 
 def test_get_rpaths():
+    # type: () -> None
     # Test fetch of rpaths
     # Not dynamic libs, no rpaths
     for fname in (LIBB, A_OBJECT, LIBA_STATIC, ICO_FILE, PY_FILE, BIN_FILE):
@@ -123,6 +130,7 @@ def test_get_rpaths():
 
 
 def test_get_environment_variable_paths():
+    # type: () -> None
     # Test that environment variable paths are fetched in a specific order
     with TempDirWithoutEnvVars('DYLD_FALLBACK_LIBRARY_PATH',
                                'DYLD_LIBRARY_PATH'):
@@ -132,6 +140,7 @@ def test_get_environment_variable_paths():
 
 
 def test_add_rpath():
+    # type: () -> None
     # Test adding to rpath
     with InTemporaryDirectory() as tmpdir:
         libfoo = pjoin(tmpdir, 'libfoo.dylib')
@@ -144,6 +153,7 @@ def test_add_rpath():
 
 
 def _copy_libs(lib_files, out_path):
+    # type: (Iterable[Text], Text) -> List[Text]
     copied = []
     if not exists(out_path):
         os.makedirs(out_path)

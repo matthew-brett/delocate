@@ -6,12 +6,12 @@ from os.path import (join as pjoin, basename, realpath, abspath, exists, isdir)
 import stat
 from glob import glob
 import shutil
-from subprocess import check_call
+from typing import Text, Tuple
 
 from ..delocating import (DelocationError, delocate_wheel, patch_wheel,
                           DLC_PREFIX)
 from ..tools import (get_install_names, set_install_name, zip2dir,
-                     dir2zip, back_tick, get_install_id, get_archs)
+                     dir2zip, check_call, get_install_id, get_archs)
 from ..wheeltools import InWheel
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
@@ -24,6 +24,7 @@ from .test_tools import (ARCH_32, ARCH_BOTH)
 
 
 def _collect_wheel(globber):
+    # type: (Text) -> Text
     glob_path = pjoin(DATA_PATH, globber)
     wheels = glob(glob_path)
     if len(wheels) == 0:
@@ -47,6 +48,7 @@ WHEEL_PATCH_BAD = pjoin(DATA_PATH, 'fakepkg2.bad_patch')
 
 
 def test_fix_pure_python():
+    # type: () -> None
     # Test fixing a pure python package gives no change
     with InTemporaryDirectory():
         os.makedirs('wheels')
@@ -59,6 +61,7 @@ def test_fix_pure_python():
 
 
 def _fixed_wheel(out_path):
+    # type: (Text) -> Tuple[Text, Text]
     wheel_base = basename(PLAT_WHEEL)
     with InGivenDirectory(out_path):
         zip2dir(PLAT_WHEEL, '_plat_pkg')
@@ -75,6 +78,7 @@ def _fixed_wheel(out_path):
 
 
 def _rename_module(in_wheel, mod_fname, out_wheel):
+    # type: (Text, Text, Text) -> Text
     # Rename module with library dependency in wheel
     with InWheel(in_wheel, out_wheel):
         mod_dir = pjoin('fakepkg1', 'subpkg')
@@ -83,6 +87,7 @@ def _rename_module(in_wheel, mod_fname, out_wheel):
 
 
 def test_fix_plat():
+    # type: () -> None
     # Can we fix a wheel with a stray library?
     # We have to make one that works first
     with InTemporaryDirectory() as tmpdir:
@@ -128,7 +133,7 @@ def test_fix_plat():
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         assert_equal(delocate_wheel(fixed_wheel),
                      {_rp(stray_lib): {dep_mod: stray_lib}})
-        back_tick([sys.executable, '-m', 'wheel', 'unpack', fixed_wheel])
+        check_call([sys.executable, '-m', 'wheel', 'unpack', fixed_wheel])
         # Check that copied libraries have modified install_name_ids
         zip2dir(fixed_wheel, 'plat_pkg3')
         base_stray = basename(stray_lib)
@@ -138,6 +143,7 @@ def test_fix_plat():
 
 
 def test_script_permissions():
+    # type: () -> None
     with InTemporaryDirectory():
         os.makedirs('wheels')
         wheel_name, stray_lib = _fixed_wheel('wheels')
@@ -168,6 +174,7 @@ def test_script_permissions():
 
 
 def test_fix_plat_dylibs():
+    # type: () -> None
     # Check default and non-default searches for dylibs
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
@@ -178,6 +185,7 @@ def test_fix_plat_dylibs():
         # With func that doesn't find the module
 
         def func(fn):
+            # type: (Text) -> bool
             return fn.endswith('.so')
 
         assert_equal(delocate_wheel('test.whl', lib_filt_func=func), {})
@@ -189,6 +197,7 @@ def test_fix_plat_dylibs():
         # With func that does find the module
 
         def func(fn):
+            # type: (Text) -> bool
             return fn.endswith('.other')
 
         assert_equal(delocate_wheel('test2.whl', lib_filt_func=func),
@@ -196,16 +205,19 @@ def test_fix_plat_dylibs():
 
 
 def _thin_lib(stray_lib, arch):
+    # type: (Text, Text) -> None
     check_call(['lipo', '-thin', arch, stray_lib, '-output', stray_lib])
 
 
 def _thin_mod(wheel, arch):
+    # type: (Text, Text) -> None
     with InWheel(wheel, wheel):
         mod_fname = pjoin('fakepkg1', 'subpkg', 'module2.so')
         check_call(['lipo', '-thin', arch, mod_fname, '-output', mod_fname])
 
 
 def test__thinning():
+    # type: () -> None
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         mod_fname = pjoin('fakepkg1', 'subpkg', 'module2.so')
@@ -220,6 +232,7 @@ def test__thinning():
 
 
 def test_check_plat_archs():
+    # type: () -> None
     # Check flag to check architectures
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
@@ -230,10 +243,12 @@ def test_check_plat_archs():
         # Make a new copy and break it and fix it again
 
         def _fix_break(arch_):
+            # type: (Text) -> None
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch_)
 
         def _fix_break_fix(arch_):
+            # type: (Text) -> None
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch_)
             _thin_mod(fixed_wheel, arch_)
@@ -267,6 +282,7 @@ def test_check_plat_archs():
 
 
 def test_patch_wheel():
+    # type: () -> None
     # Check patching of wheel
     with InTemporaryDirectory():
         # First wheel needs proper wheel filename for later unpack test
@@ -276,7 +292,7 @@ def test_patch_wheel():
         with open(pjoin('wheel1', 'fakepkg2', '__init__.py'), 'rt') as fobj:
             assert_equal(fobj.read(), 'print("Am in init")\n')
         # Check that wheel unpack works
-        back_tick([sys.executable, '-m', 'wheel', 'unpack', out_fname])
+        check_call([sys.executable, '-m', 'wheel', 'unpack', out_fname])
         # Copy the original, check it doesn't have patch
         shutil.copyfile(PURE_WHEEL, 'copied.whl')
         zip2dir('copied.whl', 'wheel2')
@@ -294,6 +310,7 @@ def test_patch_wheel():
 
 
 def test_fix_rpath():
+    # type: () -> None
     # Test wheels which have an @rpath dependency
     # Also verifies the delocated libraries signature
     with InTemporaryDirectory():

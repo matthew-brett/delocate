@@ -13,6 +13,7 @@ MY_DIR = dirname(MY_PATH)
 
 
 def test_given_directory():
+    # type: () -> None
     # Test InGivenDirectory
     cwd = getcwd()
     with InGivenDirectory() as tmpdir:

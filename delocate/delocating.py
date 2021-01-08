@@ -9,6 +9,8 @@ from os.path import (join as pjoin, dirname, basename, exists, abspath,
 import shutil
 import warnings
 from subprocess import Popen, PIPE
+from typing import (Callable, Dict, FrozenSet, Iterable, List, Optional,
+                    Set, Text, Tuple, Union)
 
 from .pycompat import string_types
 from .libsana import tree_libs, stripped_lib_dict, get_rp_stripper
@@ -25,7 +27,12 @@ class DelocationError(Exception):
     pass
 
 
-def delocate_tree_libs(lib_dict, lib_path, root_path):
+def delocate_tree_libs(
+    lib_dict,  # type: Dict[Text, Dict[Text, Text]]
+    lib_path,  # type: Text
+    root_path  # type: Text
+):
+    # type: (...) -> Dict[Text, Dict[Text, Text]]
     """ Move needed libraries in `lib_dict` into `lib_path`
 
     `lib_dict` has keys naming libraries required by the files in the
@@ -102,7 +109,12 @@ def delocate_tree_libs(lib_dict, lib_path, root_path):
     return copied_libs
 
 
-def copy_recurse(lib_path, copy_filt_func=None, copied_libs=None):
+def copy_recurse(
+    lib_path,  # type: Text
+    copy_filt_func=None,  # type: Optional[Callable[[Text], bool]]
+    copied_libs=None  # type: Optional[Dict[Text, Dict[Text, Text]]]
+):
+    # type: (...) -> Dict[Text, Dict[Text, Text]]
     """ Analyze `lib_path` for library dependencies and copy libraries
 
     `lib_path` is a directory containing libraries.  The libraries might
@@ -148,7 +160,12 @@ def copy_recurse(lib_path, copy_filt_func=None, copied_libs=None):
     return copied_libs
 
 
-def _copy_required(lib_path, copy_filt_func, copied_libs):
+def _copy_required(
+    lib_path,  # type: Text
+    copy_filt_func,  # type: Optional[Callable[[Text], bool]]
+    copied_libs  # type: Dict[Text, Dict[Text, Text]]
+):
+    # type: (...) -> None
     """ Copy libraries required for files in `lib_path` to `lib_path`
 
     Augment `copied_libs` dictionary with any newly copied libraries, modifying
@@ -235,18 +252,24 @@ def _copy_required(lib_path, copy_filt_func, copied_libs):
 
 
 def _dylibs_only(filename):
+    # type: (Text) -> bool
     return (filename.endswith('.so') or
             filename.endswith('.dylib'))
 
 
 def filter_system_libs(libname):
+    # type: (Text) -> bool
     return not (libname.startswith('/usr/lib') or
                 libname.startswith('/System'))
 
 
-def delocate_path(tree_path, lib_path,
-                  lib_filt_func=None,
-                  copy_filt_func=filter_system_libs):
+def delocate_path(
+    tree_path,  # type: Text
+    lib_path,  # type: Text
+    lib_filt_func=None,  # type: Union[None, str, Callable[[Text], bool]]
+    copy_filt_func=filter_system_libs  # type: Optional[Callable[[Text], bool]]
+):
+    # type: (...) -> Dict[Text, Dict[Text, Text]]
     """ Copy required libraries for files in `tree_path` into `lib_path`
 
     Parameters
@@ -280,6 +303,8 @@ def delocate_path(tree_path, lib_path,
     """
     if lib_filt_func == "dylibs-only":
         lib_filt_func = _dylibs_only
+    elif isinstance(lib_filt_func, str):
+        raise TypeError('lib_filt_func string can only be "dylibs-only"')
     if not exists(lib_path):
         os.makedirs(lib_path)
     lib_dict = tree_libs(tree_path, lib_filt_func)
@@ -291,6 +316,7 @@ def delocate_path(tree_path, lib_path,
 
 
 def _merge_lib_dict(d1, d2):
+    # type: (Dict[Text, Dict[Text, Text]], Dict[Text, Dict[Text, Text]]) -> None
     """ Merges lib_dict `d2` into lib_dict `d1`
     """
     for required, requirings in d2.items():
@@ -301,14 +327,16 @@ def _merge_lib_dict(d1, d2):
     return None
 
 
-def delocate_wheel(in_wheel,
-                   out_wheel=None,
-                   lib_sdir='.dylibs',
-                   lib_filt_func=None,
-                   copy_filt_func=filter_system_libs,
-                   require_archs=None,
-                   check_verbose=False,
-                   ):
+def delocate_wheel(
+    in_wheel,  # type: Text
+    out_wheel=None,  # type: Optional[Text]
+    lib_sdir='.dylibs',  # type: Text
+    lib_filt_func=None,  # type: Union[None, str, Callable[[Text], bool]]
+    copy_filt_func=filter_system_libs,  # type: Optional[Callable[[Text], bool]]
+    require_archs=None,  # type: Union[None, Text, Iterable[Text]]
+    check_verbose=False,  # type: bool
+):
+    # type: (...) -> Dict[Text, Dict[Text, Text]]
     """ Update wheel by copying required libraries to `lib_sdir` in wheel
 
     Create `lib_sdir` in wheel tree only if we are copying one or more
@@ -359,8 +387,6 @@ def delocate_wheel(in_wheel,
         is the ``install_name`` of ``copied_lib_path`` in the depending
         library. The filenames in the keys are relative to the wheel root path.
     """
-    if lib_filt_func == "dylibs-only":
-        lib_filt_func = _dylibs_only
     in_wheel = abspath(in_wheel)
     if out_wheel is None:
         out_wheel = in_wheel
@@ -368,7 +394,7 @@ def delocate_wheel(in_wheel,
         out_wheel = abspath(out_wheel)
     in_place = in_wheel == out_wheel
     with TemporaryDirectory() as tmpdir:
-        all_copied = {}
+        all_copied = {}  # type: Dict[Text, Dict[Text, Text]]
         wheel_dir = realpath(pjoin(tmpdir, 'wheel'))
         zip2dir(in_wheel, wheel_dir)
         for package_path in find_package_dirs(wheel_dir):
@@ -409,6 +435,7 @@ def delocate_wheel(in_wheel,
 
 
 def patch_wheel(in_wheel, patch_fname, out_wheel=None):
+    # type: (Text, Text, Optional[Text]) -> None
     """ Apply ``-p1`` style patch in `patch_fname` to contents of `in_wheel`
 
     If `out_wheel` is None (the default), overwrite the wheel `in_wheel`
@@ -444,7 +471,12 @@ def patch_wheel(in_wheel, patch_fname, out_wheel=None):
                                    stdout.decode('latin1'))
 
 
-def check_archs(copied_libs, require_archs=(), stop_fast=False):
+def check_archs(
+    copied_libs,  # type: Dict[Text, Dict[Text, Text]]
+    require_archs=(),  # type:  Union[Text, Iterable[Text]]
+    stop_fast=False  # type: bool
+):
+    # type: (...) -> Set[Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]]  # noqa: E501
     """ Check compatibility of archs in `copied_libs` dict
 
     Parameters
@@ -486,17 +518,17 @@ def check_archs(copied_libs, require_archs=(), stop_fast=False):
     if isinstance(require_archs, string_types):
         require_archs = (['i386', 'x86_64'] if require_archs == 'intel'
                          else [require_archs])
-    require_archs = frozenset(require_archs)
-    bads = []
+    require_archs_set = frozenset(require_archs)
+    bads = []  # type: List[Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]]  # noqa: E501
     for depended_lib, dep_dict in copied_libs.items():
         depended_archs = get_archs(depended_lib)
         for depending_lib, install_name in dep_dict.items():
             depending_archs = get_archs(depending_lib)
-            all_required = depending_archs | require_archs
+            all_required = depending_archs | require_archs_set
             all_missing = all_required.difference(depended_archs)
             if len(all_missing) == 0:
                 continue
-            required_missing = require_archs.difference(depended_archs)
+            required_missing = require_archs_set.difference(depended_archs)
             if len(required_missing):
                 bads.append((depending_lib, required_missing))
             else:
@@ -506,7 +538,11 @@ def check_archs(copied_libs, require_archs=(), stop_fast=False):
     return set(bads)
 
 
-def bads_report(bads, path_prefix=None):
+def bads_report(
+    bads,  # type: (Set[Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]])  # noqa: E501
+    path_prefix=None  # type: Optional[Text]
+):
+    # type: (...) -> Text
     """ Return a nice report of bad architectures in `bads`
 
     Parameters
@@ -535,19 +571,21 @@ def bads_report(bads, path_prefix=None):
                       else get_rp_stripper(path_prefix))
     reports = []
     for result in bads:
-        if len(result) == 3:
-            depended_lib, depending_lib, missing_archs = result
+        depended_lib = None  # type: Optional[Text]
+        try:
+            # https://github.com/python/mypy/issues/1178
+            depended_lib, depending_lib, missing_archs = result  # type: ignore
+        except ValueError:
+            depending_lib, missing_archs = result  # type: ignore
+        if depended_lib is not None:  # len(3)
             reports.append("{0} needs {1} {2} missing from {3}".format(
                 path_processor(depending_lib),
                 'archs' if len(missing_archs) > 1 else 'arch',
                 ', '.join(sorted(missing_archs)),
                 path_processor(depended_lib)))
-        elif len(result) == 2:
-            depending_lib, missing_archs = result
+        else:  # (depending_lib, missing_archs)
             reports.append("Required {0} {1} missing from {2}".format(
                 'archs' if len(missing_archs) > 1 else 'arch',
                 ', '.join(sorted(missing_archs)),
                 path_processor(depending_lib)))
-        else:
-            raise ValueError('Report tuple should be length 2 or 3')
     return '\n'.join(sorted(reports))

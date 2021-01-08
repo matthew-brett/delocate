@@ -7,6 +7,9 @@ import os
 from os.path import basename, join as pjoin, realpath
 
 import warnings
+from typing import Callable, Dict, Iterable, List, Optional, Text
+
+import six
 
 from .tools import (get_install_names, zip2dir, get_rpaths,
                     get_environment_variable_paths)
@@ -19,7 +22,12 @@ class DependencyNotFound(Exception):
     """
 
 
-def tree_libs(start_path, filt_func=None, skip_missing=False):
+def tree_libs(
+    start_path,  # type: Text
+    filt_func=None,  # type: Optional[Callable[[Text], bool]]
+    skip_missing=False,  # type: bool
+):
+    # type: (...) -> Dict[Text, Dict[Text, Text]]
     """ Return analysis of library dependencies within `start_path`
 
     Parameters
@@ -69,7 +77,7 @@ def tree_libs(start_path, filt_func=None, skip_missing=False):
     * https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/dyld.1.html  # noqa: E501
     * http://matthew-brett.github.io/pydagogue/mac_runtime_link.html
     """
-    lib_dict = {}
+    lib_dict = {}  # type: Dict[Text, Dict[Text, Text]]
     missing_dependencies = []  # Info on libraries not found by resolve_rpath.
     env_var_paths = get_environment_variable_paths()
     for dirpath, dirnames, basenames in os.walk(start_path):
@@ -123,6 +131,7 @@ def tree_libs(start_path, filt_func=None, skip_missing=False):
 
 
 def resolve_rpath(lib_path, rpaths):
+    # type: (Text, Iterable[Text]) -> Text
     """ Return `lib_path` with its `@rpath` resolved
 
     If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
@@ -160,6 +169,7 @@ def resolve_rpath(lib_path, rpaths):
 
 
 def search_environment_for_lib(lib_path):
+    # type: (Text) -> Text
     """ Search common environment variables for `lib_path`
 
     We'll use a single approach here:
@@ -211,6 +221,7 @@ def search_environment_for_lib(lib_path):
 
 
 def get_prefix_stripper(strip_prefix):
+    # type: (Text) -> Callable[[Text], Text]
     """ Return function to strip `strip_prefix` prefix from string if present
 
     Parameters
@@ -227,11 +238,13 @@ def get_prefix_stripper(strip_prefix):
     n = len(strip_prefix)
 
     def stripper(path):
+        # type: (Text) -> Text
         return path if not path.startswith(strip_prefix) else path[n:]
     return stripper
 
 
 def get_rp_stripper(strip_path):
+    # type: (Text) -> Callable[[Text], Text]
     """ Return function to strip ``realpath`` of `strip_path` from string
 
     Parameters
@@ -250,6 +263,7 @@ def get_rp_stripper(strip_path):
 
 
 def stripped_lib_dict(lib_dict, strip_prefix):
+    # type: (Dict[Text, Dict[Text, Text]], Text) -> Dict[Text, Dict[Text, Text]]
     """ Return `lib_dict` with `strip_prefix` removed from start of paths
 
     Use to give form of `lib_dict` that appears relative to some base path
@@ -282,7 +296,11 @@ def stripped_lib_dict(lib_dict, strip_prefix):
     return relative_dict
 
 
-def wheel_libs(wheel_fname, filt_func=None):
+def wheel_libs(
+    wheel_fname,  # type: Text
+    filt_func=None  # type: Optional[Callable[[Text], bool]]
+):
+    # type: (...) -> Dict[Text, Dict[Text, Text]]
     """ Return analysis of library dependencies with a Python wheel
 
     Use this routine for a dump of the dependency tree.
@@ -313,7 +331,8 @@ def wheel_libs(wheel_fname, filt_func=None):
 
 
 def _paths_from_var(varname, lib_basename):
-    var = os.environ.get(varname)
+    # type: (Text, Text) -> List[Text]
+    var = os.environ.get(six.ensure_str(varname))
     if var is None:
         return []
     return [pjoin(path, lib_basename) for path in var.split(':')]

@@ -26,6 +26,7 @@ from delocate.wheeltools import add_platforms, WheelToolsError
 
 
 def main():
+    # type: () -> None
     parser = OptionParser(
         usage="%s WHEEL_FILENAME\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__)

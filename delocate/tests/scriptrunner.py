@@ -17,14 +17,21 @@ import os
 from os.path import (dirname, join as pjoin, isfile, isdir, realpath, pathsep)
 
 from subprocess import Popen, PIPE
+from typing import (Callable, Generic, Iterable, Optional, Text, Tuple,
+                    TypeVar, Union)
 
+import six
 try:  # Python 2
     string_types = basestring,
 except NameError:  # Python 3
     string_types = str,
 
 
+T = TypeVar("T")
+
+
 def _get_package():
+    # type: () -> Text
     """ Workaround for missing ``__package__`` in Python 3.2
     """
     if '__package__' in globals() and __package__ is not None:
@@ -37,6 +44,7 @@ MY_PACKAGE = _get_package()
 
 
 def local_script_dir(script_sdir):
+    # type: (Text) -> Optional[Text]
     """ Get local script directory if running in development dir, else None
     """
     # Check for presence of scripts in development directory.  ``realpath``
@@ -51,16 +59,17 @@ def local_script_dir(script_sdir):
 
 
 def local_module_dir(module_name):
+    # type: (Text) -> Optional[Text]
     """ Get local module directory if running in development dir, else None
     """
     mod = __import__(module_name)
-    containing_path = dirname(dirname(realpath(mod.__file__)))
+    containing_path = dirname(dirname(realpath(mod.__file__)))  # type: Text
     if containing_path == realpath(os.getcwd()):
         return containing_path
     return None
 
 
-class ScriptRunner(object):
+class ScriptRunner(Generic[T]):
     """ Class to run scripts and return output
 
     Finds local scripts and local modules if running in the development
@@ -70,8 +79,10 @@ class ScriptRunner(object):
                  script_sdir='scripts',
                  module_sdir=MY_PACKAGE,
                  debug_print_var=None,
-                 output_processor=lambda x: x
+                 output_processor=lambda x: x  # type: ignore
+                 # https://github.com/python/mypy/issues/3737
                  ):
+        # type: (Text, Text, Optional[Text], Callable[[str], T]) -> None
         """ Init ScriptRunner instance
 
         Parameters
@@ -94,10 +105,13 @@ class ScriptRunner(object):
         self.local_module_dir = local_module_dir(module_sdir)
         if debug_print_var is None:
             debug_print_var = '{0}_DEBUG_PRINT'.format(module_sdir.upper())
-        self.debug_print = os.environ.get(debug_print_var, False)
+        self.debug_print = os.environ.get(
+            six.ensure_str(debug_print_var), False
+        )
         self.output_processor = output_processor
 
     def run_command(self, cmd, check_code=True):
+        # type: (Union[Text, Iterable[Text]], bool) -> Tuple[int, T, T]
         """ Run command sequence `cmd` returning exit code, stdout, stderr
 
         Parameters
@@ -139,17 +153,18 @@ class ScriptRunner(object):
             cmd = ['"{0}"'.format(c) if ' ' in c else c for c in cmd]
         if self.debug_print:
             print("Running command '%s'" % cmd)
-        env = os.environ
+        env = os.environ.copy()
         if self.local_module_dir is not None:
             # module likely comes from the current working directory.
             # We might need that directory on the path if we're running
             # the scripts from a temporary directory
-            env = env.copy()
             pypath = env.get('PYTHONPATH', None)
             if pypath is None:
-                env['PYTHONPATH'] = self.local_module_dir
+                env['PYTHONPATH'] = six.ensure_str(self.local_module_dir)
             else:
-                env['PYTHONPATH'] = self.local_module_dir + pathsep + pypath
+                env['PYTHONPATH'] = six.ensure_str(
+                    self.local_module_dir + pathsep + pypath
+                )
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=env)
         stdout, stderr = proc.communicate()
         if proc.poll() is None:

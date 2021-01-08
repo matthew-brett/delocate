@@ -16,6 +16,7 @@ from delocate.fuse import fuse_wheels
 
 
 def main():
+    # type: () -> None
     parser = OptionParser(
         usage="%s WHEEL1 WHEEL2\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__)

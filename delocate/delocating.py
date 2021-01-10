@@ -415,7 +415,7 @@ def delocate_wheel(in_wheel,
             wheel_name = os.path.basename(in_wheel)
             new_name = update_wheel_name(wheel_name, wheel_dir)
             if check_wheel_name and new_name != wheel_name:
-                raise DelocationError("Wheel name do not satisfy minimal package requirements")
+                raise DelocationError("Wheel name does not satisfy minimal package requirements")
             if new_name != wheel_name:
                 in_place = False  # maybe something better
                 out_wheel = os.path.join(os.path.basename(out_wheel), new_name)

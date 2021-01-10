@@ -14,6 +14,26 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* 0.8.2 (Sunday July 12th 2020)
+
+  Bugfix release.
+
+  * Force UTF-8 for import of README file.  0.8.1 introduced non-ascii
+    characters, so unguarded `open('README.rst', 'rt').read()` in `setup.py`
+    gives an encoding error.  See GH issue 81.  Thanks to Joshua Haberman for
+    the report.
+
+* 0.8.1 (Sunday June 28th 2020)
+
+  Bugfix release.
+
+  * Adapt parsing of otool output to Catalina, avoiding crash in delocate
+    (thanks to Github use `matham` for the report)
+  * Adapt to possibility that `wheel` binary is not on PATH.
+  * Various improvements to documentation, including explanation of Delocate's
+    problems in dealing with single module extensions (Brad Solomon)
+  * PEP8 maintenance by Grzegorz Bokota.
+
 * 0.8.0 (Wednesday November 6th 2019)
 
   Bugfix and new feature release.
@@ -57,7 +77,7 @@ Releases
   More changes for compatibility with newer OSX Xcode messages.  Thanks to
   Sean Gillies.
 
-  * more adaptations to chanages to output of ``otool``.
+  * more adaptations to changes to output of ``otool``.
 
 * 0.6.4 (Wednesday November 23 2016)
 

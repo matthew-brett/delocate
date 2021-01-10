@@ -2,6 +2,7 @@
 """ setup script for delocate package """
 from os.path import join as pjoin
 from setuptools import setup, find_packages
+import codecs
 
 import versioneer
 
@@ -60,9 +61,9 @@ setup(name='delocate',
                    'License :: OSI Approved :: BSD License',
                    'Programming Language :: Python',
                    'Operating System :: MacOS :: MacOS X',
-                   'Development Status :: 3 - Alpha',
+                   "Development Status :: 5 - Production/Stable",
                    'Topic :: Software Development :: Libraries :: '
                    'Python Modules',
                    'Topic :: Software Development :: Build Tools'],
-      long_description=open('README.rst', 'rt').read(),
+      long_description=codecs.open('README.rst', 'r', encoding='utf-8').read(),
       )

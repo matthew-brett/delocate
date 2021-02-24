@@ -7,7 +7,6 @@ import sys
 import os
 from os.path import (join as pjoin, abspath, relpath, exists, sep as psep,
                      splitext, basename, dirname)
-import glob
 import hashlib
 import csv
 from itertools import product
@@ -19,7 +18,7 @@ try:
 except ImportError:  # As of Wheel 0.32.0
     from wheel.wheelfile import WheelFile
 from .tmpdirs import InTemporaryDirectory
-from .tools import unique_by_index, zip2dir, dir2zip, open_rw
+from .tools import find_dist_info, unique_by_index, zip2dir, dir2zip, open_rw
 
 
 class WheelToolsError(Exception):
@@ -45,13 +44,13 @@ def rewrite_record(bdist_dir):
     bdist_dir : str
         Path of unpacked wheel file
     """
-    info_dirs = glob.glob(pjoin(bdist_dir, '*.dist-info'))
-    if len(info_dirs) != 1:
+    info_dir = find_dist_info(bdist_dir)
+    if not info_dir:
         raise WheelToolsError("Should be exactly one `*.dist_info` directory")
-    record_path = pjoin(info_dirs[0], 'RECORD')
+    record_path = pjoin(info_dir, 'RECORD')
     record_relpath = relpath(record_path, bdist_dir)
     # Unsign wheel - because we're invalidating the record hash
-    sig_path = pjoin(info_dirs[0], 'RECORD.jws')
+    sig_path = pjoin(info_dir, 'RECORD.jws')
     if exists(sig_path):
         os.unlink(sig_path)
 

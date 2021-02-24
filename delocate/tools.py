@@ -2,8 +2,9 @@
 
 from subprocess import Popen, PIPE
 
+import glob
 import os
-from os.path import join as pjoin, relpath, isdir, exists
+from os.path import join as pjoin, relpath, isdir, exists, normpath
 import zipfile
 import re
 import stat
@@ -421,6 +422,26 @@ def dir2zip(in_dir, zip_fname):
     z.close()
 
 
+def find_dist_info(root_path):
+    """ Find dist-info directory in directory `root_path`
+
+    Parameters
+    ----------
+    root_path : str
+        Directory to search for a dist-info directory
+
+    Returns
+    -------
+    info_dir : str
+        String of path to the dist-info directory if exactly 1 is found.
+        Otherwise returns None
+    """
+    info_dirs = glob.glob(pjoin(root_path, '*.dist-info'))
+    if len(info_dirs) == 1:
+        return info_dirs[0]
+    return None
+
+
 def find_package_dirs(root_path):
     """ Find python package directories in directory `root_path`
 
@@ -436,10 +457,23 @@ def find_package_dirs(root_path):
         an ``__init__.py`` file.  Paths prefixed by `root_path`
     """
     package_sdirs = set()
-    for entry in os.listdir(root_path):
-        fname = entry if root_path == '.' else pjoin(root_path, entry)
-        if isdir(fname) and exists(pjoin(fname, '__init__.py')):
-            package_sdirs.add(fname)
+    roots = ['.']
+    dist_info_dir = find_dist_info(root_path)
+    if dist_info_dir:
+        namespace_packages_file = pjoin(
+            dist_info_dir,
+            'namespace_packages.txt'
+        )
+        if exists(namespace_packages_file):
+            with open(namespace_packages_file, 'r') as namespace_packages:
+                roots.extend(namespace_packages.read().splitlines())
+
+    for root in roots:
+        root = normpath(pjoin(root_path, root))
+        for entry in os.listdir(root):
+            fname = normpath(pjoin(root, entry))
+            if isdir(fname) and exists(pjoin(fname, '__init__.py')):
+                package_sdirs.add(fname)
     return package_sdirs
 
 

@@ -176,7 +176,8 @@ def test_find_package_dirs():
         a_dir = pjoin('to_test', 'a_dir')
         b_dir = pjoin('to_test', 'b_dir')
         c_dir = pjoin('to_test', 'c_dir')
-        for dir in (a_dir, b_dir, c_dir):
+        dist_info_dir = 'test.dist-info'
+        for dir in (dist_info_dir, a_dir, b_dir, c_dir):
             os.mkdir(dir)
         assert_equal(find_package_dirs('to_test'), set([]))
         _write_file(pjoin(a_dir, '__init__.py'), "# a package")
@@ -185,6 +186,9 @@ def test_find_package_dirs():
         assert_equal(find_package_dirs('to_test'), {a_dir, c_dir})
         # Not recursive
         assert_equal(find_package_dirs('.'), set())
+        _write_file(pjoin(dist_info_dir, 'namespace_packages.txt'), "to_test\n")
+        assert find_package_dirs('.') == {a_dir, c_dir}
+        shutil.rmtree(dist_info_dir)
         _write_file(pjoin('to_test', '__init__.py'), "# base package")
         # Also - strips '.' for current directory
         assert_equal(find_package_dirs('.'), {'to_test'})

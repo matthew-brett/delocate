@@ -324,7 +324,12 @@ def get_rpaths(filename):
             continue
         cmdsize, path = lines[line_no:line_no+2]
         assert cmdsize.startswith('cmdsize ')
-        paths.append(RPATH_RE.match(path).groups()[0])
+        path = (RPATH_RE.match(path).groups()[0])
+        if path.startswith("@loader_path/"):
+            path = os.path.join(os.path.dirname(filename), path[13:])
+        elif path == "@loader_path":
+            path = os.path.dirname(filename)
+        paths.append(path)
         line_no += 2
     return tuple(paths)
 

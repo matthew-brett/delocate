@@ -13,7 +13,7 @@ from .tools import (get_install_names, zip2dir, get_rpaths,
 from .tmpdirs import TemporaryDirectory
 
 
-def tree_libs(start_path, filt_func=None):
+def tree_libs(start_path, filt_func=None, original_paths=[]):
     """ Return analysis of library dependencies within `start_path`
 
     Parameters
@@ -24,6 +24,8 @@ def tree_libs(start_path, filt_func=None):
         If None, inspect all files for library dependencies. If callable,
         accepts filename as argument, returns True if we should inspect the
         file, False otherwise.
+    original_paths: list
+        A list of the original paths of the libraries copied to ``start_path``.
 
     Returns
     -------
@@ -54,6 +56,12 @@ def tree_libs(start_path, filt_func=None):
     for dirpath, dirnames, basenames in os.walk(start_path):
         for base in basenames:
             depending_libpath = realpath(pjoin(dirpath, base))
+            for orig_path in original_paths:
+                if os.path.basename(orig_path) == base and \
+                        os.path.isabs(orig_path):
+                    depending_libpath = orig_path
+                    break
+
             if filt_func is not None and not filt_func(depending_libpath):
                 continue
             rpaths = get_rpaths(depending_libpath)

@@ -179,7 +179,9 @@ def _cmd_out_err(cmd):
     out = err if not len(out) else out
     return out.split('\n')
 
+
 _LINE0_RE = re.compile(r"^(?: \(architecture .*\))?:(?P<further_report>.*)")
+
 
 def _line0_says_object(line0, filename):
     line0 = line0.strip()

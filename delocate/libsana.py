@@ -59,6 +59,11 @@ def tree_libs(start_path, filt_func=None, original_paths=[]):
             if filt_func is not None and not filt_func(depending_libpath):
                 continue
 
+            # Sometime rpaths might have @loader_path which means dependent
+            # libraries are found relative to the original path.
+            # Once we copy the library, we lose the meaning of @loader_path
+            # and to fix this, we get the rpaths from the original path
+            # which will resolve @loader_path correctly.
             depending_libpath_orig = depending_libpath
             for orig_path in original_paths:
                 if os.path.basename(orig_path) == base and \

@@ -56,15 +56,18 @@ def tree_libs(start_path, filt_func=None, original_paths=[]):
     for dirpath, dirnames, basenames in os.walk(start_path):
         for base in basenames:
             depending_libpath = realpath(pjoin(dirpath, base))
+            if filt_func is not None and not filt_func(depending_libpath):
+                continue
+
+            depending_libpath_orig = depending_libpath
             for orig_path in original_paths:
                 if os.path.basename(orig_path) == base and \
                         os.path.isabs(orig_path):
-                    depending_libpath = orig_path
+                    depending_libpath_orig = orig_path
                     break
 
-            if filt_func is not None and not filt_func(depending_libpath):
-                continue
-            rpaths = get_rpaths(depending_libpath)
+            rpaths = get_rpaths(depending_libpath_orig)
+
             search_paths = rpaths + env_var_paths
             for install_name in get_install_names(depending_libpath):
                 # If the library starts with '@rpath' we'll try and resolve it

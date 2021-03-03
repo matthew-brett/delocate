@@ -141,6 +141,8 @@ def test_add_rpath():
         assert_equal(get_rpaths(libfoo), ('/a/path',))
         add_rpath(libfoo, '/another/path')
         assert_equal(get_rpaths(libfoo), ('/a/path', '/another/path'))
+        add_rpath(libfoo, '@loader_path')
+        assert_equal(get_rpaths(libfoo), ('/a/path', '/another/path', tmpdir))
 
 
 def _copy_libs(lib_files, out_path):

@@ -199,7 +199,7 @@ def _copy_required(lib_path, copy_filt_func, copied_libs):
     ``dependings_dict`` entry for ``copied_libs['/sys/libB.dylib']``
     """
     # Paths will be prepended with `lib_path`
-    lib_dict = tree_libs(lib_path, original_paths=list(copied_libs.keys()))
+    lib_dict = tree_libs(lib_path, original_paths=tuple(copied_libs.keys()))
     # Map library paths after copy ('copied') to path before copy ('orig')
     rp_lp = realpath(lib_path)
     copied2orig = dict((pjoin(rp_lp, basename(c)), c) for c in copied_libs)

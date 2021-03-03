@@ -13,7 +13,7 @@ from .tools import (get_install_names, zip2dir, get_rpaths,
 from .tmpdirs import TemporaryDirectory
 
 
-def tree_libs(start_path, filt_func=None, original_paths=[]):
+def tree_libs(start_path, filt_func=None, original_paths=()):
     """ Return analysis of library dependencies within `start_path`
 
     Parameters

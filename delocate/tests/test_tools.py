@@ -256,10 +256,15 @@ def test_validate_signature():
         check_signature('libcopy')  # codesign now accepts the file
 
         # Alter the contents of this file, this will invalidate the signature
-        add_rpath('libcopy', '/dummy/path')
+        add_rpath('libcopy', '/dummy/path', ad_hoc_sign=False)
 
         # codesign should raise a new error (invalid signature)
         assert_raises(RuntimeError, check_signature, 'libcopy')
 
         validate_signature('libcopy')  # Replace the broken signature
+        check_signature('libcopy')
+
+        # Alter the contents of this file, check that by default the file
+        # is signed with an ad-hoc signature
+        add_rpath('libcopy', '/dummy/path')
         check_signature('libcopy')

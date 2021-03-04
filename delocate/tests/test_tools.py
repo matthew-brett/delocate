@@ -266,5 +266,5 @@ def test_validate_signature():
 
         # Alter the contents of this file, check that by default the file
         # is signed with an ad-hoc signature
-        add_rpath('libcopy', '/dummy/path')
+        add_rpath('libcopy', '/dummy/path2')
         check_signature('libcopy')

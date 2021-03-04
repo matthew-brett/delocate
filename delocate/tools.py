@@ -533,8 +533,8 @@ def lipo_fuse(in_fname1, in_fname2, out_fname, ad_hoc_sign=True):
         sign the new library with an ad hoc signature or not
     """
     out = back_tick(['lipo', '-create',
-                      in_fname1, in_fname2,
-                      '-output', out_fname])
+                     in_fname1, in_fname2,
+                     '-output', out_fname])
     if ad_hoc_sign:
         replace_signature(out_fname, '-')
     return out

@@ -9,7 +9,8 @@ import shutil
 from ..tools import (back_tick, unique_by_index, ensure_writable, chmod_perms,
                      ensure_permissions, parse_install_name, zip2dir, dir2zip,
                      find_package_dirs, cmp_contents, get_archs, lipo_fuse,
-                     replace_signature, validate_signature, add_rpath)
+                     replace_signature, validate_signature, add_rpath,
+                     set_install_id, set_install_name)
 
 from ..tmpdirs import InTemporaryDirectory
 

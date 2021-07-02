@@ -271,6 +271,8 @@ def set_install_name(filename, oldname, newname, ad_hoc_sign=True):
             oldname, filename))
     back_tick(['install_name_tool', '-change', oldname, newname, filename])
     if ad_hoc_sign:
+        # ad hoc signature is represented by a dash
+        # https://developer.apple.com/documentation/security/seccodesignatureflags/kseccodesignatureadhoc
         replace_signature(filename, '-')
 
 

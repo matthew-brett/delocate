@@ -284,8 +284,8 @@ def set_install_id(filename, install_id, ad_hoc_sign=True):
         filename of library
     install_id : str
         install id for library `filename`
-    ad_hoc_sign : bool
-        sign the new library with an ad hoc signature or not
+    ad_hoc_sign : {True, False}, optional
+        If True, sign library with ad-hoc signature
 
     Raises
     ------

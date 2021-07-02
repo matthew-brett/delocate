@@ -268,3 +268,9 @@ def test_validate_signature():
         # is signed with an ad-hoc signature
         add_rpath('libcopy', '/dummy/path2')
         check_signature('libcopy')
+
+        set_install_id('libcopy', 'libcopy-name')
+        check_signature('libcopy')
+
+        set_install_name('libcopy', 'liba.dylib', 'liba0.dylib')
+        check_signature('libcopy')

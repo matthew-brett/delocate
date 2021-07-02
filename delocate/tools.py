@@ -262,8 +262,8 @@ def set_install_name(filename, oldname, newname, ad_hoc_sign=True):
         current install name in library
     newname : str
         replacement name for `oldname`
-    ad_hoc_sign : bool
-        sign the new library with an ad hoc signature or not
+    ad_hoc_sign : {True, False}, optional
+        If True, sign library with ad-hoc signature
     """
     names = get_install_names(filename)
     if oldname not in names:
@@ -371,8 +371,8 @@ def add_rpath(filename, newpath, ad_hoc_sign=True):
         filename of library
     newpath : str
         rpath to add
-    ad_hoc_sign : bool
-        sign the new library with an ad hoc signature or not
+    ad_hoc_sign : {True, False}, optional
+        If True, sign file with ad-hoc signature
     """
     back_tick(['install_name_tool', '-add_rpath', newpath, filename])
     if ad_hoc_sign:
@@ -529,8 +529,8 @@ def lipo_fuse(in_fname1, in_fname2, out_fname, ad_hoc_sign=True):
         filename of library
     out_fname : str
         filename to which to write new fused library
-    ad_hoc_sign : bool
-        sign the new library with an ad hoc signature or not
+    ad_hoc_sign : {True, False}, optional
+        If True, sign file with ad-hoc signature
     """
     out = back_tick(['lipo', '-create',
                      in_fname1, in_fname2,

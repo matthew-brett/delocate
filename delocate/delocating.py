@@ -10,8 +10,8 @@ import logging
 import shutil
 import warnings
 from subprocess import Popen, PIPE
-from typing import (Callable, Dict, FrozenSet, Iterable, List, Optional,
-                    Set, Text, Tuple, Union)
+from typing import (Callable, Dict, FrozenSet, Iterable, List, Mapping,
+                    Optional, Set, Text, Tuple, Union)
 
 from .pycompat import string_types
 from .libsana import (tree_libs, stripped_lib_dict, get_rp_stripper,
@@ -33,7 +33,7 @@ class DelocationError(Exception):
 
 
 def delocate_tree_libs(
-    lib_dict,  # type: Dict[Text, Dict[Text, Text]]
+    lib_dict,  # type: Mapping[Text, Mapping[Text, Text]]
     lib_path,  # type: Text
     root_path  # type: Text
 ):
@@ -59,7 +59,7 @@ def delocate_tree_libs(
     lib_path : str
         Path in which to store copies of libs referred to in keys of
         `lib_dict`.  Assumed to exist
-    root_path : str, optional
+    root_path : str
         Root directory of tree analyzed in `lib_dict`.  Any required
         library within the subtrees of `root_path` does not get copied, but
         libraries linking to it have links adjusted to use relative path to
@@ -71,16 +71,45 @@ def delocate_tree_libs(
         Filtered `lib_dict` dict containing only the (key, value) pairs from
         `lib_dict` where the keys are the libraries copied to `lib_path``.
     """
-    copied_libs = {}
-    delocated_libs = set()
+    # Test for errors first to avoid getting half-way through changing the tree
+    libraries_to_copy, libraries_to_delocate = _analyze_tree_libs(
+        lib_dict, root_path
+    )
+    # Copy libraries and update lib_dict.
+    lib_dict, copied_libraries = _copy_required_libs(
+        lib_dict, lib_path, root_path, libraries_to_copy
+    )
+    # Update the install names of local and copied libaries.
+    _update_install_names(
+        lib_dict, root_path, libraries_to_delocate | copied_libraries
+    )
+    return libraries_to_copy
+
+
+def _analyze_tree_libs(
+    lib_dict,  # type: Mapping[Text, Mapping[Text, Text]]
+    root_path  # type: Text
+) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]:
+    """ Verify then return which library files to copy and delocate.
+
+    Returns
+    -------
+    needs_copying : dict
+        The libraries outside of `root_path`.
+        This is in the `lib_dict` format since based on `delocate_tree_libs` returns
+        this value.
+    needs_delocating : set of str
+        The libraries inside of `root_path` which need to be delocated.
+    """
+    needs_delocating = set()  # Libraries which need their install names updated.
+    needs_copying = {}  # A report of which libraries were copied.
     copied_basenames = set()
     rp_root_path = realpath(root_path)
-    # Test for errors first to avoid getting half-way through changing the tree
     for required, requirings in lib_dict.items():
-        if required.startswith('@'):  # assume @rpath etc are correct
-            # But warn, because likely they are not
-            warnings.warn('Not processing required path {0} because it '
-                          'begins with @'.format(required))
+        if required.startswith('@'):
+            # @rpath, etc, at this point is likely incorrect.
+            logger.error('Not processing required path {0} because it '
+                         'begins with @'.format(required))
             continue
         r_ed_base = basename(required)
         if relpath(required, rp_root_path).startswith('..'):
@@ -92,20 +121,43 @@ def delocate_tree_libs(
                 raise DelocationError('library "{0}" does not exist'.format(
                     required))
             # Copy requirings to preserve it since it will be modified later.
-            copied_libs[required] = requirings.copy()
+            needs_copying[required] = dict(requirings)
             copied_basenames.add(r_ed_base)
         else:  # Is local, plan to set relative loader_path
-            delocated_libs.add(required)
+            needs_delocating.add(required)
+    return needs_copying, needs_delocating
+
+
+def _copy_required_libs(
+    lib_dict_,  # type: Mapping[Text, Mapping[Text, Text]]
+    lib_path,  # type: Text
+    root_path,  # type: Text
+    libraries_to_copy  # type: Iterable[Text]
+) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]:
+    """ Copy libraries outside of root_path to lib_path.
+
+    Returns
+    -------
+    updated_lib_dict : dict
+        `lib_dict_` but modified so that dependices point to the libraries
+        at their destination.
+    needs_delocating : set of str
+        A set of the destination files, these need to be delocated.
+    """
     # Modify in place now that we've checked for errors.
     # Copy libraries outside of root_path to lib_path.
-    for old_path in copied_libs:
+    lib_dict = {  # Make a clone of lib_dict.
+        required: dict(requiring) for required, requiring in lib_dict_.items()
+    }
+    needs_delocating = set()  # Set[Text]
+    for old_path in libraries_to_copy:
         new_path = realpath(pjoin(lib_path, basename(old_path)))
         logger.info(
             "Copying library %s to %s", old_path, relpath(new_path, root_path)
         )
         shutil.copy(old_path, new_path)
         # Delocate this file now that it is stored locally.
-        delocated_libs.add(new_path)
+        needs_delocating.add(new_path)
         # Update lib_dict with the new file paths.
         lib_dict[new_path] = lib_dict[old_path]
         del lib_dict[old_path]
@@ -114,8 +166,16 @@ def delocate_tree_libs(
                 continue
             lib_dict[required][new_path] = lib_dict[required][old_path]
             del lib_dict[required][old_path]
-    # Update install names of libraries using lib_dict.
-    for required in delocated_libs:
+    return lib_dict, needs_delocating
+
+
+def _update_install_names(
+    lib_dict,  # type: Mapping[Text, Mapping[Text, Text]]
+    root_path,  # type: Text
+    files_to_delocate  # type: Iterable[Text]
+) -> None:
+    """ Update the install names of libraries. """
+    for required in files_to_delocate:
         # Set relative path for local library
         for requiring, orig_install_name in lib_dict[required].items():
             req_rel = relpath(required, dirname(requiring))
@@ -127,7 +187,6 @@ def delocate_tree_libs(
                 new_install_name,
             )
             set_install_name(requiring, orig_install_name, new_install_name)
-    return copied_libs
 
 
 def copy_recurse(
@@ -196,7 +255,7 @@ def _copy_required(
     copied_libs  # type: Dict[Text, Dict[Text, Text]]
 ):
     # type: (...) -> None
-    """ Copy libraries required for files in `lib_path` to `lib_path`
+    """ Copy libraries required for files in `lib_path` to `copied_libs`
 
     Augment `copied_libs` dictionary with any newly copied libraries, modifying
     `copied_libs` in-place - see Notes.
@@ -356,14 +415,14 @@ def delocate_path(
 
 
 def _merge_lib_dict(d1, d2):
-    # type: (Dict[Text, Dict[Text, Text]], Dict[Text, Dict[Text, Text]]) -> None
+    # type: (Dict[Text, Dict[Text, Text]], Mapping[Text, Mapping[Text, Text]]) -> None
     """ Merges lib_dict `d2` into lib_dict `d1`
     """
     for required, requirings in d2.items():
         if required in d1:
             d1[required].update(requirings)
         else:
-            d1[required] = requirings
+            d1[required] = dict(requirings)
     return None
 
 
@@ -512,7 +571,7 @@ def patch_wheel(in_wheel, patch_fname, out_wheel=None):
 
 
 def check_archs(
-    copied_libs,  # type: Dict[Text, Dict[Text, Text]]
+    copied_libs,  # type: Mapping[Text, Mapping[Text, Text]]
     require_archs=(),  # type:  Union[Text, Iterable[Text]]
     stop_fast=False  # type: bool
 ):

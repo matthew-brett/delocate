@@ -14,6 +14,14 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* Unreleased
+
+  * Libraries depending on ``@loader_path`` are now supported.
+  * Dependencies are now delocated recursively.
+  * ``delocate.delocating.copy_recurse`` has been deprecated.
+  * ``delocate.libsana.resolve_rpath`` now has the ``loader_path`` and
+    ``executable_path`` parameters.
+
 * 0.8.2 (Sunday July 12th 2020)
 
   Bugfix release.

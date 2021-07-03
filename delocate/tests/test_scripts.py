@@ -12,6 +12,7 @@ import os
 from os.path import (dirname, join as pjoin, isfile, abspath, realpath,
                      basename, exists, splitext)
 import shutil
+from typing import Text
 
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import back_tick, set_install_name, zip2dir, dir2zip
@@ -228,6 +229,7 @@ def test_fix_wheel_dylibs():
 
 
 def test_fix_wheel_archs():
+    # type: () -> None
     # Some tests for wheel fixing
     with InTemporaryDirectory() as tmpdir:
         # Test check of architectures
@@ -242,10 +244,12 @@ def test_fix_wheel_archs():
         archs = set(('x86_64', 'i386'))
 
         def _fix_break(arch):
+            # type: (Text) -> None
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
 
         def _fix_break_fix(arch):
+            # type: (Text) -> None
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
             _thin_mod(fixed_wheel, arch)
@@ -262,10 +266,10 @@ def test_fix_wheel_archs():
                 ['delocate-wheel', fixed_wheel, '--check-archs'],
                 check_code=False)
             assert_false(code == 0)
-            stderr = stderr.decode('latin1').strip()
-            assert_true(stderr.startswith('Traceback'))
-            assert_true(stderr.endswith(
-                "Some missing architectures in wheel"))
+            stderr_unicode = stderr.decode('latin1').strip()
+            assert stderr_unicode.startswith('Traceback')
+            assert stderr_unicode.endswith(
+                "Some missing architectures in wheel")
             assert_equal(stdout.strip(), b'')
             # Checked, verbose
             _fix_break(arch)
@@ -273,17 +277,19 @@ def test_fix_wheel_archs():
                 ['delocate-wheel', fixed_wheel, '--check-archs', '-v'],
                 check_code=False)
             assert_false(code == 0)
-            stderr = stderr.decode('latin1').strip()
-            assert_true(stderr.startswith('Traceback'))
-            assert_true(stderr.endswith(
-                "Some missing architectures in wheel"))
-            stdout = stdout.decode('latin1').strip()
-            assert_equal(stdout,
-                         fmt_str.format(
-                             fixed_wheel,
-                             'fakepkg1/subpkg/module2.so',
-                             archs.difference([arch]).pop(),
-                             stray_lib))
+            stderr_unicode = stderr.decode('latin1').strip()
+            assert "Traceback" in stderr_unicode
+            assert stderr_unicode.endswith(
+                "Some missing architectures in wheel")
+            stdout_unicode = stdout.decode('latin1').strip()
+            assert (
+                stdout_unicode == fmt_str.format(
+                    fixed_wheel,
+                    'fakepkg1/subpkg/module2.so',
+                    archs.difference([arch]).pop(),
+                    stray_lib
+                )
+            )
             # Require particular architectures
         both_archs = 'i386,x86_64'
         for ok in ('intel', 'i386', 'x86_64', both_archs):

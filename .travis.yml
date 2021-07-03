@@ -42,13 +42,13 @@ matrix:
           - BUILD_WHEELS=1
 
 install:
-  - set -vx  # echo commands
   - source multibuild/osx_utils.sh
   - get_macpython_environment $MB_PYTHON_VERSION venv
   - pip install $WHEEL_SPEC pytest
-  - if [ -n "$BUILD_WHEELS" ]; then
+  - >
+    if [ -n "$BUILD_WHEELS" ]; then
         pip install cython;
-        (cd wheel_makers && ./make_wheels.sh);
+        (cd wheel_makers && sh -vx ./make_wheels.sh);  # echo commands
     fi
   - pip install .
 
@@ -56,4 +56,4 @@ script:
   - echo $PWD
   - mkdir tmp_test_dir
   - cd tmp_test_dir
-  - pytest --pyargs delocate
+  - pytest --pyargs delocate --log-level DEBUG

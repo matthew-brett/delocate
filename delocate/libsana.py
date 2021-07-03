@@ -110,7 +110,7 @@ def walk_library(
     filt_func : callable, optional
         A callable which accepts filename as argument and returns True if we
         should inspect the file or False otherwise.
-        Defaults to inspecting all files for library dependencies. If callable,
+        Defaults to inspecting all files for library dependencies.
         If `filt_func` filters a library it will also exclude all of that
         libraries dependencies as well.
     visited : set of str
@@ -163,7 +163,7 @@ def walk_directory(
     filt_func : None or callable, optional
         A callable which accepts filename as argument and returns True if we
         should inspect the file or False otherwise.
-        Defaults to inspecting all files for library dependencies. If callable,
+        Defaults to inspecting all files for library dependencies.
         If `filt_func` filters a library it will also exclude all of that
         libraries dependencies as well.
 

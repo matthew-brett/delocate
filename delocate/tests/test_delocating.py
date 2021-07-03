@@ -167,11 +167,9 @@ def test_delocate_path_install_names():
         all_local_libs = _make_libtree(subtree)
         lib_path = "dynlibs"
         copied = delocate_path(".", lib_path, copy_filt_func=None)
-        print(copied)
         # Libraries using the copied libraries now have an install name starting
         # with @loader_path, then pointing to the copied library directory
         for lib in all_local_libs:
-            print(lib)
             pathto_copies = relpath(realpath(lib_path), dirname(realpath(lib)))
             install_names = set(get_install_names(lib))
             install_base_names = {basename(path) for path in install_names}

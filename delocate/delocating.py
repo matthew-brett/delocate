@@ -89,7 +89,8 @@ def delocate_tree_libs(
 def _analyze_tree_libs(
     lib_dict,  # type: Mapping[Text, Mapping[Text, Text]]
     root_path  # type: Text
-) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]:
+):
+    # type: (...) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]
     """ Verify then return which library files to copy and delocate.
 
     Returns
@@ -133,7 +134,8 @@ def _copy_required_libs(
     lib_path,  # type: Text
     root_path,  # type: Text
     libraries_to_copy  # type: Iterable[Text]
-) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]:
+):
+    # type (...) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]
     """ Copy libraries outside of root_path to lib_path.
 
     Returns
@@ -144,8 +146,6 @@ def _copy_required_libs(
     needs_delocating : set of str
         A set of the destination files, these need to be delocated.
     """
-    # Modify in place now that we've checked for errors.
-    # Copy libraries outside of root_path to lib_path.
     lib_dict = {  # Make a clone of lib_dict.
         required: dict(requiring) for required, requiring in lib_dict_.items()
     }
@@ -173,7 +173,8 @@ def _update_install_names(
     lib_dict,  # type: Mapping[Text, Mapping[Text, Text]]
     root_path,  # type: Text
     files_to_delocate  # type: Iterable[Text]
-) -> None:
+):
+    # type: (...) -> None
     """ Update the install names of libraries. """
     for required in files_to_delocate:
         # Set relative path for local library

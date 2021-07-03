@@ -51,7 +51,9 @@ def main():
         parser.print_help()
         sys.exit(1)
     logging.basicConfig(
-        level=max(logging.DEBUG, logging.WARNING - 10 * opts.verbose),
+        level={
+            0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG
+        }.get(opts.verbose, logging.DEBUG)
     )
     multi = len(wheels) > 1
     if opts.wheel_dir:

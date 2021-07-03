@@ -257,8 +257,8 @@ def tree_libs(
     return lib_dict
 
 
-def resolve_rpath(lib_path, rpaths, loader_path, executable_path="."):
-    # type: (Text, Iterable[Text], Text, Text) -> Text
+def resolve_rpath(lib_path, rpaths, loader_path=None, executable_path=None):
+    # type: (Text, Iterable[Text], Optional[Text], Optional[Text]) -> Text
     """ Return `lib_path` with any special runtime linking names resolved.
 
     If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
@@ -266,7 +266,8 @@ def resolve_rpath(lib_path, rpaths, loader_path, executable_path="."):
     DependencyNotFound is raised.
 
     `@loader_path` and `@executable_path` are resolved with their respective
-    parameters.
+    parameters, an error will be raised if these parameters are needed but
+    not provided.
 
     Parameters
     ----------
@@ -275,12 +276,11 @@ def resolve_rpath(lib_path, rpaths, loader_path, executable_path="."):
         starting with `@rpath`, `@loader_path`, or `@executable_path`.
     rpaths : sequence of str
         A sequence of search paths, usually gotten from a call to `get_rpaths`.
-    loader_path : str
+    loader_path : str, optional
         The path to be used for `@loader_path`.
-        This must be the directory of the library which is loading `lib_path`.
+        This should be the directory of the library which is loading `lib_path`.
     executable_path : str, optional
         The path to be used for `@executable_path`.
-        Assumed to be the working directory by default.
 
     Returns
     -------
@@ -292,10 +292,20 @@ def resolve_rpath(lib_path, rpaths, loader_path, executable_path="."):
     DependencyNotFound
         When `lib_path` has `@rpath` in it but can not be found on any of the
         provided `rpaths`.
+        When a path with `@loader_path` or `@executable_path` must be resolved
+        but the relevant parameter wasn't provided.
     """
     if lib_path.startswith('@loader_path/'):
+        if loader_path is None:
+            raise DependencyNotFound(
+                "'%s' could not be resolved." % lib_path
+            )
         return realpath(pjoin(loader_path, lib_path.split('/', 1)[1]))
     if lib_path.startswith('@executable_path/'):
+        if executable_path is None:
+            raise DependencyNotFound(
+                "'%s' could not be resolved." % lib_path
+            )
         return realpath(pjoin(executable_path, lib_path.split('/', 1)[1]))
     if not lib_path.startswith('@rpath/'):
         return realpath(lib_path)

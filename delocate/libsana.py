@@ -114,7 +114,7 @@ def walk_library(
         If `filt_func` filters a library it will also exclude all of that
         libraries dependencies as well.
     visited : set of str
-        We update `visited` with new library_path's as we visit them, to prevent infinite 
+        We update `visited` with new library_path's as we visit them, to prevent infinite
         recursion and duplicates.  Input value of None corresponds to the set `{lib_path}`.
         Modified in-place.
 
@@ -242,7 +242,7 @@ def tree_libs(
             if filt_func and not filt_func(depending_path):
                 logger.debug("Ignoring dependencies of: %s", depending_path)
                 continue
-            for dependancy_path, install_name in get_dependencies(
+            for dependency_path, install_name in get_dependencies(
                 depending_path
             ):
                 if install_name.startswith("@loader_path/"):
@@ -252,8 +252,8 @@ def tree_libs(
                         install_name
                     )
                     continue
-                lib_dict.setdefault(dependancy_path, {})
-                lib_dict[dependancy_path][depending_path] = install_name
+                lib_dict.setdefault(dependency_path, {})
+                lib_dict[dependency_path][depending_path] = install_name
     return lib_dict
 
 

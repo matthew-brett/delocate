@@ -403,7 +403,7 @@ def delocate_path(
         lib_filt_func = _dylibs_only
     elif isinstance(lib_filt_func, str):
         raise TypeError('lib_filt_func string can only be "dylibs-only"')
-    lib_filt_func = lib_filt_func or (lambda _: True)
+    lib_filt_func = lib_filt_func if lib_filt_func is not None else lambda _: True
     if not exists(lib_path):
         os.makedirs(lib_path)
 

@@ -97,12 +97,12 @@ def _analyze_tree_libs(
     -------
     needs_copying : dict
         The libraries outside of `root_path`.
-        This is in the `lib_dict` format since based on `delocate_tree_libs` returns
-        this value.
+        This is in the `lib_dict` format since based on `delocate_tree_libs`
+        returns this value.
     needs_delocating : set of str
         The libraries inside of `root_path` which need to be delocated.
     """
-    needs_delocating = set()  # Libraries which need their install names updated.
+    needs_delocating = set()  # Libraries which need install names updated.
     needs_copying = {}  # A report of which libraries were copied.
     copied_basenames = set()
     rp_root_path = realpath(root_path)
@@ -416,7 +416,7 @@ def delocate_path(
 
 
 def _merge_lib_dict(d1, d2):
-    # type: (Dict[Text, Dict[Text, Text]], Mapping[Text, Mapping[Text, Text]]) -> None
+    # type: (Dict[Text, Dict[Text, Text]], Mapping[Text, Mapping[Text, Text]]) -> None  # noqa: E501
     """ Merges lib_dict `d2` into lib_dict `d1`
     """
     for required, requirings in d2.items():

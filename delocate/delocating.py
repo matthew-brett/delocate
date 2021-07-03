@@ -109,7 +109,7 @@ def delocate_tree_libs(
         # Update lib_dict with the new file paths.
         lib_dict[new_path] = lib_dict[old_path]
         del lib_dict[old_path]
-        for required in list(lib_dict):
+        for required in lib_dict:
             if old_path not in lib_dict[required]:
                 continue
             lib_dict[required][new_path] = lib_dict[required][old_path]
@@ -296,7 +296,7 @@ def filter_system_libs(libname):
 def delocate_path(
     tree_path,  # type: Text
     lib_path,  # type: Text
-    lib_filt_func=None,  # type: Union[None, str, Callable[[Text], bool]]
+    lib_filt_func=None,  # type: Optional[Union[str, Callable[[Text], bool]]]
     copy_filt_func=filter_system_libs  # type: Optional[Callable[[Text], bool]]
 ):
     # type: (...) -> Dict[Text, Dict[Text, Text]]

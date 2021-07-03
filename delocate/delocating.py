@@ -304,6 +304,9 @@ def _copy_required(
     ``/sys/libB.dylib``, so we fix our copy of `libC.dylib`` to point to
     ``my_lib_path/libB.dylib`` and add ``/sys/libC.dylib`` as a
     ``dependings_dict`` entry for ``copied_libs['/sys/libB.dylib']``
+
+    .. deprecated:: 0.8
+        This function is obsolete, and is only used by :func:`copy_recurse`.
     """
     # Paths will be prepended with `lib_path`
     lib_dict = tree_libs(lib_path)

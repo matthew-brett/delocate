@@ -1,0 +1,50 @@
+# Builds wheels and libraries used to run tests, uploads them, then runs the standard tests.
+name: Build and run tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: macos-10.15
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "12.4"
+      - name: Workaround ARM64 issues
+        # https://github.com/actions/virtual-environments/issues/2557
+        run: |
+          sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+      - name: Build libs and wheels
+        # Use a venv from multibuild for this step.
+        run: |
+          source multibuild/osx_utils.sh
+          get_macpython_environment $MB_PYTHON_VERSION venv
+          make
+        env:
+          MB_PYTHON_VERSION: "3.9"
+          MB_PYTHON_OSX_VER: "10.9"
+      - name: Upload test data
+        uses: actions/upload-artifact@v2
+        with:
+          name: delocate-tests-data
+          path: |
+            delocate/tests/data/
+          retention-days: 3
+          if-no-files-found: error
+      - name: Install test dependencies
+        run: |
+          pip install -r test-requirements.txt
+      - name: Install delocate
+        run: |
+          pip install . --use-feature=in-tree-build
+      - name: Run tests
+        run: |
+          mkdir tmp && cd tmp && pytest --pyargs delocate --log-level DEBUG

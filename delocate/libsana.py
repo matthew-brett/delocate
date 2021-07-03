@@ -114,9 +114,9 @@ def walk_library(
         If `filt_func` filters a library it will also exclude all of that
         libraries dependencies as well.
     visited : set of str
-        We update `visited` with new library_path's as we visit them, to prevent infinite
-        recursion and duplicates.  Input value of None corresponds to the set `{lib_path}`.
-        Modified in-place.
+        We update `visited` with new library_path's as we visit them, to
+        prevent infinite recursion and duplicates.  Input value of None
+        corresponds to the set `{lib_path}`.  Modified in-place.
 
     Yields
     ------

@@ -36,10 +36,8 @@ class DependencyNotFound(Exception):
     """
 
 
-def get_dependencies(
-    lib_path,  # type: Text
-):
-    # type: (...) -> Iterator[Tuple[Text, Text]]
+def get_dependencies(lib_path):
+    # type: (Text) -> Iterator[Tuple[Text, Text]]
     """Iterate over this libraries dependences.
 
     Parameters
@@ -101,7 +99,7 @@ def walk_library(
     visited=None,  # type: Optional[Set[Text]]
 ):
     # type: (...) -> Iterator[Text]
-    """Iterate over all of this trees dependencies inclusively.
+    """Iterate over all of this tree's dependencies inclusively.
 
     Dependencies which can not be resolved will be logged and ignored.
 
@@ -116,16 +114,17 @@ def walk_library(
         If `filt_func` filters a library it will also exclude all of that
         libraries dependencies as well.
     visited : set of str
-        This set is updated with new library_path's as they are visited.
-        This is used to prevent infinite recursion and duplicates.
+        We update `visited` with new library_path's as we visit them, to prevent infinite 
+        recursion and duplicates.  Input value of None corresponds to the set `{lib_path}`.
+        Modified in-place.
 
     Yields
     ------
     library_path : str
-        The pats of each library including `lib_path` without duplicates.
+        The paths of each library including `lib_path` without duplicates.
     """
     if visited is None:
-        visited = {lib_path, }
+        visited = {lib_path}
     elif lib_path in visited:
         return
     else:

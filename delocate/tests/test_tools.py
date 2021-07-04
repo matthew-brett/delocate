@@ -273,5 +273,14 @@ def test_validate_signature():
         set_install_id('libcopy', 'libcopy-name')
         check_signature('libcopy')
 
-        set_install_name('libcopy', 'liba.dylib', 'liba0.dylib')
+        set_install_name('libcopy', '/usr/lib/libstdc++.6.dylib', '/usr/lib/libstdc++.7.dylib')
         check_signature('libcopy')
+
+        # check that altering the contents without ad-hoc sign invalidates
+        # signatures
+        set_install_id('libcopy', 'libcopy-name2', ad_hoc_sign=False)
+        assert_raises(RuntimeError, check_signature, 'libcopy')
+
+        set_install_name('libcopy', '/usr/lib/libstdc++.7.dylib', '/usr/lib/libstdc++.8.dylib',
+                         ad_hoc_sign=False)
+        assert_raises(RuntimeError, check_signature, 'libcopy')

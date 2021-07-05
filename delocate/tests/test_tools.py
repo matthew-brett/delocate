@@ -9,7 +9,8 @@ import shutil
 from ..tools import (back_tick, unique_by_index, ensure_writable, chmod_perms,
                      ensure_permissions, parse_install_name, zip2dir, dir2zip,
                      find_package_dirs, cmp_contents, get_archs, lipo_fuse,
-                     replace_signature, validate_signature, add_rpath)
+                     replace_signature, validate_signature, add_rpath,
+                     set_install_id, set_install_name)
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -256,10 +257,31 @@ def test_validate_signature():
         check_signature('libcopy')  # codesign now accepts the file
 
         # Alter the contents of this file, this will invalidate the signature
-        add_rpath('libcopy', '/dummy/path')
+        add_rpath('libcopy', '/dummy/path', ad_hoc_sign=False)
 
         # codesign should raise a new error (invalid signature)
         assert_raises(RuntimeError, check_signature, 'libcopy')
 
         validate_signature('libcopy')  # Replace the broken signature
         check_signature('libcopy')
+
+        # Alter the contents of this file, check that by default the file
+        # is signed with an ad-hoc signature
+        add_rpath('libcopy', '/dummy/path2')
+        check_signature('libcopy')
+
+        set_install_id('libcopy', 'libcopy-name')
+        check_signature('libcopy')
+
+        set_install_name('libcopy', '/usr/lib/libstdc++.6.dylib',
+                         '/usr/lib/libstdc++.7.dylib')
+        check_signature('libcopy')
+
+        # check that altering the contents without ad-hoc sign invalidates
+        # signatures
+        set_install_id('libcopy', 'libcopy-name2', ad_hoc_sign=False)
+        assert_raises(RuntimeError, check_signature, 'libcopy')
+
+        set_install_name('libcopy', '/usr/lib/libstdc++.7.dylib',
+                         '/usr/lib/libstdc++.8.dylib', ad_hoc_sign=False)
+        assert_raises(RuntimeError, check_signature, 'libcopy')

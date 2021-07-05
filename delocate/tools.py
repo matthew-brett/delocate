@@ -251,7 +251,7 @@ def get_install_id(filename):
 
 
 @ensure_writable
-def set_install_name(filename, oldname, newname):
+def set_install_name(filename, oldname, newname, ad_hoc_sign=True):
     """ Set install name `oldname` to `newname` in library filename
 
     Parameters
@@ -262,16 +262,22 @@ def set_install_name(filename, oldname, newname):
         current install name in library
     newname : str
         replacement name for `oldname`
+    ad_hoc_sign : {True, False}, optional
+        If True, sign library with ad-hoc signature
     """
     names = get_install_names(filename)
     if oldname not in names:
         raise InstallNameError('{0} not in install names for {1}'.format(
             oldname, filename))
     back_tick(['install_name_tool', '-change', oldname, newname, filename])
+    if ad_hoc_sign:
+        # ad hoc signature is represented by a dash
+        # https://developer.apple.com/documentation/security/seccodesignatureflags/kseccodesignatureadhoc
+        replace_signature(filename, '-')
 
 
 @ensure_writable
-def set_install_id(filename, install_id):
+def set_install_id(filename, install_id, ad_hoc_sign=True):
     """ Set install id for library named in `filename`
 
     Parameters
@@ -280,6 +286,8 @@ def set_install_id(filename, install_id):
         filename of library
     install_id : str
         install id for library `filename`
+    ad_hoc_sign : {True, False}, optional
+        If True, sign library with ad-hoc signature
 
     Raises
     ------
@@ -288,6 +296,8 @@ def set_install_id(filename, install_id):
     if get_install_id(filename) is None:
         raise InstallNameError('{0} has no install id'.format(filename))
     back_tick(['install_name_tool', '-id', install_id, filename])
+    if ad_hoc_sign:
+        replace_signature(filename, '-')
 
 
 RPATH_RE = re.compile(r"path (.*) \(offset \d+\)")
@@ -354,7 +364,7 @@ def get_environment_variable_paths():
 
 
 @ensure_writable
-def add_rpath(filename, newpath):
+def add_rpath(filename, newpath, ad_hoc_sign=True):
     """ Add rpath `newpath` to library `filename`
 
     Parameters
@@ -363,8 +373,12 @@ def add_rpath(filename, newpath):
         filename of library
     newpath : str
         rpath to add
+    ad_hoc_sign : {True, False}, optional
+        If True, sign file with ad-hoc signature
     """
     back_tick(['install_name_tool', '-add_rpath', newpath, filename])
+    if ad_hoc_sign:
+        replace_signature(filename, '-')
 
 
 def zip2dir(zip_fname, out_dir):
@@ -506,7 +520,7 @@ def get_archs(libname):
         stdout, libname))
 
 
-def lipo_fuse(in_fname1, in_fname2, out_fname):
+def lipo_fuse(in_fname1, in_fname2, out_fname, ad_hoc_sign=True):
     """ Use lipo to merge libs `filename1`, `filename2`, store in `out_fname`
 
     Parameters
@@ -517,10 +531,15 @@ def lipo_fuse(in_fname1, in_fname2, out_fname):
         filename of library
     out_fname : str
         filename to which to write new fused library
+    ad_hoc_sign : {True, False}, optional
+        If True, sign file with ad-hoc signature
     """
-    return back_tick(['lipo', '-create',
-                      in_fname1, in_fname2,
-                      '-output', out_fname])
+    out = back_tick(['lipo', '-create',
+                     in_fname1, in_fname2,
+                     '-output', out_fname])
+    if ad_hoc_sign:
+        replace_signature(out_fname, '-')
+    return out
 
 
 @ensure_writable

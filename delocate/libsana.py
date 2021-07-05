@@ -104,7 +104,6 @@ def walk_library(
 
     First yields `lib_path` itself, if not already `visited` and then all
     dependencies of `lib_path`, including dependencies of dependencies.
-    """
 
     Dependencies which can not be resolved will be logged and ignored.
 

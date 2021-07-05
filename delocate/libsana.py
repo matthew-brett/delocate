@@ -31,18 +31,18 @@ logger = logging.getLogger(__name__)
 
 
 class DependencyNotFound(Exception):
-    """Raised by tree_libs or resolve_rpath if an expected dependency is
-    missing.
+    """
+    Raised by tree_libs or resolve_rpath if an expected dependency is missing.
     """
 
 
-def get_dependencies(lib_path):
+def get_dependencies(lib_fname):
     # type: (Text) -> Iterator[Tuple[Text, Text]]
-    """Iterate over this libraries dependences.
+    """Iterator yielding dependencies of library `lib_fname`
 
     Parameters
     ----------
-    lib_path : str
+    lib_fname : str
         The library to fetch dependencies from.  Must be an existing file.
 
     Yields
@@ -60,18 +60,18 @@ def get_dependencies(lib_path):
     Raises
     ------
     DependencyNotFound
-        When `lib_path` does not exist.
+        When `lib_fname` does not exist.
     """
-    if not os.path.isfile(lib_path):
-        raise DependencyNotFound(lib_path)
-    rpaths = get_rpaths(lib_path) + get_environment_variable_paths()
-    for install_name in get_install_names(lib_path):
+    if not os.path.isfile(lib_fname):
+        raise DependencyNotFound(lib_fname)
+    rpaths = get_rpaths(lib_fname) + get_environment_variable_paths()
+    for install_name in get_install_names(lib_fname):
         try:
             if install_name.startswith("@"):
                 dependency_path = resolve_rpath(
                     install_name,
                     rpaths,
-                    loader_path=dirname(lib_path),
+                    loader_path=dirname(lib_fname),
                 )
             else:
                 dependency_path = search_environment_for_lib(install_name)
@@ -85,7 +85,7 @@ def get_dependencies(lib_path):
                 "\n{0} not found:"
                 "\n  Needed by: {1}"
                 "\n  Search path:\n    {2}".format(
-                    install_name, lib_path, "\n    ".join(rpaths)
+                    install_name, lib_fname, "\n    ".join(rpaths)
                 )
             )
             # At this point install_name is known to be a bad path.
@@ -99,7 +99,12 @@ def walk_library(
     visited=None,  # type: Optional[Set[Text]]
 ):
     # type: (...) -> Iterator[Text]
-    """Iterate over all of this tree's dependencies inclusively.
+    """
+    Yield all libraries on which `lib_path` depends, directly or indirectly.
+
+    First yields `lib_path` itself, if not already `visited` and then all
+    dependencies of `lib_path`, including dependencies of dependencies.
+    """
 
     Dependencies which can not be resolved will be logged and ignored.
 
@@ -113,7 +118,7 @@ def walk_library(
         Defaults to inspecting all files for library dependencies.
         If `filt_func` filters a library it will also exclude all of that
         libraries dependencies as well.
-    visited : set of str
+    visited : None or set of str, optional
         We update `visited` with new library_path's as we visit them, to
         prevent infinite recursion and duplicates.  Input value of None
         corresponds to the set `{lib_path}`.  Modified in-place.
@@ -152,7 +157,7 @@ def walk_directory(
     filt_func=lambda filepath: True,  # type: Callable[[Text], bool]
 ):
     # type: (...) -> Iterator[Text]
-    """Walk along dependences starting with the libraries within `root_path`.
+    """Walk along dependencies starting with the libraries within `root_path`.
 
     Dependencies which can not be resolved will be logged and ignored.
 
@@ -164,8 +169,8 @@ def walk_directory(
         A callable which accepts filename as argument and returns True if we
         should inspect the file or False otherwise.
         Defaults to inspecting all files for library dependencies.
-        If `filt_func` filters a library it will also exclude all of that
-        libraries dependencies as well.
+        If `filt_func` filters a library it will will not further analyze any
+        of that library's dependencies.
 
     Yields
     ------

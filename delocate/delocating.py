@@ -97,8 +97,7 @@ def _analyze_tree_libs(
     -------
     needs_copying : dict
         The libraries outside of `root_path`.
-        This is in the `lib_dict` format since based on `delocate_tree_libs`
-        returns this value.
+        This is in the `lib_dict` format for use by `delocate_tree_libs`.
     needs_delocating : set of str
         The libraries inside of `root_path` which need to be delocated.
     """
@@ -141,8 +140,7 @@ def _copy_required_libs(
     Returns
     -------
     updated_lib_dict : dict
-        `lib_dict_` but modified so that dependices point to the libraries
-        at their destination.
+        `lib_dict_` but modified so dependencies point to library copies.
     needs_delocating : set of str
         A set of the destination files, these need to be delocated.
     """

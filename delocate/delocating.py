@@ -70,6 +70,12 @@ def delocate_tree_libs(
     copied_libs : dict
         Filtered `lib_dict` dict containing only the (key, value) pairs from
         `lib_dict` where the keys are the libraries copied to `lib_path``.
+
+    Raises
+    ------
+    DelocationError
+        When a malformed `lib_dict` has unresolved paths, missing files, etc.
+        When two dependencies would've been be copied to the same destination.
     """
     # Test for errors first to avoid getting half-way through changing the tree
     libraries_to_copy, libraries_to_delocate = _analyze_tree_libs(
@@ -107,10 +113,8 @@ def _analyze_tree_libs(
     rp_root_path = realpath(root_path)
     for required, requirings in lib_dict.items():
         if required.startswith('@'):
-            # @rpath, etc, at this point is likely incorrect.
-            logger.error('Not processing required path {0} because it '
-                         'begins with @'.format(required))
-            continue
+            # @rpath, etc, at this point should never happen.
+            raise DelocationError("%s was expected to be resolved." % required)
         r_ed_base = basename(required)
         if relpath(required, rp_root_path).startswith('..'):
             # Not local, plan to copy
@@ -359,6 +363,7 @@ def delocate_path(
     lib_filt_func=None,  # type: Optional[Union[str, Callable[[Text], bool]]]
     copy_filt_func=filter_system_libs,  # type: Optional[Callable[[Text], bool]]
     executable_path=None,  # type: Optional[Text]
+    ignore_missing=False,  # type: bool
 ):
     # type: (...) -> Dict[Text, Dict[Text, Text]]
     """ Copy required libraries for files in `tree_path` into `lib_path`
@@ -382,6 +387,8 @@ def delocate_path(
         usually end up copying large parts of the system run-time.
     executable_path : str, optional
         An alternative path to use for resolving `@executable_path`.
+    ignore_missing : bool, default=False
+        Continue even if missing dependencies are detected.
 
     Returns
     -------
@@ -396,7 +403,7 @@ def delocate_path(
 
     Raises
     ------
-    DependencyNotFound
+    DelocationError
         When any dependencies can not be located.
     """
     if lib_filt_func == "dylibs-only":
@@ -409,16 +416,25 @@ def delocate_path(
         os.makedirs(lib_path)
 
     lib_dict = {}  # type: Dict[Text, Dict[Text, Text]]
+    missing_libs = False
     for library_path in walk_directory(
         tree_path, lib_filt_func, executable_path=executable_path
     ):
         for depending_path, install_name in get_dependencies(
             library_path, executable_path=executable_path
         ):
+            if depending_path is None:
+                missing_libs = True
+                continue
             if copy_filt_func and not copy_filt_func(depending_path):
                 continue
             lib_dict.setdefault(depending_path, {})
             lib_dict[depending_path][library_path] = install_name
+
+    if missing_libs and not ignore_missing:
+        # Details of missing libraries would have already reported by
+        # get_dependencies.
+        raise DelocationError("Could not find all dependencies.")
 
     return delocate_tree_libs(lib_dict, lib_path, tree_path)
 

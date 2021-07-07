@@ -38,7 +38,7 @@ class DependencyNotFound(Exception):
 
 
 def get_dependencies(lib_fname, executable_path=None):
-    # type: (Text, Optional[Text]) -> Iterator[Tuple[Text, Text]]
+    # type: (Text, Optional[Text]) -> Iterator[Tuple[Optional[Text], Text]]
     """Iterator yielding dependencies of library `lib_fname`
 
     Parameters
@@ -50,11 +50,10 @@ def get_dependencies(lib_fname, executable_path=None):
 
     Yields
     ------
-    dependency_path : str
+    dependency_path : str or None
         The direct dependencies of `lib_fname`.
         If the library at `install_name` can not be found then this value will
-        not converted into a valid file path.
-        :func:`os.path.isfile` can be used to test if this file exists.
+        be None.
     install_name : str
         The install name of `dependency_path` as if :func:`get_install_names`
         was called.
@@ -92,7 +91,7 @@ def get_dependencies(lib_fname, executable_path=None):
                 )
             )
             # At this point install_name is known to be a bad path.
-            yield install_name, install_name
+            yield None, install_name
 
 
 def walk_library(
@@ -143,12 +142,12 @@ def walk_library(
         logger.debug("Ignoring %s and its dependencies.", lib_fname)
         return
     yield lib_fname
-    for dependency_fname, _ in get_dependencies(
+    for dependency_fname, install_name in get_dependencies(
         lib_fname, executable_path=executable_path
     ):
-        if not os.path.isfile(dependency_fname):
+        if dependency_fname is None:
             logger.error(
-                "%s not found, requested by %s", dependency_fname, lib_fname,
+                "%s not found, requested by %s", install_name, lib_fname,
             )
             continue
         for sub_dependency in walk_library(
@@ -264,6 +263,11 @@ def tree_libs(
             for dependency_path, install_name in get_dependencies(
                 depending_path
             ):
+                if dependency_path is None:
+                    # Mimic deprecated behavior.
+                    # A lib_dict with unresolved paths is unsuitable for
+                    # delocating, this is a missing dependency.
+                    dependency_path = install_name
                 if install_name.startswith("@loader_path/"):
                     # Support for `@loader_path` would break existing callers.
                     logger.debug(

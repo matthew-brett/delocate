@@ -53,7 +53,7 @@ def test_tree_libs():
              rp_libb: {rp_libc: 'libb.dylib'},
              rp_libc: {rp_test_lib: 'libc.dylib'}})
         # default - no filtering
-        assert_equal(tree_libs(tmpdir), exp_dict)
+        assert tree_libs(tmpdir) == exp_dict
 
         def filt(fname):
             # type: (Text) -> bool
@@ -63,7 +63,7 @@ def test_tree_libs():
              rp_liba: {rp_libb: 'liba.dylib', rp_libc: 'liba.dylib'},
              rp_libb: {rp_libc: 'libb.dylib'}})
         # filtering
-        assert_equal(tree_libs(tmpdir, filt), exp_dict)
+        assert tree_libs(tmpdir, filt) == exp_dict
         # Copy some libraries into subtree to test tree walking
         subtree = pjoin(tmpdir, 'subtree')
         slibc, stest_lib = _copy_libs([libc, test_lib], subtree)
@@ -74,7 +74,7 @@ def test_tree_libs():
                       realpath(slibc): 'liba.dylib'},
             rp_libb: {rp_libc: 'libb.dylib',
                       realpath(slibc): 'libb.dylib'}})
-        assert_equal(tree_libs(tmpdir, filt), st_exp_dict)
+        assert tree_libs(tmpdir, filt) == st_exp_dict
         # Change an install name, check this is picked up
         set_install_name(slibc, 'liba.dylib', 'newlib')
         inc_exp_dict = get_ext_dict([liba, libb, libc, slibc])
@@ -84,11 +84,11 @@ def test_tree_libs():
             realpath('newlib'): {realpath(slibc): 'newlib'},
             rp_libb: {rp_libc: 'libb.dylib',
                       realpath(slibc): 'libb.dylib'}})
-        assert_equal(tree_libs(tmpdir, filt), inc_exp_dict)
+        assert tree_libs(tmpdir, filt) == inc_exp_dict
         # Symlink a depending canonical lib - should have no effect because of
         # the canonical names
         os.symlink(liba, pjoin(dirname(liba), 'funny.dylib'))
-        assert_equal(tree_libs(tmpdir, filt), inc_exp_dict)
+        assert tree_libs(tmpdir, filt) == inc_exp_dict
         # Symlink a depended lib.  Now 'newlib' is a symlink to liba, and the
         # dependency of slibc on newlib appears as a dependency on liba, but
         # with install name 'newlib'
@@ -100,7 +100,7 @@ def test_tree_libs():
                       realpath(slibc): 'newlib'},
             rp_libb: {rp_libc: 'libb.dylib',
                       realpath(slibc): 'libb.dylib'}})
-        assert_equal(tree_libs(tmpdir, filt), sl_exp_dict)
+        assert tree_libs(tmpdir, filt) == sl_exp_dict
 
 
 def test_get_prefix_stripper():

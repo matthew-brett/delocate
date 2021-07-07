@@ -1,2 +1,3 @@
 # Requirements for tests
 wheel
+pytest

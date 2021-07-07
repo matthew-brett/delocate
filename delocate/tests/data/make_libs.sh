@@ -31,7 +31,7 @@ int main(int, char**) { c(); return 0; }
 EOF
 
 CXX_64="$CXX -arch x86_64"
-CXX_32="$CXX -arch i386"
+CXX_M1="$CXX -arch arm64"
 
 # Delete previous before rebuilding
 if [ -e liba.dylib ]; then
@@ -44,7 +44,7 @@ if [ -e libb.dylib ]; then
 fi
 
 $CXX_64 -o liba.dylib -dynamiclib a.cc
-$CXX_32 -o liba32.dylib -dynamiclib a.cc
+$CXX_M1 -o libam1.dylib -dynamiclib a.cc
 $CXX_64 -o a.o -c a.cc
 ar rcs liba.a a.o
 $CXX_64 -o libb.dylib -dynamiclib b.cc -L. -la
@@ -53,7 +53,7 @@ $CXX_64 -o libc.dylib -dynamiclib c.cc -L. -la -lb
 $CXX_64 -o test-lib d.cc -L. -lc
 
 # Make a dual-arch library
-lipo -create liba.dylib liba32.dylb -output liba_both.dylib
+lipo -create liba.dylib libam1.dylib -output liba_both.dylib
 
 # Change permissions in nasty way to test working with permissions
 chmod 444 liba.dylib

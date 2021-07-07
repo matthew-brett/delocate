@@ -230,7 +230,7 @@ def copy_recurse(
         Input `copied_libs` dict with any extra libraries and / or dependencies
         added.
 
-    .. deprecated:: 0.8
+    .. deprecated:: 0.9
         This function is obsolete.  :func:`delocate_path` handles recursive
         dependencies while also supporting `@loader_path`.
     """
@@ -306,7 +306,7 @@ def _copy_required(
     ``my_lib_path/libB.dylib`` and add ``/sys/libC.dylib`` as a
     ``dependings_dict`` entry for ``copied_libs['/sys/libB.dylib']``
 
-    .. deprecated:: 0.8
+    .. deprecated:: 0.9
         This function is obsolete, and is only used by :func:`copy_recurse`.
     """
     # Paths will be prepended with `lib_path`

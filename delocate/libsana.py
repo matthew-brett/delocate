@@ -252,7 +252,7 @@ def tree_libs(
     * https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/dyld.1.html  # noqa: E501
     * http://matthew-brett.github.io/pydagogue/mac_runtime_link.html
 
-    .. deprecated:: 0.8
+    .. deprecated:: 0.9
         This function does not support `@loader_path` and only returns the
         direct dependencies of the libraries in `start_path`.
     """

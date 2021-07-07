@@ -385,8 +385,8 @@ def delocate_path(
         Default is callable rejecting only libraries beginning with
         ``/usr/lib`` or ``/System``.  None means copy all libraries. This will
         usually end up copying large parts of the system run-time.
-    executable_path : str, optional
-        An alternative path to use for resolving `@executable_path`.
+    executable_path : None or str, optional
+        If not None, an alternative path to use for resolving `@executable_path`.
     ignore_missing : bool, default=False
         Continue even if missing dependencies are detected.
 

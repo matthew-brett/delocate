@@ -393,6 +393,7 @@ def resolve_rpath(lib_path, rpaths):
         )
     return lib_path
 
+
 def search_environment_for_lib(lib_path):
     # type: (Text) -> Text
     """ Search common environment variables for `lib_path`

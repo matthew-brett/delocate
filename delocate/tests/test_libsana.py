@@ -197,7 +197,10 @@ def test_resolve_dynamic_paths():
     path, lib = split(LIBA)
     lib_rpath = pjoin('@rpath', lib)
     # Should skip '/nonexist' path
-    assert resolve_dynamic_paths(lib_rpath, ['/nonexist', path], path) == realpath(LIBA)
+    assert (
+        resolve_dynamic_paths(lib_rpath, ['/nonexist', path], path)
+        == realpath(LIBA)
+    )
     # Should raise DependencyNotFound if the dependency can not be resolved.
     with pytest.raises(DependencyNotFound):
         resolve_dynamic_paths(lib_rpath, [], path)

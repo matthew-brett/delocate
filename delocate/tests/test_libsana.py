@@ -11,7 +11,8 @@ import pytest
 
 from ..libsana import (tree_libs, get_prefix_stripper, get_rp_stripper,
                        stripped_lib_dict, wheel_libs, resolve_rpath,
-                       get_dependencies, DependencyNotFound)
+                       get_dependencies, resolve_dynamic_paths,
+                       DependencyNotFound)
 
 from ..tools import set_install_name
 
@@ -188,6 +189,18 @@ def test_wheel_libs():
         # type: (Text) -> bool
         return not fname.endswith(mod2)
     assert_equal(wheel_libs(PLAT_WHEEL, filt), {})
+
+
+def test_resolve_dynamic_paths():
+    # type: () -> None
+    # A minimal test of the resolve_rpath function
+    path, lib = split(LIBA)
+    lib_rpath = pjoin('@rpath', lib)
+    # Should skip '/nonexist' path
+    assert resolve_dynamic_paths(lib_rpath, ['/nonexist', path], path) == realpath(LIBA)
+    # Should raise DependencyNotFound if the dependency can not be resolved.
+    with pytest.raises(DependencyNotFound):
+        resolve_dynamic_paths(lib_rpath, [], path)
 
 
 def test_resolve_rpath():

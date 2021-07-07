@@ -75,7 +75,7 @@ def get_dependencies(lib_fname, executable_path=None):
     for install_name in get_install_names(lib_fname):
         try:
             if install_name.startswith("@"):
-                dependency_path = resolve_rpath(
+                dependency_path = resolve_dynamic_paths(
                     install_name,
                     rpaths,
                     loader_path=dirname(lib_fname),
@@ -288,7 +288,7 @@ def tree_libs(
     return lib_dict
 
 
-def resolve_rpath(lib_path, rpaths, loader_path=None, executable_path=None):
+def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
     # type: (Text, Iterable[Text], Optional[Text], Optional[Text]) -> Text
     """ Return `lib_path` with any special runtime linking names resolved.
 
@@ -297,8 +297,7 @@ def resolve_rpath(lib_path, rpaths, loader_path=None, executable_path=None):
     DependencyNotFound is raised.
 
     `@loader_path` and `@executable_path` are resolved with their respective
-    parameters, an error will be raised if `@loader_path` is needed but
-    not provided.
+    parameters.
 
     Parameters
     ----------
@@ -307,10 +306,10 @@ def resolve_rpath(lib_path, rpaths, loader_path=None, executable_path=None):
         starting with `@rpath`, `@loader_path`, or `@executable_path`.
     rpaths : sequence of str
         A sequence of search paths, usually gotten from a call to `get_rpaths`.
-    loader_path : str, optional
+    loader_path : str
         The path to be used for `@loader_path`.
         This should be the directory of the library which is loading `lib_path`.
-    executable_path : str, optional
+    executable_path : None or str, optional
         The path to be used for `@executable_path`.
         If None is given then the path of the Python executable will be used.
 
@@ -322,10 +321,8 @@ def resolve_rpath(lib_path, rpaths, loader_path=None, executable_path=None):
     Raises
     ------
     DependencyNotFound
-        When `lib_path` has `@rpath` in it but can not be found on any of the
-        provided `rpaths`.
-        When a path with `@loader_path` must be resolved but the relevant
-        parameter wasn't provided.
+        When `lib_path` has `@rpath` in it but no library can be found on any
+        of the provided `rpaths`.
     """
     if executable_path is None:
         executable_path = dirname(sys.executable)
@@ -342,7 +339,7 @@ def resolve_rpath(lib_path, rpaths, loader_path=None, executable_path=None):
 
     lib_rpath = lib_path.split('/', 1)[1]
     for rpath in rpaths:
-        rpath_lib = resolve_rpath(
+        rpath_lib = resolve_dynamic_paths(
             pjoin(rpath, lib_rpath), (), loader_path, executable_path
         )
         if os.path.exists(rpath_lib):
@@ -350,6 +347,51 @@ def resolve_rpath(lib_path, rpaths, loader_path=None, executable_path=None):
 
     raise DependencyNotFound(lib_path)
 
+
+def resolve_rpath(lib_path, rpaths):
+    # type: (Text, Iterable[Text]) -> Text
+    """ Return `lib_path` with its `@rpath` resolved
+    If the `lib_path` doesn't have `@rpath` then it's returned as is.
+    If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
+    combination found.  If the library can't be found in `rpaths` then a
+    detailed warning is printed and `lib_path` is returned as is.
+    Parameters
+    ----------
+    lib_path : str
+        The path to a library file, which may or may not start with `@rpath`.
+    rpaths : sequence of str
+        A sequence of search paths, usually gotten from a call to `get_rpaths`.
+    Returns
+    -------
+    lib_path : str
+        A str with the resolved libraries realpath.
+
+    .. deprecated:: 0.9
+        This function does not support `@loader_path`.
+        Use `resolve_dynamic_paths` instead.
+    """
+    warnings.warn(
+        "resolve_rpath doesn't support @loader_path and has been deprecated."
+        "  Switch to using `resolve_dynamic_paths` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    if not lib_path.startswith('@rpath/'):
+        return lib_path
+
+    lib_rpath = lib_path.split('/', 1)[1]
+    for rpath in rpaths:
+        rpath_lib = realpath(pjoin(rpath, lib_rpath))
+        if os.path.exists(rpath_lib):
+            return rpath_lib
+
+    warnings.warn(
+        "Couldn't find {0} on paths:\n\t{1}".format(
+            lib_path,
+            '\n\t'.join(realpath(path) for path in rpaths),
+            )
+        )
+    return lib_path
 
 def search_environment_for_lib(lib_path):
     # type: (Text) -> Text

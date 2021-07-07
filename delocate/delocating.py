@@ -149,7 +149,9 @@ def _copy_required_libs(
     needs_delocating : set of str
         A set of the destination files, these need to be delocated.
     """
-    lib_dict = _copy_lib_dict(lib_dict)
+    # Create a copy of lib_dict for this script to modify and return.
+    out_lib_dict = _copy_lib_dict(lib_dict)
+    del lib_dict
     needs_delocating = set()  # Set[Text]
     for old_path in libraries_to_copy:
         new_path = realpath(pjoin(lib_path, basename(old_path)))
@@ -159,15 +161,15 @@ def _copy_required_libs(
         shutil.copy(old_path, new_path)
         # Delocate this file now that it is stored locally.
         needs_delocating.add(new_path)
-        # Update lib_dict with the new file paths.
-        lib_dict[new_path] = lib_dict[old_path]
-        del lib_dict[old_path]
-        for required in lib_dict:
-            if old_path not in lib_dict[required]:
+        # Update out_lib_dict with the new file paths.
+        out_lib_dict[new_path] = out_lib_dict[old_path]
+        del out_lib_dict[old_path]
+        for required in out_lib_dict:
+            if old_path not in out_lib_dict[required]:
                 continue
-            lib_dict[required][new_path] = lib_dict[required][old_path]
-            del lib_dict[required][old_path]
-    return lib_dict, needs_delocating
+            out_lib_dict[required][new_path] = out_lib_dict[required][old_path]
+            del out_lib_dict[required][old_path]
+    return out_lib_dict, needs_delocating
 
 
 def _update_install_names(

@@ -16,7 +16,7 @@ EXTLIB = pjoin(LIBS, 'libextfunc.dylib')
 
 # Compile external extension with absolute path in install id
 check_call(['cc', '-dynamiclib', pjoin(LIBS, 'extfunc.c'),
-           '-arch', 'i386', '-arch', 'x86_64',  # dual arch
+           '-arch', 'arm64', '-arch', 'x86_64',  # dual arch
             '-o', EXTLIB])
 check_call(['install_name_tool', '-id', EXTLIB, EXTLIB])
 

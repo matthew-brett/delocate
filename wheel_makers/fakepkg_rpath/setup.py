@@ -18,7 +18,7 @@ INSTALL_NAME = '@rpath/libextfunc_rpath.dylib'
 check_call([
     'cc', pjoin(LIBS, 'extfunc.c'),
     '-dynamiclib',
-    '-arch', 'i386', '-arch', 'x86_64',  # dual arch
+    '-arch', 'arm64', '-arch', 'x86_64',  # dual arch
     '-install_name', INSTALL_NAME,
     '-o', EXTLIB,
 ])

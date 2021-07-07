@@ -129,7 +129,7 @@ def _analyze_tree_libs(
 
 
 def _copy_required_libs(
-    lib_dict_,  # type: Mapping[Text, Mapping[Text, Text]]
+    lib_dict,  # type: Mapping[Text, Mapping[Text, Text]]
     lib_path,  # type: Text
     root_path,  # type: Text
     libraries_to_copy  # type: Iterable[Text]
@@ -140,13 +140,12 @@ def _copy_required_libs(
     Returns
     -------
     updated_lib_dict : dict
-        `lib_dict_` but modified so dependencies point to library copies.
+        A copy of `lib_dict` modified so that dependencies now point to
+        the copied library destinations.
     needs_delocating : set of str
         A set of the destination files, these need to be delocated.
     """
-    lib_dict = {  # Make a clone of lib_dict.
-        required: dict(requiring) for required, requiring in lib_dict_.items()
-    }
+    lib_dict = _copy_lib_dict(lib_dict)
     needs_delocating = set()  # Set[Text]
     for old_path in libraries_to_copy:
         new_path = realpath(pjoin(lib_path, basename(old_path)))
@@ -422,6 +421,14 @@ def delocate_path(
             lib_dict[depending_path][library_path] = install_name
 
     return delocate_tree_libs(lib_dict, lib_path, tree_path)
+
+
+def _copy_lib_dict(lib_dict):
+    # type: (Mapping[Text, Mapping[Text, Text]]) -> Dict[Text, Dict[Text, Text]]  # noqa: E501
+    """ Returns a copy of lib_dict. """
+    return {  # Convert nested Mapping types into nested Dict types.
+        required: dict(requiring) for required, requiring in lib_dict.items()
+    }
 
 
 def _merge_lib_dict(d1, d2):

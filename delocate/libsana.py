@@ -276,7 +276,7 @@ def tree_libs(
                     # Mimic deprecated behavior.
                     # A lib_dict with unresolved paths is unsuitable for
                     # delocating, this is a missing dependency.
-                    dependency_path = install_name
+                    dependency_path = realpath(install_name)
                 if install_name.startswith("@loader_path/"):
                     # Support for `@loader_path` would break existing callers.
                     logger.debug(

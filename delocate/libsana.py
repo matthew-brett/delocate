@@ -188,7 +188,8 @@ def walk_directory(
         If `filt_func` filters a library it will will not further analyze any
         of that library's dependencies.
     executable_path : None or str, optional
-        If not None, an alternative path to use for resolving `@executable_path`.
+        If not None, an alternative path to use for resolving
+        `@executable_path`.
 
     Yields
     ------

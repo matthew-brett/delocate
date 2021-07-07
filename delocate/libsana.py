@@ -110,10 +110,10 @@ def walk_library(
 ):
     # type: (...) -> Iterator[Text]
     """
-    Yield all libraries on which `lib_path` depends, directly or indirectly.
+    Yield all libraries on which `lib_fname` depends, directly or indirectly.
 
-    First yields `lib_path` itself, if not already `visited` and then all
-    dependencies of `lib_path`, including dependencies of dependencies.
+    First yields `lib_fname` itself, if not already `visited` and then all
+    dependencies of `lib_fname`, including dependencies of dependencies.
 
     Dependencies which can not be resolved will be logged and ignored.
 
@@ -187,8 +187,8 @@ def walk_directory(
         Defaults to inspecting all files for library dependencies.
         If `filt_func` filters a library it will will not further analyze any
         of that library's dependencies.
-    executable_path : str, optional
-        An alternative path to use for resolving `@executable_path`.
+    executable_path : None or str, optional
+        If not None, an alternative path to use for resolving `@executable_path`.
 
     Yields
     ------

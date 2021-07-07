@@ -94,7 +94,7 @@ def get_dependencies(lib_fname):
 
 
 def walk_library(
-    lib_path,  # type: Text
+    lib_fname,  # type: Text
     filt_func=lambda filepath: True,  # type: Callable[[Text], bool]
     visited=None,  # type: Optional[Set[Text]]
 ):

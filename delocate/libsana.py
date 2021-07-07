@@ -5,6 +5,7 @@ Analyze library dependencies in paths and wheel files
 
 import os
 from os.path import basename, dirname, join as pjoin, realpath
+import sys
 
 import logging
 from typing import (
@@ -36,22 +37,23 @@ class DependencyNotFound(Exception):
     """
 
 
-def get_dependencies(lib_fname):
-    # type: (Text) -> Iterator[Tuple[Text, Text]]
+def get_dependencies(lib_fname, executable_path=None):
+    # type: (Text, Optional[Text]) -> Iterator[Tuple[Text, Text]]
     """Iterator yielding dependencies of library `lib_fname`
 
     Parameters
     ----------
     lib_fname : str
         The library to fetch dependencies from.  Must be an existing file.
+    executable_path : str, optional
+        An alternative path to use for resolving `@executable_path`.
 
     Yields
     ------
     dependency_path : str
-        The direct dependencies of this library which can have dependencies
-        themselves.
-        If the libaray at `install_name` can not be found then this value will
-        not be a valid file path.
+        The direct dependencies of `lib_fname`.
+        If the library at `install_name` can not be found then this value will
+        not converted into a valid file path.
         :func:`os.path.isfile` can be used to test if this file exists.
     install_name : str
         The install name of `dependency_path` as if :func:`get_install_names`
@@ -72,6 +74,7 @@ def get_dependencies(lib_fname):
                     install_name,
                     rpaths,
                     loader_path=dirname(lib_fname),
+                    executable_path=executable_path,
                 )
             else:
                 dependency_path = search_environment_for_lib(install_name)
@@ -96,6 +99,7 @@ def walk_library(
     lib_fname,  # type: Text
     filt_func=lambda filepath: True,  # type: Callable[[Text], bool]
     visited=None,  # type: Optional[Set[Text]]
+    executable_path=None,  # type: Optional[Text]
 ):
     # type: (...) -> Iterator[Text]
     """
@@ -120,6 +124,8 @@ def walk_library(
         We update `visited` with new library_path's as we visit them, to
         prevent infinite recursion and duplicates.  Input value of None
         corresponds to the set `{lib_path}`.  Modified in-place.
+    executable_path : str, optional
+        An alternative path to use for resolving `@executable_path`.
 
     Yields
     ------
@@ -137,7 +143,9 @@ def walk_library(
         logger.debug("Ignoring %s and its dependencies.", lib_fname)
         return
     yield lib_fname
-    for dependency_fname, _ in get_dependencies(lib_fname):
+    for dependency_fname, _ in get_dependencies(
+        lib_fname, executable_path=executable_path
+    ):
         if not os.path.isfile(dependency_fname):
             logger.error(
                 "%s not found, requested by %s", dependency_fname, lib_fname,
@@ -147,6 +155,7 @@ def walk_library(
             dependency_fname,
             filt_func=filt_func,
             visited=visited,
+            executable_path=executable_path,
         ):
             yield sub_dependency
 
@@ -154,6 +163,7 @@ def walk_library(
 def walk_directory(
     root_path,  # type: Text
     filt_func=lambda filepath: True,  # type: Callable[[Text], bool]
+    executable_path=None,  # type: Optional[Text]
 ):
     # type: (...) -> Iterator[Text]
     """Walk along dependencies starting with the libraries within `root_path`.
@@ -170,6 +180,8 @@ def walk_directory(
         Defaults to inspecting all files for library dependencies.
         If `filt_func` filters a library it will will not further analyze any
         of that library's dependencies.
+    executable_path : str, optional
+        An alternative path to use for resolving `@executable_path`.
 
     Yields
     ------
@@ -186,7 +198,10 @@ def walk_directory(
             if not filt_func(depending_path):
                 continue
             for library_path in walk_library(
-                depending_path, filt_func=filt_func, visited=visited_paths
+                depending_path,
+                filt_func=filt_func,
+                visited=visited_paths,
+                executable_path=executable_path
             ):
                 yield library_path
 
@@ -270,7 +285,7 @@ def resolve_rpath(lib_path, rpaths, loader_path=None, executable_path=None):
     DependencyNotFound is raised.
 
     `@loader_path` and `@executable_path` are resolved with their respective
-    parameters, an error will be raised if these parameters are needed but
+    parameters, an error will be raised if `@loader_path` is needed but
     not provided.
 
     Parameters
@@ -285,6 +300,7 @@ def resolve_rpath(lib_path, rpaths, loader_path=None, executable_path=None):
         This should be the directory of the library which is loading `lib_path`.
     executable_path : str, optional
         The path to be used for `@executable_path`.
+        If None is given then the path of the Python executable will be used.
 
     Returns
     -------
@@ -296,9 +312,11 @@ def resolve_rpath(lib_path, rpaths, loader_path=None, executable_path=None):
     DependencyNotFound
         When `lib_path` has `@rpath` in it but can not be found on any of the
         provided `rpaths`.
-        When a path with `@loader_path` or `@executable_path` must be resolved
-        but the relevant parameter wasn't provided.
+        When a path with `@loader_path` must be resolved but the relevant
+        parameter wasn't provided.
     """
+    if executable_path is None:
+        executable_path = dirname(sys.executable)
     if lib_path.startswith('@loader_path/'):
         if loader_path is None:
             raise DependencyNotFound(
@@ -306,10 +324,6 @@ def resolve_rpath(lib_path, rpaths, loader_path=None, executable_path=None):
             )
         return realpath(pjoin(loader_path, lib_path.split('/', 1)[1]))
     if lib_path.startswith('@executable_path/'):
-        if executable_path is None:
-            raise DependencyNotFound(
-                "'%s' could not be resolved." % lib_path
-            )
         return realpath(pjoin(executable_path, lib_path.split('/', 1)[1]))
     if not lib_path.startswith('@rpath/'):
         return realpath(lib_path)

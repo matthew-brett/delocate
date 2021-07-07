@@ -358,7 +358,8 @@ def delocate_path(
     tree_path,  # type: Text
     lib_path,  # type: Text
     lib_filt_func=None,  # type: Optional[Union[str, Callable[[Text], bool]]]
-    copy_filt_func=filter_system_libs  # type: Optional[Callable[[Text], bool]]
+    copy_filt_func=filter_system_libs,  # type: Optional[Callable[[Text], bool]]
+    executable_path=None,  # type: Optional[Text]
 ):
     # type: (...) -> Dict[Text, Dict[Text, Text]]
     """ Copy required libraries for files in `tree_path` into `lib_path`
@@ -380,6 +381,8 @@ def delocate_path(
         Default is callable rejecting only libraries beginning with
         ``/usr/lib`` or ``/System``.  None means copy all libraries. This will
         usually end up copying large parts of the system run-time.
+    executable_path : str, optional
+        An alternative path to use for resolving `@executable_path`.
 
     Returns
     -------
@@ -407,8 +410,12 @@ def delocate_path(
         os.makedirs(lib_path)
 
     lib_dict = {}  # type: Dict[Text, Dict[Text, Text]]
-    for library_path in walk_directory(tree_path, lib_filt_func):
-        for depending_path, install_name in get_dependencies(library_path):
+    for library_path in walk_directory(
+        tree_path, lib_filt_func, executable_path=executable_path
+    ):
+        for depending_path, install_name in get_dependencies(
+            library_path, executable_path=executable_path
+        ):
             if copy_filt_func and not copy_filt_func(depending_path):
                 continue
             lib_dict.setdefault(depending_path, {})

@@ -468,6 +468,8 @@ def delocate_wheel(
     copy_filt_func=filter_system_libs,  # type: Optional[Callable[[Text], bool]]
     require_archs=None,  # type: Union[None, Text, Iterable[Text]]
     check_verbose=False,  # type: bool
+    executable_path=None,  # type: Optional[Text]
+    ignore_missing=False,  # type: bool
 ):
     # type: (...) -> Dict[Text, Dict[Text, Text]]
     """ Update wheel by copying required libraries to `lib_sdir` in wheel
@@ -508,6 +510,10 @@ def delocate_wheel(
         (e.g "i386" or "x86_64").
     check_verbose : bool, optional
         If True, print warning messages about missing required architectures
+    executable_path : str, optional
+        An alternative path to use for resolving `@executable_path`.
+    ignore_missing : bool, default=False
+        Continue even if missing dependencies are detected.
 
     Returns
     -------
@@ -533,8 +539,14 @@ def delocate_wheel(
         for package_path in find_package_dirs(wheel_dir):
             lib_path = pjoin(package_path, lib_sdir)
             lib_path_exists = exists(lib_path)
-            copied_libs = delocate_path(package_path, lib_path,
-                                        lib_filt_func, copy_filt_func)
+            copied_libs = delocate_path(
+                package_path,
+                lib_path,
+                lib_filt_func,
+                copy_filt_func,
+                executable_path=executable_path,
+                ignore_missing=ignore_missing,
+            )
             if copied_libs and lib_path_exists:
                 raise DelocationError(
                     '{0} already exists in wheel but need to copy '

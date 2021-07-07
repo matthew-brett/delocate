@@ -45,7 +45,17 @@ def main():
         Option("--require-archs",
                action="store", type='string',
                help="Architectures that all wheel libraries should "
-               "have (from 'intel', 'i386', 'x86_64', 'i386,x86_64')")])
+               "have (from 'intel', 'i386', 'x86_64', 'i386,x86_64')"),
+        Option("--executable-path",
+               action="store", type='string',
+               default=os.path.dirname(sys.executable),
+               help="The path used to resolve @executable_path in dependencies"
+               ),
+        Option("--ignore-missing-dependencies",
+               action="store_true",
+               help="Skip dependencies which couldn't be found and delocate "
+               "as much as possible"),
+    ])
     (opts, wheels) = parser.parse_args()
     if len(wheels) < 1:
         parser.print_help()
@@ -77,10 +87,16 @@ def main():
             out_wheel = pjoin(wheel_dir, basename(wheel))
         else:
             out_wheel = wheel
-        copied = delocate_wheel(wheel, out_wheel, lib_filt_func=lib_filt_func,
-                                lib_sdir=opts.lib_sdir,
-                                require_archs=require_archs,
-                                check_verbose=opts.verbose)
+        copied = delocate_wheel(
+            wheel,
+            out_wheel,
+            lib_filt_func=lib_filt_func,
+            lib_sdir=opts.lib_sdir,
+            require_archs=require_archs,
+            check_verbose=opts.verbose,
+            executable_path=opts.executable_path,
+            ignore_missing=opts.ignore_missing_dependencies,
+        )
         if opts.verbose and len(copied):
             print("Copied to package {0} directory:".format(opts.lib_sdir))
             copy_lines = ['  ' + name for name in sorted(copied)]

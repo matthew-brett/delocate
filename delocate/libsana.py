@@ -39,7 +39,13 @@ class DependencyNotFound(Exception):
 
 def get_dependencies(lib_fname, executable_path=None):
     # type: (Text, Optional[Text]) -> Iterator[Tuple[Optional[Text], Text]]
-    """Iterator yielding dependencies of library `lib_fname`
+    """Find and yield the real paths of dependencies of the library `lib_fname`
+
+    This function is used to search for the real files that are required by
+    `lib_fname`.
+
+    The caller must check if any `dependency_path` is None and must decide on
+    how to handle missing dependencies.
 
     Parameters
     ----------
@@ -51,7 +57,7 @@ def get_dependencies(lib_fname, executable_path=None):
     Yields
     ------
     dependency_path : str or None
-        The direct dependencies of `lib_fname`.
+        The real path of the dependencies of `lib_fname`.
         If the library at `install_name` can not be found then this value will
         be None.
     install_name : str
@@ -77,6 +83,8 @@ def get_dependencies(lib_fname, executable_path=None):
                 )
             else:
                 dependency_path = search_environment_for_lib(install_name)
+            if not os.path.isfile(dependency_path):
+                raise DependencyNotFound(dependency_path)
             yield dependency_path, install_name
             if dependency_path != install_name:
                 logger.debug(

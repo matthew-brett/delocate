@@ -213,11 +213,11 @@ def test_resolve_rpath():
     lib_rpath = pjoin('@rpath', lib)
     # Should skip '/nonexist' path
     assert_equal(
-        resolve_rpath(lib_rpath, ['/nonexist', path], path), realpath(LIBA)
+        resolve_rpath(lib_rpath, ['/nonexist', path]), realpath(LIBA)
     )
     # Should raise DependencyNotFound if the dependency can not be resolved.
     with pytest.raises(DependencyNotFound):
-        resolve_rpath(lib_rpath, [], path)
+        resolve_rpath(lib_rpath, [])
 
 
 def test_get_dependencies():

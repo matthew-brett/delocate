@@ -425,6 +425,7 @@ def _merge_lib_dict(d1, d2):
         if required in d1:
             d1[required].update(requirings)
         else:
+            # Convert to dict to satisfy type checking.
             d1[required] = dict(requirings)
     return None
 

@@ -109,7 +109,7 @@ def walk_library(
 
     Parameters
     ----------
-    lib_path : str
+    lib_fname : str
         The library to start with.
     filt_func : callable, optional
         A callable which accepts filename as argument and returns True if we
@@ -125,26 +125,27 @@ def walk_library(
     Yields
     ------
     library_path : str
-        The paths of each library including `lib_path` without duplicates.
+        The path of each library depending on `lib_fname`, including
+        `lib_fname`, without duplicates.
     """
     if visited is None:
-        visited = {lib_path}
-    elif lib_path in visited:
+        visited = {lib_fname}
+    elif lib_fname in visited:
         return
     else:
-        visited.add(lib_path)
-    if not filt_func(lib_path):
-        logger.debug("Ignoring %s and its dependencies.", lib_path)
+        visited.add(lib_fname)
+    if not filt_func(lib_fname):
+        logger.debug("Ignoring %s and its dependencies.", lib_fname)
         return
-    yield lib_path
-    for dependency_path, _ in get_dependencies(lib_path):
-        if not os.path.isfile(dependency_path):
+    yield lib_fname
+    for dependency_fname, _ in get_dependencies(lib_fname):
+        if not os.path.isfile(dependency_fname):
             logger.error(
-                "%s not found, requested by %s", dependency_path, lib_path,
+                "%s not found, requested by %s", dependency_fname, lib_fname,
             )
             continue
         for sub_dependency in walk_library(
-            dependency_path,
+            dependency_fname,
             filt_func=filt_func,
             visited=visited,
         ):

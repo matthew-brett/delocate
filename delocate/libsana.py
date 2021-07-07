@@ -89,8 +89,7 @@ def get_dependencies(lib_fname):
                 )
             )
             # At this point install_name is known to be a bad path.
-            # Expanding install_name with realpath may be undesirable.
-            yield realpath(install_name), install_name
+            yield install_name, install_name
 
 
 def walk_library(

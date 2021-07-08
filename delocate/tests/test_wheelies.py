@@ -66,7 +66,8 @@ def _fixed_wheel(out_path):
             os.makedirs('_libs')
         shutil.copy2(STRAY_LIB, '_libs')
         stray_lib = pjoin(abspath(realpath('_libs')), basename(STRAY_LIB))
-        requiring = pjoin('_plat_pkg', 'fakepkg1', 'subpkg', 'module2.cpython-39-darwin.so')
+        requiring = pjoin('_plat_pkg', 'fakepkg1', 'subpkg',
+                          'module2.cpython-39-darwin.so')
         old_lib = set(get_install_names(requiring)).difference(EXT_LIBS).pop()
         set_install_name(requiring, old_lib, stray_lib)
         dir2zip('_plat_pkg', wheel_base)
@@ -78,7 +79,8 @@ def _rename_module(in_wheel, mod_fname, out_wheel):
     # Rename module with library dependency in wheel
     with InWheel(in_wheel, out_wheel):
         mod_dir = pjoin('fakepkg1', 'subpkg')
-        os.rename(pjoin(mod_dir, 'module2.cpython-39-darwin.so'), pjoin(mod_dir, mod_fname))
+        os.rename(pjoin(mod_dir, 'module2.cpython-39-darwin.so'),
+                  pjoin(mod_dir, mod_fname))
     return out_wheel
 
 

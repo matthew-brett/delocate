@@ -61,8 +61,7 @@ def main():
                action="store", type='string', default='intel',
                help=("Dual architecture wheel type; "
                      "one of 'intel', 'universal2'; "
-                     "(default 'intel')")
-              ))
+                     "(default 'intel')")))
     parser.add_option(
         Option("-v", "--verbose",
                action="store_true",

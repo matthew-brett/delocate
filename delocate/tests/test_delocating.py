@@ -25,8 +25,9 @@ from .test_tools import (LIBM1, LIB64, LIB64A, LIBBOTH, ARCH_64, ARCH_M1,
 from .env_tools import TempDirWithoutEnvVars
 
 
-LibtreeLibs = namedtuple('LibtreeLibs',
-        ('liba', 'libb', 'libc', 'test_lib', 'slibc', 'stest_lib'))
+LibtreeLibs = namedtuple(
+    'LibtreeLibs',
+    ('liba', 'libb', 'libc', 'test_lib', 'slibc', 'stest_lib'))
 
 
 def _make_libtree(out_path):

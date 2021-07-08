@@ -445,10 +445,9 @@ def patch_wheel(in_wheel, patch_fname, out_wheel=None):
 
 
 _ARCH_LOOKUP = {
-    'intel' : ['i386', 'x86_64'],
-    'universal2' : ['x86_64', 'arm64']
+    'intel': ['i386', 'x86_64'],
+    'universal2': ['x86_64', 'arm64']
 }
-
 
 
 def check_archs(copied_libs, require_archs=(), stop_fast=False):

@@ -85,7 +85,8 @@ def test_listdeps():
             ['delocate-listdeps', '-d', 'pure', 'plat'])
         assert_equal(stdout,
                      ['pure:', 'plat:', rp_stray + ':',
-                      pjoin('plat', 'fakepkg1', 'subpkg', 'module2.cpython-39-darwin.so')])
+                      pjoin('plat', 'fakepkg1', 'subpkg',
+                            'module2.cpython-39-darwin.so')])
         assert_equal(code, 0)
     # With --all flag, get all dependencies
     code, stdout, stderr = run_command(

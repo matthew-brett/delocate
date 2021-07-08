@@ -24,17 +24,17 @@ from .test_wheelies import PURE_WHEEL, PLAT_WHEEL
 # Template for testing expected wheel information
 EXP_PLAT = splitext(PLAT_WHEEL)[0].split('-')[-1]
 EXP_ITEMS = [('Generator', 'bdist_wheel {pip_version}'),
-                ('Root-Is-Purelib', 'false'),
-                ('Tag', '{pyver}-{abi}-' + EXP_PLAT),
-                ('Wheel-Version', '1.0')]
+             ('Root-Is-Purelib', 'false'),
+             ('Tag', '{pyver}-{abi}-' + EXP_PLAT),
+             ('Wheel-Version', '1.0')]
 # Extra platforms to add
 EXTRA_PLATS = ('macosx_10_11_universal2', 'macosx_10_11_x86_64')
 # Expected outputs for plat added wheels minus wheel-version (that might
 # change)
 EXTRA_EXPS = [('Generator', 'bdist_wheel {pip_version}'),
               ('Root-Is-Purelib', 'false')] + [
-              ('Tag', '{pyver}-{abi}-' + plat)
-               for plat in (EXP_PLAT,) + EXTRA_PLATS]
+                  ('Tag', '{pyver}-{abi}-' + plat)
+                  for plat in (EXP_PLAT,) + EXTRA_PLATS]
 
 
 def assert_record_equal(record_orig, record_new):

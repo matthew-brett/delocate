@@ -290,7 +290,7 @@ def tree_libs(
 
 
 def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
-    # type: (Text, Iterable[Text], Optional[Text], Optional[Text]) -> Text
+    # type: (Text, Iterable[Text], Text, Optional[Text]) -> Text
     """ Return `lib_path` with any special runtime linking names resolved.
 
     If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
@@ -328,10 +328,6 @@ def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
     if executable_path is None:
         executable_path = dirname(sys.executable)
     if lib_path.startswith('@loader_path/'):
-        if loader_path is None:
-            raise DependencyNotFound(
-                "'%s' could not be resolved." % lib_path
-            )
         return realpath(pjoin(loader_path, lib_path.split('/', 1)[1]))
     if lib_path.startswith('@executable_path/'):
         return realpath(pjoin(executable_path, lib_path.split('/', 1)[1]))

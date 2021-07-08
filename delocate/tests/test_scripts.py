@@ -75,15 +75,16 @@ def test_listdeps():
         zip2dir(PLAT_WHEEL, 'plat')
         code, stdout, stderr = run_command(
             ['delocate-listdeps', 'pure', 'plat'])
+        rp_stray = realpath(STRAY_LIB_DEP)
         assert_equal(stdout,
-                     ['pure:', 'plat:', STRAY_LIB_DEP])
+                     ['pure:', 'plat:', rp_stray])
         assert_equal(code, 0)
         # With -d flag, get list of dependending modules
         code, stdout, stderr = run_command(
             ['delocate-listdeps', '-d', 'pure', 'plat'])
         assert_equal(stdout,
-                     ['pure:', 'plat:', STRAY_LIB_DEP + ':',
-                      pjoin('plat', 'fakepkg1', 'subpkg', 'module2.so')])
+                     ['pure:', 'plat:', rp_stray + ':',
+                      pjoin('plat', 'fakepkg1', 'subpkg', 'module2.cpython-39-darwin.so')])
         assert_equal(code, 0)
     # With --all flag, get all dependencies
     code, stdout, stderr = run_command(
@@ -98,20 +99,20 @@ def test_listdeps():
     code, stdout, stderr = run_command(
         ['delocate-listdeps', PURE_WHEEL, PLAT_WHEEL])
     assert_equal(stdout,
-                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', STRAY_LIB_DEP])
+                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', rp_stray])
     # -d flag (is also --dependency flag)
-    m2 = pjoin('fakepkg1', 'subpkg', 'module2.so')
+    m2 = pjoin('fakepkg1', 'subpkg', 'module2.cpython-39-darwin.so')
     code, stdout, stderr = run_command(
         ['delocate-listdeps', '--depending', PURE_WHEEL, PLAT_WHEEL])
     assert_equal(stdout,
-                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', STRAY_LIB_DEP + ':',
+                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', rp_stray + ':',
                   m2])
     # Can be used with --all
     code, stdout, stderr = run_command(
         ['delocate-listdeps', '--all', '--depending', PURE_WHEEL, PLAT_WHEEL])
     assert_equal(stdout,
                  [PURE_WHEEL + ':', PLAT_WHEEL + ':',
-                  STRAY_LIB_DEP + ':', m2,
+                  rp_stray + ':', m2,
                   EXT_LIBS[1] + ':', m2])
 
 
@@ -239,7 +240,7 @@ def test_fix_wheel_archs():
         # Broken with one architecture removed still OK without checking
         # But if we check, raise error
         fmt_str = 'Fixing: {0}\n{1} needs arch {2} missing from {3}'
-        archs = set(('x86_64', 'i386'))
+        archs = set(('x86_64', 'arm64'))
 
         def _fix_break(arch):
             _fixed_wheel(tmpdir)
@@ -281,12 +282,12 @@ def test_fix_wheel_archs():
             assert_equal(stdout,
                          fmt_str.format(
                              fixed_wheel,
-                             'fakepkg1/subpkg/module2.so',
+                             'fakepkg1/subpkg/module2.cpython-39-darwin.so',
                              archs.difference([arch]).pop(),
                              stray_lib))
             # Require particular architectures
-        both_archs = 'i386,x86_64'
-        for ok in ('intel', 'i386', 'x86_64', both_archs):
+        both_archs = 'arm64,x86_64'
+        for ok in ('universal2', 'arm64', 'x86_64', both_archs):
             _fixed_wheel(tmpdir)
             code, stdout, stderr = run_command(
                 ['delocate-wheel', fixed_wheel, '--require-archs=' + ok])

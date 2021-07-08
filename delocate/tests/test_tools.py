@@ -16,15 +16,17 @@ from ..tmpdirs import InTemporaryDirectory
 
 from .pytest_tools import assert_true, assert_false, assert_equal, \
     assert_raises
+from .test_install_names import LIBSTDCXX
 
 DATA_PATH = pjoin(dirname(__file__), 'data')
-LIB32 = pjoin(DATA_PATH, 'liba32.dylib')
+LIBM1 = pjoin(DATA_PATH, 'libam1.dylib')
 LIB64 = pjoin(DATA_PATH, 'liba.dylib')
 LIBBOTH = pjoin(DATA_PATH, 'liba_both.dylib')
 LIB64A = pjoin(DATA_PATH, 'liba.a')
 ARCH_64 = frozenset(['x86_64'])
+ARCH_M1 = frozenset(['arm64'])
+ARCH_BOTH = ARCH_64 | ARCH_M1
 ARCH_32 = frozenset(['i386'])
-ARCH_BOTH = ARCH_64 | ARCH_32
 
 
 def test_back_tick():
@@ -213,23 +215,23 @@ def test_cmp_contents():
 
 def test_get_archs_fuse():
     # Test routine to get architecture types from file
-    assert_equal(get_archs(LIB32), ARCH_32)
+    assert_equal(get_archs(LIBM1), ARCH_M1)
     assert_equal(get_archs(LIB64), ARCH_64)
     assert_equal(get_archs(LIB64A), ARCH_64)
     assert_equal(get_archs(LIBBOTH), ARCH_BOTH)
     assert_raises(RuntimeError, get_archs, 'not_a_file')
     with InTemporaryDirectory():
-        lipo_fuse(LIB32, LIB64, 'anotherlib')
+        lipo_fuse(LIBM1, LIB64, 'anotherlib')
         assert_equal(get_archs('anotherlib'), ARCH_BOTH)
-        lipo_fuse(LIB32, LIB64, 'anotherlib++')
+        lipo_fuse(LIBM1, LIB64, 'anotherlib++')
         assert_equal(get_archs('anotherlib++'), ARCH_BOTH)
-        lipo_fuse(LIB64, LIB32, 'anotherlib')
+        lipo_fuse(LIB64, LIBM1, 'anotherlib')
         assert_equal(get_archs('anotherlib'), ARCH_BOTH)
-        shutil.copyfile(LIB32, 'libcopy32')
-        lipo_fuse('libcopy32', LIB64, 'anotherlib')
+        shutil.copyfile(LIBM1, 'libcopym1')
+        lipo_fuse('libcopym1', LIB64, 'anotherlib')
         assert_equal(get_archs('anotherlib'), ARCH_BOTH)
         assert_raises(RuntimeError, lipo_fuse,
-                      'libcopy32', LIB32, 'yetanother')
+                      'libcopym1', LIBM1, 'yetanother')
         shutil.copyfile(LIB64, 'libcopy64')
         assert_raises(RuntimeError, lipo_fuse,
                       'libcopy64', LIB64, 'yetanother')
@@ -273,7 +275,7 @@ def test_validate_signature():
         set_install_id('libcopy', 'libcopy-name')
         check_signature('libcopy')
 
-        set_install_name('libcopy', '/usr/lib/libstdc++.6.dylib',
+        set_install_name('libcopy', LIBSTDCXX,
                          '/usr/lib/libstdc++.7.dylib')
         check_signature('libcopy')
 

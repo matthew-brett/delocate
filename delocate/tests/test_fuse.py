@@ -14,7 +14,7 @@ from ..wheeltools import rewrite_record
 
 from .pytest_tools import (assert_true, assert_false, assert_equal)
 
-from .test_tools import LIB32, LIB64, LIB64A
+from .test_tools import LIBM1, LIB64, LIB64A
 from .test_wheelies import PURE_WHEEL
 from .test_wheeltools import assert_record_equal
 
@@ -68,13 +68,13 @@ def test_fuse_trees():
         assert_same_tree('tree1', 'tree2')
         # Real fuse
         shutil.copyfile(LIB64, pjoin('tree2', 'tests', 'liba.dylib'))
-        shutil.copyfile(LIB32, pjoin('tree1', 'tests', 'liba.dylib'))
+        shutil.copyfile(LIBM1, pjoin('tree1', 'tests', 'liba.dylib'))
         fuse_trees('tree1', 'tree2')
         fused_fname = pjoin('tree1', 'tests', 'liba.dylib')
         assert_false(cmp_contents(
             fused_fname,
             pjoin('tree2', 'tests', 'liba.dylib')))
-        assert_equal(get_archs(fused_fname), {'i386', 'x86_64'})
+        assert_equal(get_archs(fused_fname), {'arm64', 'x86_64'})
         os.unlink(fused_fname)
         # A file not present in tree2 stays in tree1
         with open(pjoin('tree1', 'anotherfile.txt'), 'wt') as fobj:
@@ -112,10 +112,10 @@ def test_fuse_wheels():
         assert_same_tree('fused_wheel', 'from_wheel')
         # Test fusing a library
         shutil.copyfile(LIB64, pjoin('from_wheel', 'fakepkg2', 'liba.dylib'))
-        shutil.copyfile(LIB32, pjoin('to_wheel', 'fakepkg2', 'liba.dylib'))
+        shutil.copyfile(LIBM1, pjoin('to_wheel', 'fakepkg2', 'liba.dylib'))
         dir2zip('from_wheel', 'from_wheel.whl')
         dir2zip('to_wheel', 'to_wheel.whl')
         fuse_wheels('to_wheel.whl', 'from_wheel.whl', wheel_base)
         zip2dir(wheel_base, 'fused_wheel')
         fused_fname = pjoin('fused_wheel', 'fakepkg2', 'liba.dylib')
-        assert_equal(get_archs(fused_fname), set(('i386', 'x86_64')))
+        assert_equal(get_archs(fused_fname), set(('arm64', 'x86_64')))

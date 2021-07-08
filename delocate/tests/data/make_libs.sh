@@ -58,3 +58,6 @@ lipo -create liba.dylib libam1.dylib -output liba_both.dylib
 # Change permissions in nasty way to test working with permissions
 chmod 444 liba.dylib
 chmod 400 libb.dylib
+
+# Remove temporary files
+rm *.cc

@@ -2,7 +2,7 @@
 # Create libs used for testing
 # Run in directory containing this file
 # With thanks to https://dev.lsstcorp.org/trac/wiki/LinkingDarwin
-# I ran this on a Snow Leopard machine with CXX=g++ ./make_libs.sh
+export MACOSX_DEPLOYMENT_TARGET=10.9
 
 if [ "$CXX" = "" ]; then
     CXX=c++

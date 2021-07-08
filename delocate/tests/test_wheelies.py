@@ -254,7 +254,7 @@ def test_check_plat_archs():
                 delocate_wheel(fixed_wheel, require_archs=()),
                 {realpath(stray_lib): {dep_mod: stray_lib}})
             # But if we require the arch we don't have, it breaks
-            for req_arch in ('intel',
+            for req_arch in ('universal2',
                              ARCH_BOTH,
                              ARCH_BOTH.difference([arch])):
                 _fix_break_fix(arch)

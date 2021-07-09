@@ -492,7 +492,7 @@ def get_archs(libname):
     -------
     arch_names : frozenset
         Empty (frozen)set if no arch codes.  If not empty, contains one or more
-        of 'ppc', 'ppc64', 'i386', 'x86_64'
+        of 'ppc', 'ppc64', 'i386', 'x86_64', 'arm64'.
     """
     if not exists(libname):
         raise RuntimeError(libname + " is not a file")

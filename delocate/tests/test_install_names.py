@@ -15,7 +15,7 @@ from .pytest_tools import (assert_raises, assert_equal)
 from .env_tools import TempDirWithoutEnvVars
 
 # External libs linked from test data
-LIBSTDCXX = '/usr/lib/libstdc++.6.dylib'
+LIBSTDCXX = '/usr/lib/libc++.1.dylib'
 LIBSYSTEMB = '/usr/lib/libSystem.B.dylib'
 EXT_LIBS = (LIBSTDCXX, LIBSYSTEMB)
 

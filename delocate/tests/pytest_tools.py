@@ -1,3 +1,4 @@
+import os
 import pytest
 
 
@@ -24,3 +25,11 @@ def assert_equal(first, second):
 def assert_not_equal(first, second):
     __tracebackhide__ = True
     assert first != second
+
+
+@pytest.fixture
+def in_tmp_path(tmp_path):
+    cwd = os.getcwd()
+    os.chdir(tmp_path)
+    yield tmp_path
+    os.chdir(cwd)

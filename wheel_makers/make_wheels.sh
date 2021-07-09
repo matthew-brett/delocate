@@ -5,7 +5,7 @@
 # Run on earliest supported version of macOS (currently 10.9)
 
 archs=$(lipo -archs `which python`)
-if [ "$archs" -ne "x86_64 arm64" ]; then
+if [ "$archs" != "x86_64 arm64" ]; then
     echo "Need dual architecture x86_64 arm64 Python"
     exit 1
 fi
@@ -31,4 +31,4 @@ rm $OUT_PATH/fakepkg*.whl
 cp */dist/*.whl $OUT_PATH
 cp */libs/*.dylib $OUT_PATH
 # Record wheel building path
-echo $PWD > $OUT_PATH/wheel_build_path.txt
+echo $(realpath $PWD) > $OUT_PATH/wheel_build_path.txt

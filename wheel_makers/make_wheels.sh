@@ -29,4 +29,5 @@ rm $OUT_PATH/fakepkg*.whl
 cp */dist/*.whl $OUT_PATH
 cp */libs/*.dylib $OUT_PATH
 # Record wheel building path
-echo $(realpath $PWD) > $OUT_PATH/wheel_build_path.txt
+python -c "import os; print(os.path.realpath(os.getcwd()))" \
+    > $OUT_PATH/wheel_build_path.txt

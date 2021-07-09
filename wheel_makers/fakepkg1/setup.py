@@ -18,12 +18,15 @@ check_call(['cc', '-dynamiclib', pjoin(LIBS, 'extfunc.c'),
             '-o', EXTLIB] + arch_flags)
 check_call(['install_name_tool', '-id', EXTLIB, EXTLIB])
 
-exts = [Extension('fakepkg1.subpkg.module2',
-                  [pjoin("fakepkg1", "subpkg", "module2.pyx")],
-                  libraries=['extfunc'],
-                  extra_compile_args=arch_flags,
-                  extra_link_args=['-L' + LIBS] + arch_flags,
-                  )]
+exts = [
+    Extension(
+        'fakepkg1.subpkg.module2',
+        [pjoin("fakepkg1", "subpkg", "module2.pyx")],
+        libraries=['extfunc'],
+        extra_compile_args=arch_flags,
+        extra_link_args=['-L' + LIBS] + arch_flags,
+    )
+]
 
 setup(
     ext_modules=cythonize(exts),

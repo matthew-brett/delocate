@@ -5,7 +5,6 @@ in its install name.  The library will also be signed with an ad-hoc signature.
 """
 from os.path import join as pjoin, abspath, dirname
 from setuptools import setup, Extension
-from Cython.Build import cythonize
 from subprocess import check_call
 
 HERE = abspath(dirname(__file__))
@@ -25,15 +24,16 @@ check_call(['codesign', '--sign', '-', EXTLIB])
 exts = [
     Extension(
         'fakepkg.subpkg.module2',
-        [pjoin("fakepkg", "subpkg", "module2.pyx")],
+        [pjoin("fakepkg", "subpkg", "module2.c")],
         libraries=['extfunc_rpath'],
         extra_compile_args=arch_flags,
         extra_link_args=['-L' + LIBS, '-rpath', 'libs/'],
+        py_limited_api=True
     )
 ]
 
 setup(
-    ext_modules=cythonize(exts),
+    ext_modules=exts,
     name='fakepkg_rpath',
     version="1.0",
     packages=[

@@ -5,7 +5,6 @@ dynamic lib.  We use it to build a wheel, then test we can delocate it.
 """
 from os.path import join as pjoin, abspath, dirname
 from setuptools import setup, Extension
-from Cython.Build import cythonize
 from subprocess import check_call
 
 HERE = abspath(dirname(__file__))
@@ -21,15 +20,16 @@ check_call(['install_name_tool', '-id', EXTLIB, EXTLIB])
 exts = [
     Extension(
         'fakepkg1.subpkg.module2',
-        [pjoin("fakepkg1", "subpkg", "module2.pyx")],
+        [pjoin("fakepkg1", "subpkg", "module2.c")],
         libraries=['extfunc'],
         extra_compile_args=arch_flags,
         extra_link_args=['-L' + LIBS] + arch_flags,
+        py_limited_api=True
     )
 ]
 
 setup(
-    ext_modules=cythonize(exts),
+    ext_modules=exts,
     name='fakepkg1',
     version="1.0",
     scripts=[pjoin('scripts', 'fakescript.py')],

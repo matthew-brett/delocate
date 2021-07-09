@@ -1,6 +1,6 @@
-# Make wheels and copy into main package
-# This is to build the wheels we use for testing
-# Need Cython and wheel installed to run this script.
+# Make wheels and copy into main package.
+# This is to build the wheels we use for testing.
+# Need `wheel` package installed to run this script.
 # Python needs to support dual arch builds, and _PYTHON_HOST_PLATFORM
 # This appears to require only Python >= 3.3.0
 
@@ -13,7 +13,7 @@ rm -f */libs/*.dylib
 rm -f */MANIFEST
 
 cd fakepkg1
-python setup.py clean bdist_wheel
+python setup.py clean bdist_wheel --py-limited-api=cp36
 cd -
 
 cd fakepkg2
@@ -21,7 +21,7 @@ python setup.py clean bdist_wheel
 cd -
 
 cd fakepkg_rpath
-python setup.py clean bdist_wheel
+python setup.py clean bdist_wheel --py-limited-api=cp36
 cd -
 
 OUT_PATH=../delocate/tests/data

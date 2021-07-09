@@ -1,18 +1,16 @@
 # Make wheels and copy into main package
 # This is to build the wheels we use for testing
 # Need Cython and wheel installed to run this script.
-# Python needs to be dual architecture
-# Run on earliest supported version of macOS (currently 10.9)
+# Python needs to support dual arch builds, and _PYTHON_HOST_PLATFORM
+# This appears to require only Python >= 3.3.0
 
-archs=$(lipo -archs `which python`)
-if [ "$archs" != "x86_64 arm64" ]; then
-    echo "Need dual architecture x86_64 arm64 Python"
-    exit 1
-fi
+mac_ver=10.9
+export MACOSX_DEPLOYMENT_TARGET=${mac_ver}
+export _PYTHON_HOST_PLATFORM="macosx-${mac_ver}-universal2"
 
-rm */dist/fakepkg*.whl
-rm */libs/*.dylib
-rm */MANIFEST
+rm -f */dist/fakepkg*.whl
+rm -f */libs/*.dylib
+rm -f */MANIFEST
 
 cd fakepkg1
 python setup.py clean bdist_wheel

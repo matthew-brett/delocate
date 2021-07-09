@@ -4,9 +4,7 @@ This fake package has an extension which links against a library using @rpath
 in its install name.  The library will also be signed with an ad-hoc signature.
 """
 from os.path import join as pjoin, abspath, dirname
-import setuptools  # for wheel builds
-from distutils.core import setup
-from distutils.extension import Extension
+from setuptools import setup, Extension
 from Cython.Build import cythonize
 from subprocess import check_call
 

@@ -13,13 +13,13 @@ LIBS = pjoin(HERE, 'libs')
 EXTLIB = pjoin(LIBS, 'libextfunc_rpath.dylib')
 INSTALL_NAME = '@rpath/libextfunc_rpath.dylib'
 
+arch_flags = ['-arch', 'arm64', '-arch', 'x86_64']  # dual arch
 check_call([
     'cc', pjoin(LIBS, 'extfunc.c'),
     '-dynamiclib',
-    '-arch', 'arm64', '-arch', 'x86_64',  # dual arch
     '-install_name', INSTALL_NAME,
     '-o', EXTLIB,
-])
+] + arch_flags)
 check_call(['codesign', '--sign', '-', EXTLIB])
 
 exts = [
@@ -27,8 +27,7 @@ exts = [
         'fakepkg.subpkg.module2',
         [pjoin("fakepkg", "subpkg", "module2.pyx")],
         libraries=['extfunc_rpath'],
-        extra_compile_args=[
-            '-arch', 'arm64', '-arch', 'x86_64'],
+        extra_compile_args=arch_flags,
         extra_link_args=['-L' + LIBS, '-rpath', 'libs/'],
     )
 ]

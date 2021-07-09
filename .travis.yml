@@ -36,8 +36,7 @@ install:
   - get_macpython_environment $MB_PYTHON_VERSION venv
   - pip install $WHEEL_SPEC pytest
   - if [ -n "$BUILD_WHEELS" ]; then
-        pip install cython;
-        (cd wheel_makers && ./make_wheels.sh);
+        (make clean && make);
     fi
   - pip install .
 

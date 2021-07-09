@@ -77,8 +77,7 @@ def test_listdeps():
         code, stdout, stderr = run_command(
             ['delocate-listdeps', 'pure', 'plat'])
         rp_stray = realpath(STRAY_LIB_DEP)
-        assert_equal(stdout,
-                     ['pure:', 'plat:', rp_stray])
+        assert stdout == ['pure:', 'plat:', rp_stray]
         assert_equal(code, 0)
         # With -d flag, get list of dependending modules
         code, stdout, stderr = run_command(

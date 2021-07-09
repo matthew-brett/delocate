@@ -168,13 +168,13 @@ def test_wheel_libs():
     assert_equal(wheel_libs(PURE_WHEEL), {})
     mod2 = pjoin('fakepkg1', 'subpkg', 'module2.cpython-39-darwin.so')
     rp_stray = realpath(STRAY_LIB_DEP)
-    assert_equal(wheel_libs(PLAT_WHEEL),
-                 {rp_stray: {mod2: rp_stray},
-                  realpath(LIBSYSTEMB): {mod2: LIBSYSTEMB}})
+    assert (wheel_libs(PLAT_WHEEL) ==
+            {rp_stray: {mod2: rp_stray},
+             realpath(LIBSYSTEMB): {mod2: LIBSYSTEMB}})
 
     def filt(fname):
         return not fname.endswith(mod2)
-    assert_equal(wheel_libs(PLAT_WHEEL, filt), {})
+    assert wheel_libs(PLAT_WHEEL, filt) == {}
 
 
 def test_resolve_rpath():

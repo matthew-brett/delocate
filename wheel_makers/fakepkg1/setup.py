@@ -13,15 +13,16 @@ LIBS = pjoin(HERE, 'libs')
 EXTLIB = pjoin(LIBS, 'libextfunc.dylib')
 
 # Compile external extension with absolute path in install id
+arch_flags = ['-arch', 'arm64', '-arch', 'x86_64']  # dual arch
 check_call(['cc', '-dynamiclib', pjoin(LIBS, 'extfunc.c'),
-           '-arch', 'arm64', '-arch', 'x86_64',  # dual arch
-            '-o', EXTLIB])
+            '-o', EXTLIB] + arch_flags)
 check_call(['install_name_tool', '-id', EXTLIB, EXTLIB])
 
 exts = [Extension('fakepkg1.subpkg.module2',
                   [pjoin("fakepkg1", "subpkg", "module2.pyx")],
                   libraries=['extfunc'],
-                  extra_link_args=['-L' + LIBS]
+                  extra_compile_args=arch_flags,
+                  extra_link_args=['-L' + LIBS] + arch_flags,
                   )]
 
 setup(

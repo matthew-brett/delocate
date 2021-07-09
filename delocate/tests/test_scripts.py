@@ -85,7 +85,7 @@ def test_listdeps():
         assert_equal(stdout,
                      ['pure:', 'plat:', rp_stray + ':',
                       pjoin('plat', 'fakepkg1', 'subpkg',
-                            'module2.cpython-39-darwin.so')])
+                            'module2.abi3.so')])
         assert_equal(code, 0)
     # With --all flag, get all dependencies
     code, stdout, stderr = run_command(
@@ -102,7 +102,7 @@ def test_listdeps():
     assert_equal(stdout,
                  [PURE_WHEEL + ':', PLAT_WHEEL + ':', rp_stray])
     # -d flag (is also --dependency flag)
-    m2 = pjoin('fakepkg1', 'subpkg', 'module2.cpython-39-darwin.so')
+    m2 = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
     code, stdout, stderr = run_command(
         ['delocate-listdeps', '--depending', PURE_WHEEL, PLAT_WHEEL])
     assert_equal(stdout,
@@ -283,7 +283,7 @@ def test_fix_wheel_archs():
             assert_equal(stdout,
                          fmt_str.format(
                              fixed_wheel,
-                             'fakepkg1/subpkg/module2.cpython-39-darwin.so',
+                             'fakepkg1/subpkg/module2.abi3.so',
                              archs.difference([arch]).pop(),
                              stray_lib))
             # Require particular architectures

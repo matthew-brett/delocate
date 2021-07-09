@@ -67,7 +67,7 @@ def _fixed_wheel(out_path):
         shutil.copy2(STRAY_LIB, '_libs')
         stray_lib = pjoin(abspath(realpath('_libs')), basename(STRAY_LIB))
         requiring = pjoin('_plat_pkg', 'fakepkg1', 'subpkg',
-                          'module2.cpython-39-darwin.so')
+                          'module2.abi3.so')
         old_lib = set(get_install_names(requiring)).difference(EXT_LIBS).pop()
         set_install_name(requiring, old_lib, stray_lib)
         dir2zip('_plat_pkg', wheel_base)
@@ -79,7 +79,7 @@ def _rename_module(in_wheel, mod_fname, out_wheel):
     # Rename module with library dependency in wheel
     with InWheel(in_wheel, out_wheel):
         mod_dir = pjoin('fakepkg1', 'subpkg')
-        os.rename(pjoin(mod_dir, 'module2.cpython-39-darwin.so'),
+        os.rename(pjoin(mod_dir, 'module2.abi3.so'),
                   pjoin(mod_dir, mod_fname))
     return out_wheel
 
@@ -93,7 +93,7 @@ def test_fix_plat():
         # Shortcut
         _rp = realpath
         # In-place fix
-        dep_mod = pjoin('fakepkg1', 'subpkg', 'module2.cpython-39-darwin.so')
+        dep_mod = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
         assert_equal(delocate_wheel(fixed_wheel),
                      {_rp(stray_lib): {dep_mod: stray_lib}})
         zip2dir(fixed_wheel, 'plat_pkg')
@@ -203,14 +203,14 @@ def _thin_lib(stray_lib, arch):
 
 def _thin_mod(wheel, arch):
     with InWheel(wheel, wheel):
-        mod_fname = pjoin('fakepkg1', 'subpkg', 'module2.cpython-39-darwin.so')
+        mod_fname = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
         check_call(['lipo', '-thin', arch, mod_fname, '-output', mod_fname])
 
 
 def test__thinning():
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        mod_fname = pjoin('fakepkg1', 'subpkg', 'module2.cpython-39-darwin.so')
+        mod_fname = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
         assert_equal(get_archs(stray_lib), ARCH_BOTH)
         with InWheel(fixed_wheel):
             assert_equal(get_archs(mod_fname), ARCH_BOTH)
@@ -225,7 +225,7 @@ def test_check_plat_archs():
     # Check flag to check architectures
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        dep_mod = pjoin('fakepkg1', 'subpkg', 'module2.cpython-39-darwin.so')
+        dep_mod = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
         # No complaint for stored / fixed wheel
         assert_equal(delocate_wheel(fixed_wheel, require_archs=()),
                      {realpath(stray_lib): {dep_mod: stray_lib}})
@@ -306,7 +306,7 @@ def test_fix_rpath():
         with InWheel(RPATH_WHEEL):
             # dep_mod can vary depending the Python version used to build
             # the test wheel
-            dep_mod = 'fakepkg/subpkg/module2.cpython-39-darwin.so'
+            dep_mod = 'fakepkg/subpkg/module2.abi3.so'
         dep_path = '@rpath/libextfunc_rpath.dylib'
 
         assert_equal(

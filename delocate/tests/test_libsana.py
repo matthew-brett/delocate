@@ -166,7 +166,7 @@ def test_stripped_lib_dict():
 def test_wheel_libs():
     # Test routine to list dependencies from wheels
     assert_equal(wheel_libs(PURE_WHEEL), {})
-    mod2 = pjoin('fakepkg1', 'subpkg', 'module2.cpython-39-darwin.so')
+    mod2 = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
     rp_stray = realpath(STRAY_LIB_DEP)
     assert (wheel_libs(PLAT_WHEEL) ==
             {rp_stray: {mod2: rp_stray},

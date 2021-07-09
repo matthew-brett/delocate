@@ -10,8 +10,8 @@ env:
     # travis encrypt -r matthew-brett/delocate WHEELHOUSE_UPLOADER_SECRET=<the api key>
     - secure: "BRc15pHO6+WwBh36X7KK4KFC+/hD7G3r5bmkKkWqUSrm1fhFkqDizj9V5g/9pGEcAl5FRLV0VZjTeceISfu2UhXxQxj4CkkTy7KYuSbZak2pEntfsDs7YBpQ3NHJ6ic8YdcWgptRXIQfmg/KPc9FsBIfLxJ2yVyyY7D9XpK+SvQ="
 
-# Default macOS (xcode image) is 10.13 (xcode 9.4.1) as of 2020-06-27
-# See: https://docs.travis-ci.com/user/osx-ci-environment/#OS-X-Version
+# Default macOS (xcode image) is 10.13 (xcode 9.4.1) as of 2021-07-09
+# See: https://docs.travis-ci.com/user/reference/osx
 
 matrix:
   include:
@@ -20,25 +20,15 @@ matrix:
       - env: MB_PYTHON_VERSION=3.6
       - env: MB_PYTHON_VERSION=3.8
       - env: MB_PYTHON_VERSION=3.9
-      # Wheel API changes
-      - env: WHEEL_SPEC="wheel==0.31.1"
       # Xcode 12.0 macOS 10.15.5
       - osx_image: xcode12
-      # Xcode 9.1 OS X 10.12
-      - osx_image: xcode9.1
-      # Xcode 8.3.2 OS X 10.12
-      - osx_image: xcode8.3
-      # Xcode 8gm OS X 10.11
-      - osx_image: xcode8
-      # Default Xcode 7.3.1 OS X 10.11
-      - osx_image: xcode7.3
-      # Xcode 6.4 OS X 10.10
-      - osx_image: xcode6.4
-      # OS X 10.9
-      - osx_image: beta-xcode6.1
-      - env:
-          - MB_PYTHON_VERSION=2.7.17
-          - MB_PYTHON_OSX_VER=10.6
+      # Xcode 9.0 macOS 10.12
+      - osx_image: xcode9
+      # Xcode 12.5 macOS 11.3
+      - osx_image: xcode12.5
+        env:
+          - MB_PYTHON_VERSION=3.9
+          - MB_PYTHON_OSX_VER=10.9
           - BUILD_WHEELS=1
 
 install:

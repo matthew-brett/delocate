@@ -5,3 +5,6 @@ testing-wheels:
 
 testing-libs:
 	(set -e && cd delocate/tests/data && sh make_libs.sh)
+
+clean:
+	(cd wheel_makers && git clean -fxd .)

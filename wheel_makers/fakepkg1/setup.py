@@ -21,6 +21,8 @@ check_call(['install_name_tool', '-id', EXTLIB, EXTLIB])
 exts = [Extension('fakepkg1.subpkg.module2',
                   [pjoin("fakepkg1", "subpkg", "module2.pyx")],
                   libraries=['extfunc'],
+                  extra_compile_args=[
+                      '-arch', 'arm64', '-arch', 'x86_64'],
                   extra_link_args=['-L' + LIBS]
                   )]
 

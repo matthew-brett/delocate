@@ -27,6 +27,8 @@ exts = [
         'fakepkg.subpkg.module2',
         [pjoin("fakepkg", "subpkg", "module2.pyx")],
         libraries=['extfunc_rpath'],
+        extra_compile_args=[
+            '-arch', 'arm64', '-arch', 'x86_64'],
         extra_link_args=['-L' + LIBS, '-rpath', 'libs/'],
     )
 ]

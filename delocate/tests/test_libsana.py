@@ -222,8 +222,4 @@ def test_get_dependencies():
     # type: () -> None
     with pytest.raises(DependencyNotFound):
         list(get_dependencies("nonexistent.lib"))
-    # This check might be too platform specific.
-    assert dict(get_dependencies(LIBA)) == {
-        realpath("/usr/lib/libc++.1.dylib"): "/usr/lib/libc++.1.dylib",
-        realpath("/usr/lib/libSystem.B.dylib"): "/usr/lib/libSystem.B.dylib",
-    }
+    assert dict(get_dependencies(LIBA)) == {lib: lib for lib in EXT_LIBS}

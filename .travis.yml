@@ -15,8 +15,6 @@ env:
 
 matrix:
   include:
-      - env: MB_PYTHON_VERSION=2.7
-      - env: MB_PYTHON_VERSION=3.5
       - env: MB_PYTHON_VERSION=3.6
       - env: MB_PYTHON_VERSION=3.8
       - env: MB_PYTHON_VERSION=3.9
@@ -25,6 +23,7 @@ matrix:
       # Xcode 9.0 macOS 10.12
       - osx_image: xcode9
       # Xcode 12.3 macOS 11.1
+      # We need dual-arch arm64 / x86_64 builds.
       - osx_image: xcode12.3
         env:
           - MB_PYTHON_VERSION=3.9

@@ -28,8 +28,8 @@ The problem
 
 Let's say you have built a wheel somewhere, but it's linking to dynamic
 libraries elsewhere on the machine, so you can't distribute it, because others
-may not have these same libraries.  Here we analyze the dependencies for a scipy
-wheel::
+may not have these same libraries.  Here we analyze the dependencies for
+a Scipy wheel::
 
     $ delocate-listdeps scipy-0.14.0b1-cp34-cp34m-macosx_10_6_intel.whl
     /usr/local/Cellar/gfortran/4.8.2/gfortran/lib/libgcc_s.1.dylib
@@ -116,19 +116,24 @@ the same version of gfortran installed - in this example.
 Checking required architectures
 ===============================
 
-Current Python.org Python and the OSX system Python (``/usr/bin/python``) are
-both dual Intel architecture binaries.  For example::
+Current Python.org Python and the macOS system Python (``/usr/bin/python``)
+are dual architecture binaries.  For example::
 
     $ lipo -info /usr/bin/python
-    Architectures in the fat file: /usr/bin/python are: x86_64 i386
+    Architectures in the fat file: /usr/bin/python are: x86_64 arm64e
 
-This means that wheels built for Python.org Python or system Python should
-also have i386 and x86_64 versions of the Python extensions and their
+This Big Sur macOS Python has both x86_64 and arm64 (M1) versions fused into
+one file.  Earlier versions of macOS had dual architectures that were 32-bit
+(`i386`) and 64-bit (`x86_64`).
+
+For full compatibility with system and Python.org Python, wheels built for
+Python.org Python or system Python should have the corresponding architectures
+- e.g. `x86_64` and `arm64` versions of the Python extensions and their
 libraries.  It is easy to link Python extensions against single architecture
-libraries by mistake, and therefore get single architecture extensions and /
-or libraries. In fact my scipy wheel is one such example, because I
-inadvertently linked against the homebrew libraries, which are x86_64 only.
-To check this you can use the ``--require-archs`` flag::
+libraries by mistake, and therefore get single architecture extensions and
+/ or libraries. In fact my Scipy wheel above was one such example, because
+I inadvertently linked against the Homebrew libraries, which were `x86_64`
+only. To check this you can use the ``--require-archs`` flag::
 
     $ delocate-wheel --require-archs=intel scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
     Traceback (most recent call last):
@@ -140,8 +145,12 @@ To check this you can use the ``--require-archs`` flag::
         "Some missing architectures in wheel")
     delocate.delocating.DelocationError: Some missing architectures in wheel
 
-The "intel" argument requires dual architecture extensions and libraries. You
-can see which extensions are at fault by adding the ``-v`` (verbose) flag::
+Notice that this command was using an earlier version of `delocate` that
+supported Python 2; we now support Python 3 only.
+
+The "intel" argument to `--require-arch` above requires dual 32- and 64- bit
+architecture extensions and libraries. You can see which extensions are at
+fault by adding the ``-v`` (verbose) flag::
 
     $ delocate-wheel -w fixed_wheels --require-archs=intel -v scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
     Fixing: scipy-0.14.0-cp34-cp34m-macosx_10_6_intel.whl
@@ -270,7 +279,7 @@ Released under the BSD two-clause license - see the file ``LICENSE`` in the
 source distribution.
 
 `travis-ci <https://travis-ci.org/matthew-brett/delocate>`_ kindly tests the
-code automatically under Python 2.7, and 3.5 through 3.9.
+code automatically under Python 3.6 through 3.9.
 
 The latest released version is at https://pypi.python.org/pypi/delocate
 

@@ -619,6 +619,12 @@ def patch_wheel(in_wheel, patch_fname, out_wheel=None):
                                    stdout.decode('latin1'))
 
 
+_ARCH_LOOKUP = {
+    'intel': ['i386', 'x86_64'],
+    'universal2': ['x86_64', 'arm64']
+}
+
+
 def check_archs(
     copied_libs,  # type: Mapping[Text, Mapping[Text, Text]]
     require_archs=(),  # type:  Union[Text, Iterable[Text]]
@@ -644,8 +650,9 @@ def check_archs(
         these architectures are. If a sequence, then a set of required
         architectures e.g. ``['i386', 'x86_64']`` to specify dual Intel
         architectures.  If a string, then a standard architecture name as
-        returned by ``lipo -info`` or the string "intel", corresponding to the
-        sequence ``['i386', 'x86_64']``
+        returned by ``lipo -info``, or the string "intel", corresponding to the
+        sequence ``['i386', 'x86_64']``, or the string "universal2",
+        corresponding to ``['x86_64', 'arm64']``.
     stop_fast : bool, optional
         Whether to give up collecting errors after the first
 
@@ -664,8 +671,7 @@ def check_archs(
         required.
     """
     if isinstance(require_archs, string_types):
-        require_archs = (['i386', 'x86_64'] if require_archs == 'intel'
-                         else [require_archs])
+        require_archs = _ARCH_LOOKUP.get(require_archs, [require_archs])
     require_archs_set = frozenset(require_archs)
     bads = []  # type: List[Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]]  # noqa: E501
     for depended_lib, dep_dict in copied_libs.items():

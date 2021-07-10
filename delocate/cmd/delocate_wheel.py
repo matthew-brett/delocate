@@ -45,7 +45,8 @@ def main():
         Option("--require-archs",
                action="store", type='string',
                help="Architectures that all wheel libraries should "
-               "have (from 'intel', 'i386', 'x86_64', 'i386,x86_64')"),
+                    "have (from 'intel', 'i386', 'x86_64', 'i386,x86_64'"
+                    "'universal2', 'x86_64,arm64')"),
         Option("--executable-path",
                action="store", type='string',
                default=os.path.dirname(sys.executable),

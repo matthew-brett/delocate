@@ -57,6 +57,12 @@ def main():
                action="store_true",
                help="Skip wheels that raise errors (e.g. pure wheels)"))
     parser.add_option(
+        Option("-d", "--dual-arch-type",
+               action="store", type='string', default='intel',
+               help=("Dual architecture wheel type; "
+                     "one of 'intel', 'universal2'; "
+                     "(default 'intel')")))
+    parser.add_option(
         Option("-v", "--verbose",
                action="store_true",
                help="Show more verbose report of progress and failure"))
@@ -74,7 +80,7 @@ def main():
     plat_tags = [] if opts.plat_tag is None else opts.plat_tag
     if opts.osx_ver is not None:
         for ver in opts.osx_ver:
-            plat_tags += ['macosx_{0}_intel'.format(ver),
+            plat_tags += ['macosx_{0}_{1}'.format(ver, opts.dual_arch_type),
                           'macosx_{0}_x86_64'.format(ver)]
     if len(plat_tags) == 0:
         raise RuntimeError('Need at least one --osx-ver or --plat-tag')

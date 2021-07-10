@@ -180,15 +180,16 @@ def test_wheel_libs():
     # type: () -> None
     # Test routine to list dependencies from wheels
     assert_equal(wheel_libs(PURE_WHEEL), {})
-    mod2 = pjoin('fakepkg1', 'subpkg', 'module2.so')
-    assert_equal(wheel_libs(PLAT_WHEEL),
-                 {STRAY_LIB_DEP: {mod2: STRAY_LIB_DEP},
-                  realpath(LIBSYSTEMB): {mod2: LIBSYSTEMB}})
+    mod2 = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
+    rp_stray = realpath(STRAY_LIB_DEP)
+    assert (wheel_libs(PLAT_WHEEL) ==
+            {rp_stray: {mod2: rp_stray},
+             realpath(LIBSYSTEMB): {mod2: LIBSYSTEMB}})
 
     def filt(fname):
         # type: (Text) -> bool
         return not fname.endswith(mod2)
-    assert_equal(wheel_libs(PLAT_WHEEL, filt), {})
+    assert wheel_libs(PLAT_WHEEL, filt) == {}
 
 
 def test_resolve_dynamic_paths():
@@ -223,6 +224,6 @@ def test_get_dependencies():
         list(get_dependencies("nonexistent.lib"))
     # This check might be too platform specific.
     assert dict(get_dependencies(LIBA)) == {
-        realpath("/usr/lib/libstdc++.6.dylib"): "/usr/lib/libstdc++.6.dylib",
+        realpath("/usr/lib/libc++.1.dylib"): "/usr/lib/libc++.1.dylib",
         realpath("/usr/lib/libSystem.B.dylib"): "/usr/lib/libSystem.B.dylib",
     }

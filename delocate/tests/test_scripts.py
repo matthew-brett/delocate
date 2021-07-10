@@ -28,7 +28,8 @@ from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
                             STRAY_LIB_DEP, WHEEL_PATCH, WHEEL_PATCH_BAD,
                             _thin_lib, _thin_mod, _rename_module)
 from .test_fuse import assert_same_tree
-from .test_wheeltools import assert_winfo_similar
+from .test_wheeltools import (assert_winfo_similar, EXP_ITEMS, EXTRA_PLATS,
+                              EXTRA_EXPS)
 
 
 def _proc_lines(in_str):
@@ -76,15 +77,16 @@ def test_listdeps():
         zip2dir(PLAT_WHEEL, 'plat')
         code, stdout, stderr = run_command(
             ['delocate-listdeps', 'pure', 'plat'])
-        assert_equal(stdout,
-                     ['pure:', 'plat:', STRAY_LIB_DEP])
+        rp_stray = realpath(STRAY_LIB_DEP)
+        assert stdout == ['pure:', 'plat:', rp_stray]
         assert_equal(code, 0)
         # With -d flag, get list of dependending modules
         code, stdout, stderr = run_command(
             ['delocate-listdeps', '-d', 'pure', 'plat'])
         assert_equal(stdout,
-                     ['pure:', 'plat:', STRAY_LIB_DEP + ':',
-                      pjoin('plat', 'fakepkg1', 'subpkg', 'module2.so')])
+                     ['pure:', 'plat:', rp_stray + ':',
+                      pjoin('plat', 'fakepkg1', 'subpkg',
+                            'module2.abi3.so')])
         assert_equal(code, 0)
     # With --all flag, get all dependencies
     code, stdout, stderr = run_command(
@@ -99,20 +101,20 @@ def test_listdeps():
     code, stdout, stderr = run_command(
         ['delocate-listdeps', PURE_WHEEL, PLAT_WHEEL])
     assert_equal(stdout,
-                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', STRAY_LIB_DEP])
+                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', rp_stray])
     # -d flag (is also --dependency flag)
-    m2 = pjoin('fakepkg1', 'subpkg', 'module2.so')
+    m2 = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
     code, stdout, stderr = run_command(
         ['delocate-listdeps', '--depending', PURE_WHEEL, PLAT_WHEEL])
     assert_equal(stdout,
-                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', STRAY_LIB_DEP + ':',
+                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', rp_stray + ':',
                   m2])
     # Can be used with --all
     code, stdout, stderr = run_command(
         ['delocate-listdeps', '--all', '--depending', PURE_WHEEL, PLAT_WHEEL])
     assert_equal(stdout,
                  [PURE_WHEEL + ':', PLAT_WHEEL + ':',
-                  STRAY_LIB_DEP + ':', m2,
+                  rp_stray + ':', m2,
                   EXT_LIBS[1] + ':', m2])
 
 
@@ -241,7 +243,7 @@ def test_fix_wheel_archs():
         # Broken with one architecture removed still OK without checking
         # But if we check, raise error
         fmt_str = 'Fixing: {0}\n{1} needs arch {2} missing from {3}'
-        archs = set(('x86_64', 'i386'))
+        archs = set(('x86_64', 'arm64'))
 
         def _fix_break(arch):
             # type: (Text) -> None
@@ -277,22 +279,20 @@ def test_fix_wheel_archs():
                 ['delocate-wheel', fixed_wheel, '--check-archs', '-v'],
                 check_code=False)
             assert_false(code == 0)
-            stderr_unicode = stderr.decode('latin1').strip()
-            assert "Traceback" in stderr_unicode
-            assert stderr_unicode.endswith(
-                "Some missing architectures in wheel")
+            stderr = stderr.decode('latin1').strip()
+            assert 'Traceback' in stderr
+            assert_true(stderr.endswith(
+                "Some missing architectures in wheel"))
             stdout_unicode = stdout.decode('latin1').strip()
-            assert (
-                stdout_unicode == fmt_str.format(
-                    fixed_wheel,
-                    'fakepkg1/subpkg/module2.so',
-                    archs.difference([arch]).pop(),
-                    stray_lib
-                )
-            )
+            assert_equal(stdout_unicode,
+                         fmt_str.format(
+                             fixed_wheel,
+                             'fakepkg1/subpkg/module2.abi3.so',
+                             archs.difference([arch]).pop(),
+                             stray_lib))
             # Require particular architectures
-        both_archs = 'i386,x86_64'
-        for ok in ('intel', 'i386', 'x86_64', both_archs):
+        both_archs = 'arm64,x86_64'
+        for ok in ('universal2', 'arm64', 'x86_64', both_archs):
             _fixed_wheel(tmpdir)
             code, stdout, stderr = run_command(
                 ['delocate-wheel', fixed_wheel, '--require-archs=' + ok])
@@ -354,19 +354,15 @@ def test_patch_wheel():
 
 def test_add_platforms():
     # Check adding platform to wheel name and tag section
-    exp_items = [('Generator', 'bdist_wheel {pip_version}'),
-                 ('Root-Is-Purelib', 'false'),
-                 ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
-                 ('Wheel-Version', '1.0')]
-    assert_winfo_similar(PLAT_WHEEL, exp_items, drop_version=False)
+    assert_winfo_similar(PLAT_WHEEL, EXP_ITEMS, drop_version=False)
     with InTemporaryDirectory() as tmpdir:
         # First wheel needs proper wheel filename for later unpack test
         out_fname = basename(PURE_WHEEL)
         # Need to specify at least one platform
         assert_raises(RuntimeError, run_command,
                       ['delocate-addplat', PURE_WHEEL, '-w', tmpdir])
-        plat_args = ['-p', 'macosx_10_9_intel',
-                     '--plat-tag', 'macosx_10_9_x86_64']
+        plat_args = ['-p', EXTRA_PLATS[0],
+                     '--plat-tag', EXTRA_PLATS[1]]
         # Can't add platforms to a pure wheel
         assert_raises(RuntimeError, run_command,
                       ['delocate-addplat', PURE_WHEEL, '-w', tmpdir] +
@@ -378,18 +374,13 @@ def test_add_platforms():
         # Still doesn't do anything though
         assert_false(exists(out_fname))
         # Works for plat_wheel
-        out_fname = (splitext(basename(PLAT_WHEEL))[0] +
-                     '.macosx_10_9_intel.macosx_10_9_x86_64.whl')
+        out_fname = '.'.join(
+            (splitext(basename(PLAT_WHEEL))[0],) +
+            EXTRA_PLATS + ('whl',))
         code, stdout, stderr = run_command(
             ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir] + plat_args)
         assert_true(isfile(out_fname))
-        # Expected output minus wheel-version (that might change)
-        extra_exp = [('Generator', 'bdist_wheel {pip_version}'),
-                     ('Root-Is-Purelib', 'false'),
-                     ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
-                     ('Tag', '{pyver}-{abi}-macosx_10_9_intel'),
-                     ('Tag', '{pyver}-{abi}-macosx_10_9_x86_64')]
-        assert_winfo_similar(out_fname, extra_exp)
+        assert_winfo_similar(out_fname, EXTRA_EXPS)
         # If wheel exists (as it does) then raise error
         assert_raises(RuntimeError, run_command,
                       ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir] +
@@ -400,21 +391,17 @@ def test_add_platforms():
         # Can also specify platform tags via --osx-ver flags
         code, stdout, stderr = run_command(
             ['delocate-addplat', PLAT_WHEEL, '-c', '-w', tmpdir, '-x', '10_9'])
-        assert_winfo_similar(out_fname, extra_exp)
+        assert_winfo_similar(out_fname, EXTRA_EXPS)
         # Can mix plat_tag and osx_ver
-        out_big_fname = (splitext(basename(PLAT_WHEEL))[0] +
-                         '.macosx_10_9_intel.macosx_10_9_x86_64'
-                         '.macosx_10_10_intel.macosx_10_10_x86_64.whl')
-        extra_big_exp = [('Generator', 'bdist_wheel {pip_version}'),
-                         ('Root-Is-Purelib', 'false'),
-                         ('Tag', '{pyver}-{abi}-macosx_10_10_intel'),
-                         ('Tag', '{pyver}-{abi}-macosx_10_10_x86_64'),
-                         ('Tag', '{pyver}-{abi}-macosx_10_6_intel'),
-                         ('Tag', '{pyver}-{abi}-macosx_10_9_intel'),
-                         ('Tag', '{pyver}-{abi}-macosx_10_9_x86_64')]
+        extra_extra = ('macosx_10_12_universal2', 'macosx_10_12_x86_64')
+        out_big_fname = '.'.join((splitext(basename(PLAT_WHEEL))[0],) +
+                                 EXTRA_PLATS + extra_extra + ('whl',))
+        extra_big_exp = EXTRA_EXPS + [
+            ('Tag', '{pyver}-{abi}-' + plat)
+            for plat in extra_extra]
         code, stdout, stderr = run_command(
-            ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir, '-x', '10_10']
-            + plat_args)
+            ['delocate-addplat', PLAT_WHEEL, '-w', tmpdir, '-x', '10_12',
+             '-d', 'universal2'] + plat_args)
         assert_winfo_similar(out_big_fname, extra_big_exp)
         # Default is to write into directory of wheel
         os.mkdir('wheels')
@@ -434,11 +421,11 @@ def test_add_platforms():
         shutil.copy2(PLAT_WHEEL, 'wheels')
         # If platforms already present, don't write more
         res = sorted(os.listdir('wheels'))
-        assert_winfo_similar(local_out, extra_exp)
+        assert_winfo_similar(local_out, EXTRA_EXPS)
         code, stdout, stderr = run_command(
             ['delocate-addplat', local_out, '--clobber'] + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
-        assert_winfo_similar(local_out, extra_exp)
+        assert_winfo_similar(local_out, EXTRA_EXPS)
         # The wheel doesn't get deleted output name same as input, as here
         code, stdout, stderr = run_command(
             ['delocate-addplat', local_out, '-r', '--clobber'] + plat_args)
@@ -446,8 +433,8 @@ def test_add_platforms():
         # But adds WHEEL tags if missing, even if file name is OK
         shutil.copy2(local_plat, local_out)
         assert_raises(AssertionError,
-                      assert_winfo_similar, local_out, extra_exp)
+                      assert_winfo_similar, local_out, EXTRA_EXPS)
         code, stdout, stderr = run_command(
             ['delocate-addplat', local_out, '--clobber'] + plat_args)
         assert_equal(sorted(os.listdir('wheels')), res)
-        assert_winfo_similar(local_out, extra_exp)
+        assert_winfo_similar(local_out, EXTRA_EXPS)

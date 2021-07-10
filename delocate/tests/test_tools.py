@@ -9,21 +9,24 @@ import shutil
 from ..tools import (back_tick, unique_by_index, ensure_writable, chmod_perms,
                      ensure_permissions, parse_install_name, zip2dir, dir2zip,
                      find_package_dirs, cmp_contents, get_archs, lipo_fuse,
-                     replace_signature, validate_signature, add_rpath)
+                     replace_signature, validate_signature, add_rpath,
+                     set_install_id, set_install_name)
 
 from ..tmpdirs import InTemporaryDirectory
 
 from .pytest_tools import assert_true, assert_false, assert_equal, \
     assert_raises
+from .test_install_names import LIBSTDCXX
 
 DATA_PATH = pjoin(dirname(__file__), 'data')
-LIB32 = pjoin(DATA_PATH, 'liba32.dylib')
+LIBM1 = pjoin(DATA_PATH, 'libam1.dylib')
 LIB64 = pjoin(DATA_PATH, 'liba.dylib')
 LIBBOTH = pjoin(DATA_PATH, 'liba_both.dylib')
 LIB64A = pjoin(DATA_PATH, 'liba.a')
 ARCH_64 = frozenset(['x86_64'])
+ARCH_M1 = frozenset(['arm64'])
+ARCH_BOTH = ARCH_64 | ARCH_M1
 ARCH_32 = frozenset(['i386'])
-ARCH_BOTH = ARCH_64 | ARCH_32
 
 
 def test_back_tick():
@@ -212,23 +215,23 @@ def test_cmp_contents():
 
 def test_get_archs_fuse():
     # Test routine to get architecture types from file
-    assert_equal(get_archs(LIB32), ARCH_32)
+    assert_equal(get_archs(LIBM1), ARCH_M1)
     assert_equal(get_archs(LIB64), ARCH_64)
     assert_equal(get_archs(LIB64A), ARCH_64)
     assert_equal(get_archs(LIBBOTH), ARCH_BOTH)
     assert_raises(RuntimeError, get_archs, 'not_a_file')
     with InTemporaryDirectory():
-        lipo_fuse(LIB32, LIB64, 'anotherlib')
+        lipo_fuse(LIBM1, LIB64, 'anotherlib')
         assert_equal(get_archs('anotherlib'), ARCH_BOTH)
-        lipo_fuse(LIB32, LIB64, 'anotherlib++')
+        lipo_fuse(LIBM1, LIB64, 'anotherlib++')
         assert_equal(get_archs('anotherlib++'), ARCH_BOTH)
-        lipo_fuse(LIB64, LIB32, 'anotherlib')
+        lipo_fuse(LIB64, LIBM1, 'anotherlib')
         assert_equal(get_archs('anotherlib'), ARCH_BOTH)
-        shutil.copyfile(LIB32, 'libcopy32')
-        lipo_fuse('libcopy32', LIB64, 'anotherlib')
+        shutil.copyfile(LIBM1, 'libcopym1')
+        lipo_fuse('libcopym1', LIB64, 'anotherlib')
         assert_equal(get_archs('anotherlib'), ARCH_BOTH)
         assert_raises(RuntimeError, lipo_fuse,
-                      'libcopy32', LIB32, 'yetanother')
+                      'libcopym1', LIBM1, 'yetanother')
         shutil.copyfile(LIB64, 'libcopy64')
         assert_raises(RuntimeError, lipo_fuse,
                       'libcopy64', LIB64, 'yetanother')
@@ -256,10 +259,31 @@ def test_validate_signature():
         check_signature('libcopy')  # codesign now accepts the file
 
         # Alter the contents of this file, this will invalidate the signature
-        add_rpath('libcopy', '/dummy/path')
+        add_rpath('libcopy', '/dummy/path', ad_hoc_sign=False)
 
         # codesign should raise a new error (invalid signature)
         assert_raises(RuntimeError, check_signature, 'libcopy')
 
         validate_signature('libcopy')  # Replace the broken signature
         check_signature('libcopy')
+
+        # Alter the contents of this file, check that by default the file
+        # is signed with an ad-hoc signature
+        add_rpath('libcopy', '/dummy/path2')
+        check_signature('libcopy')
+
+        set_install_id('libcopy', 'libcopy-name')
+        check_signature('libcopy')
+
+        set_install_name('libcopy', LIBSTDCXX,
+                         '/usr/lib/libstdc++.7.dylib')
+        check_signature('libcopy')
+
+        # check that altering the contents without ad-hoc sign invalidates
+        # signatures
+        set_install_id('libcopy', 'libcopy-name2', ad_hoc_sign=False)
+        assert_raises(RuntimeError, check_signature, 'libcopy')
+
+        set_install_name('libcopy', '/usr/lib/libstdc++.7.dylib',
+                         '/usr/lib/libstdc++.8.dylib', ad_hoc_sign=False)
+        assert_raises(RuntimeError, check_signature, 'libcopy')

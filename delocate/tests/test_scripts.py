@@ -62,10 +62,15 @@ DATA_PATH = abspath(pjoin(dirname(__file__), 'data'))
 
 def test_listdeps():
     # smokey tests of list dependencies command
-    local_libs = set(['liba.dylib', 'libb.dylib', 'libc.dylib'])
+    local_libs = {
+        'liba.dylib',
+        'libb.dylib',
+        'libc.dylib',
+        pjoin(DATA_PATH, 'libextfunc2_rpath.dylib'),
+    }
     # single path, with libs
     code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH])
-    assert_equal(set(stdout), local_libs)
+    assert set(stdout) == local_libs
     assert_equal(code, 0)
     # single path, no libs
     with InTemporaryDirectory():

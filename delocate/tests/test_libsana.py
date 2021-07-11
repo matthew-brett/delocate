@@ -5,13 +5,16 @@ Utilities for analyzing library dependencies in trees and wheels
 
 import os
 from os.path import (join as pjoin, dirname, realpath, relpath, split)
-from typing import Dict, Iterable, Text
+import shutil
+from typing import Any, Dict, Iterable, Text
 
 import pytest
 
+from ..delocating import filter_system_libs
 from ..libsana import (tree_libs, get_prefix_stripper, get_rp_stripper,
                        stripped_lib_dict, wheel_libs, resolve_rpath,
                        get_dependencies, resolve_dynamic_paths,
+                       walk_library, walk_directory,
                        DependencyNotFound)
 
 from ..tools import set_install_name
@@ -21,7 +24,7 @@ from ..tmpdirs import InTemporaryDirectory
 from .pytest_tools import assert_equal
 
 from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
-                                 EXT_LIBS, LIBSYSTEMB)
+                                 EXT_LIBS, LIBSYSTEMB, DATA_PATH)
 from .test_wheelies import (PLAT_WHEEL, PURE_WHEEL, STRAY_LIB_DEP)
 
 
@@ -218,8 +221,58 @@ def test_resolve_rpath():
     assert_equal(resolve_rpath(lib_rpath, []), lib_rpath)
 
 
-def test_get_dependencies():
-    # type: () -> None
+def test_get_dependencies(tmpdir):
+    # type: (Any) -> None
     with pytest.raises(DependencyNotFound):
         list(get_dependencies("nonexistent.lib"))
-    assert dict(get_dependencies(LIBA)) == {lib: lib for lib in EXT_LIBS}
+    ext_libs = {(lib, lib) for lib in EXT_LIBS}
+    assert set(get_dependencies(LIBA)) == ext_libs
+
+    os.symlink(
+        pjoin(DATA_PATH, "libextfunc_rpath.dylib"),
+        pjoin(tmpdir, "libextfunc_rpath.dylib"),
+    )
+    assert set(get_dependencies(pjoin(tmpdir, "libextfunc_rpath.dylib"),
+                                filt_func=filter_system_libs)) == {
+        (None, "@rpath/libextfunc2_rpath.dylib"), (LIBSYSTEMB, LIBSYSTEMB),
+    }
+
+    assert set(get_dependencies(pjoin(tmpdir, "libextfunc_rpath.dylib"),
+                                executable_path=DATA_PATH,
+                                filt_func=filter_system_libs)) == {
+        (pjoin(DATA_PATH, "libextfunc2_rpath.dylib"),
+         "@rpath/libextfunc2_rpath.dylib"
+         ),
+        (LIBSYSTEMB, LIBSYSTEMB),
+    }
+
+
+def test_walk_library():
+    # type: () -> None
+    with pytest.raises(DependencyNotFound):
+        list(walk_library("nonexistent.lib"))
+    assert set(walk_library(LIBA, filt_func=filter_system_libs)) == {LIBA, }
+    assert set(walk_library(pjoin(DATA_PATH, "libextfunc_rpath.dylib"),
+                            filt_func=filter_system_libs)) == {
+        pjoin(DATA_PATH, "libextfunc_rpath.dylib"),
+        pjoin(DATA_PATH, "libextfunc2_rpath.dylib"),
+    }
+
+
+def test_walk_directory(tmpdir):
+    # type: (Any) -> None
+    assert set(walk_directory(tmpdir)) == set()
+
+    shutil.copy(pjoin(DATA_PATH, "libextfunc_rpath.dylib"), tmpdir)
+    assert set(walk_directory(tmpdir, filt_func=filter_system_libs)) == {
+        pjoin(tmpdir, "libextfunc_rpath.dylib"),
+    }
+
+    assert set(
+        walk_directory(
+            tmpdir, executable_path=DATA_PATH, filt_func=filter_system_libs
+        )
+    ) == {
+        pjoin(tmpdir, "libextfunc_rpath.dylib"),
+        pjoin(DATA_PATH, "libextfunc2_rpath.dylib"),
+    }

@@ -37,6 +37,11 @@ class DependencyNotFound(Exception):
     """
 
 
+def filter_system_libs(libname):
+    # type: (Text) -> bool
+    return not (libname.startswith('/usr/lib') or libname.startswith('/System'))
+
+
 def get_dependencies(
     lib_fname,  # type: Text
     executable_path=None,  # type: Optional[Text]
@@ -85,6 +90,12 @@ def get_dependencies(
         logger.debug("Ignoring dependencies of %s" % lib_fname)
         return
     if not os.path.isfile(lib_fname):
+        if not filter_system_libs(lib_fname):
+            logger.debug(
+                "Ignoring missing library %s because it is a system library.",
+                lib_fname
+            )
+            return
         raise DependencyNotFound(lib_fname)
     rpaths = get_rpaths(lib_fname) + get_environment_variable_paths()
     for install_name in get_install_names(lib_fname):
@@ -99,7 +110,14 @@ def get_dependencies(
             else:
                 dependency_path = search_environment_for_lib(install_name)
             if not os.path.isfile(dependency_path):
-                raise DependencyNotFound(dependency_path)
+                if not filter_system_libs(dependency_path):
+                    logger.debug(
+                        "Skipped missing dependency %s"
+                        " because it is a system library.",
+                        dependency_path
+                    )
+                else:
+                    raise DependencyNotFound(dependency_path)
             if dependency_path != install_name:
                 logger.debug(
                     "%s resolved to: %s", install_name, dependency_path

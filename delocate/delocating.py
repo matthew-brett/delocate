@@ -424,7 +424,9 @@ def delocate_path(
         tree_path, lib_filt_func, executable_path=executable_path
     ):
         for depending_path, install_name in get_dependencies(
-            library_path, executable_path=executable_path
+            library_path,
+            executable_path=executable_path,
+            filt_func=lib_filt_func,
         ):
             if depending_path is None:
                 missing_libs = True

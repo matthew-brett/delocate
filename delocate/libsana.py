@@ -37,8 +37,12 @@ class DependencyNotFound(Exception):
     """
 
 
-def get_dependencies(lib_fname, executable_path=None):
-    # type: (Text, Optional[Text]) -> Iterator[Tuple[Optional[Text], Text]]
+def get_dependencies(
+    lib_fname,  # type: Text
+    executable_path=None,  # type: Optional[Text]
+    filt_func=lambda filepath: True,  # type: Callable[[str], bool]
+):
+    # type: (...) -> Iterator[Tuple[Optional[Text], Text]]
     """Find and yield the real paths of dependencies of the library `lib_fname`
 
     This function is used to search for the real files that are required by
@@ -53,6 +57,14 @@ def get_dependencies(lib_fname, executable_path=None):
         The library to fetch dependencies from.  Must be an existing file.
     executable_path : str, optional
         An alternative path to use for resolving `@executable_path`.
+    filt_func : callable, optional
+        A callable which accepts filename as argument and returns True if we
+        should inspect the file or False otherwise.
+        Defaults to inspecting all files for library dependencies.
+        If `filt_func` returns False for `lib_fname` then no values will be
+        yielded.
+        If `filt_func` returns False for a dependencies real path then that
+        dependency will not be yielded.
 
     Yields
     ------
@@ -69,6 +81,9 @@ def get_dependencies(lib_fname, executable_path=None):
     DependencyNotFound
         When `lib_fname` does not exist.
     """
+    if not filt_func(lib_fname):
+        logger.debug("Ignoring dependencies of %s" % lib_fname)
+        return
     if not os.path.isfile(lib_fname):
         raise DependencyNotFound(lib_fname)
     rpaths = get_rpaths(lib_fname) + get_environment_variable_paths()
@@ -85,19 +100,17 @@ def get_dependencies(lib_fname, executable_path=None):
                 dependency_path = search_environment_for_lib(install_name)
             if not os.path.isfile(dependency_path):
                 raise DependencyNotFound(dependency_path)
-            yield dependency_path, install_name
             if dependency_path != install_name:
                 logger.debug(
                     "%s resolved to: %s", install_name, dependency_path
                 )
+            yield dependency_path, install_name
         except DependencyNotFound:
-            logger.error(
-                "\n{0} not found:"
-                "\n  Needed by: {1}"
-                "\n  Search path:\n    {2}".format(
-                    install_name, lib_fname, "\n    ".join(rpaths)
-                )
-            )
+            message = "\n%s not found:\n  Needed by: %s" % (install_name,
+                                                            lib_fname)
+            if install_name.startswith("@rpath"):
+                message += "\n  Search path:\n    " + "\n    ".join(rpaths)
+            logger.error(message)
             # At this point install_name is known to be a bad path.
             yield None, install_name
 
@@ -151,7 +164,7 @@ def walk_library(
         return
     yield lib_fname
     for dependency_fname, install_name in get_dependencies(
-        lib_fname, executable_path=executable_path
+        lib_fname, executable_path=executable_path, filt_func=filt_func
     ):
         if dependency_fname is None:
             logger.error(
@@ -262,15 +275,14 @@ def tree_libs(
         DeprecationWarning,
         stacklevel=2,
     )
+    if filt_func is None:
+        filt_func = (lambda _: True)
     lib_dict = {}  # type: Dict[Text, Dict[Text, Text]]
     for dirpath, dirnames, basenames in os.walk(start_path):
         for base in basenames:
             depending_path = realpath(pjoin(dirpath, base))
-            if filt_func and not filt_func(depending_path):
-                logger.debug("Ignoring dependencies of: %s", depending_path)
-                continue
             for dependency_path, install_name in get_dependencies(
-                depending_path
+                depending_path, filt_func=filt_func,
             ):
                 if dependency_path is None:
                     # Mimic deprecated behavior.

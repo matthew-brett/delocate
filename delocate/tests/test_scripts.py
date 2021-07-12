@@ -10,7 +10,7 @@ from __future__ import division, print_function, absolute_import
 
 import os
 from os.path import (dirname, join as pjoin, isfile, abspath, realpath,
-                     basename, exists, splitext)
+                     basename, exists, splitext, sep as psep)
 import shutil
 from typing import Text
 
@@ -62,14 +62,16 @@ DATA_PATH = abspath(pjoin(dirname(__file__), 'data'))
 
 def test_listdeps():
     # smokey tests of list dependencies command
-    # Paths have common prefix stripped.
     libext_rpath = realpath(pjoin(DATA_PATH, 'libextfunc2_rpath.dylib'))
-    rp_cwd = realpath(os.getcwd())
+    rp_cwd = realpath(os.getcwd()) + psep
+    # Replicate path stripping.
+    if libext_rpath.startswith(rp_cwd):
+        libext_rpath = libext_rpath[len(rp_cwd):]
     local_libs = {
         'liba.dylib',
         'libb.dylib',
         'libc.dylib',
-        libext_rpath[(len(rp_cwd) + 1):],
+        libext_rpath,
     }
     # single path, with libs
     code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH])

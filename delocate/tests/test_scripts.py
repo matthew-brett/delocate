@@ -64,13 +64,12 @@ def test_listdeps():
     # smokey tests of list dependencies command
     # Paths have common prefix stripped.
     libext_rpath = realpath(pjoin(DATA_PATH, 'libextfunc2_rpath.dylib'))
-    local_libs = set(['liba.dylib', 'libb.dylib', 'libc.dylib',
-                      relpath(libext_rpath, realpath(os.getcwd()))])
+    rp_cwd = realpath(os.getcwd())
     local_libs = {
         'liba.dylib',
         'libb.dylib',
         'libc.dylib',
-        relpath(libext_rpath, realpath(os.getcwd())),
+        libext_rpath[(len(rp_cwd) + 1):],
     }
     # single path, with libs
     code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH])

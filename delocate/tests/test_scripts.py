@@ -10,7 +10,7 @@ from __future__ import division, print_function, absolute_import
 
 import os
 from os.path import (dirname, join as pjoin, isfile, abspath, realpath,
-                     basename, exists, splitext, relpath)
+                     basename, exists, splitext)
 import shutil
 from typing import Text
 

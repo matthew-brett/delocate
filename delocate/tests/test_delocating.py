@@ -182,10 +182,9 @@ def test_delocate_tree_libs():
         ext_local_libs = {liba, libb, libc, slibc}
         assert_equal(set(os.listdir(copy_dir2)),
                      set([basename(lib) for lib in ext_local_libs]))
-        # Libraries using the copied libraries now have an install name starting # noqa: E501
+        # Libraries using the copied libraries now have an install name starting
         # with @loader_path, then pointing to the copied library directory
-        all_local_libs = liba, libb, libc, test_lib, slibc, stest_lib
-        for lib in all_local_libs:
+        for lib in (liba, libb, libc, test_lib, slibc, stest_lib):
             pathto_copies = relpath(realpath(copy_dir2),
                                     dirname(realpath(lib)))
             lib_inames = get_install_names(lib)

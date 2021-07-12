@@ -17,6 +17,10 @@ Releases
 * Unreleased
 
   * Libraries depending on ``@loader_path`` are now supported.
+  * ``@executable_path`` is supported and defaults to the current Python
+    executable path.  This can be changed with the ``--executable-path`` flag.
+  * The ``--ignore-missing-dependencies`` flag can be given to ignore errors and
+    delocate as many dependencies as possible.
   * Dependencies are now delocated recursively.
   * ``delocate.delocating.copy_recurse`` has been deprecated.
   * ``delocate.libsana.resolve_rpath`` has been deprecated.

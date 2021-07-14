@@ -6,7 +6,7 @@ Utilities for analyzing library dependencies in trees and wheels
 import os
 from os.path import (join as pjoin, dirname, realpath, relpath, split)
 import shutil
-from typing import Any, Dict, Iterable, Text
+from typing import Dict, Iterable, Text
 
 import pytest
 
@@ -222,7 +222,8 @@ def test_resolve_rpath():
 
 
 def test_get_dependencies(tmpdir):
-    # type: (Any) -> None
+    # type: (object) -> None
+    tmpdir = str(tmpdir)
     with pytest.raises(DependencyNotFound):
         list(get_dependencies("nonexistent.lib"))
     ext_libs = {(lib, lib) for lib in EXT_LIBS}
@@ -260,7 +261,8 @@ def test_walk_library():
 
 
 def test_walk_directory(tmpdir):
-    # type: (Any) -> None
+    # type: (object) -> None
+    tmpdir = str(tmpdir)
     assert set(walk_directory(tmpdir)) == set()
 
     shutil.copy(pjoin(DATA_PATH, "libextfunc_rpath.dylib"), tmpdir)

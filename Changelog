@@ -14,6 +14,17 @@ lot of work discussing OSX things with MB, and contributes fixes too.
 Releases
 ********
 
+* Unreleased
+
+  * Libraries depending on ``@loader_path`` are now supported.
+  * ``@executable_path`` is supported and defaults to the current Python
+    executable path.  This can be changed with the ``--executable-path`` flag.
+  * The ``--ignore-missing-dependencies`` flag can be given to ignore errors and
+    delocate as many dependencies as possible.
+  * Dependencies are now delocated recursively.
+  * ``delocate.delocating.copy_recurse`` has been deprecated.
+  * ``delocate.libsana.resolve_rpath`` has been deprecated.
+
 * 0.8.2 (Sunday July 12th 2020)
 
   Bugfix release.

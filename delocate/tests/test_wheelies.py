@@ -302,17 +302,23 @@ def test_fix_rpath():
         # The module was set to expect its dependency in the libs/ directory
         os.symlink(DATA_PATH, 'libs')
 
-        stray_lib = realpath('libs/libextfunc_rpath.dylib')
         with InWheel(RPATH_WHEEL):
             # dep_mod can vary depending the Python version used to build
             # the test wheel
             dep_mod = 'fakepkg/subpkg/module2.abi3.so'
         dep_path = '@rpath/libextfunc_rpath.dylib'
 
-        assert_equal(
-            delocate_wheel(RPATH_WHEEL, 'tmp.whl'),
-            {stray_lib: {dep_mod: dep_path}},
-        )
+        stray_libs = {
+            realpath('libs/libextfunc_rpath.dylib'): {dep_mod: dep_path},
+            realpath('libs/libextfunc2_rpath.dylib'): {
+                realpath(
+                    'libs/libextfunc_rpath.dylib'
+                ): '@rpath/libextfunc2_rpath.dylib'
+            },
+        }
+
+        assert delocate_wheel(RPATH_WHEEL, 'tmp.whl') == stray_libs
+
         with InWheel('tmp.whl'):
             check_call(['codesign', '--verify',
                         'fakepkg/.dylibs/libextfunc_rpath.dylib'])

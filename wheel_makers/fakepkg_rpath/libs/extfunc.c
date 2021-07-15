@@ -1,4 +1,6 @@
+int extfunc2();
+
 int extfunc()
 {
-    return 3;
+    return extfunc2();
 }

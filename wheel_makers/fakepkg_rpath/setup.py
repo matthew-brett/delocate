@@ -9,17 +9,33 @@ from subprocess import check_call
 
 HERE = abspath(dirname(__file__))
 LIBS = pjoin(HERE, 'libs')
-EXTLIB = pjoin(LIBS, 'libextfunc_rpath.dylib')
-INSTALL_NAME = '@rpath/libextfunc_rpath.dylib'
 
 arch_flags = ['-arch', 'arm64', '-arch', 'x86_64']  # dual arch
+
+EXTLIB2 = pjoin(LIBS, 'libextfunc2_rpath.dylib')
+INSTALL_NAME2 = '@rpath/libextfunc2_rpath.dylib'
+check_call([
+    'cc', pjoin(LIBS, 'extfunc2.c'),
+    '-dynamiclib',
+    '-install_name', INSTALL_NAME2,
+    '-o', EXTLIB2,
+] + arch_flags)
+
+EXTLIB = pjoin(LIBS, 'libextfunc_rpath.dylib')
+INSTALL_NAME = '@rpath/libextfunc_rpath.dylib'
 check_call([
     'cc', pjoin(LIBS, 'extfunc.c'),
     '-dynamiclib',
     '-install_name', INSTALL_NAME,
+    '-L', LIBS,
+    '-l', 'extfunc2_rpath',
+    '-rpath', "@executable_path/",
+    '-rpath', "@loader_path/",
     '-o', EXTLIB,
 ] + arch_flags)
+
 check_call(['codesign', '--sign', '-', EXTLIB])
+check_call(['codesign', '--sign', '-', EXTLIB2])
 
 exts = [
     Extension(

@@ -10,8 +10,9 @@ from __future__ import division, print_function, absolute_import
 
 import os
 from os.path import (dirname, join as pjoin, isfile, abspath, realpath,
-                     basename, exists, splitext)
+                     basename, exists, splitext, sep as psep)
 import shutil
+from typing import Text
 
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import back_tick, set_install_name, zip2dir, dir2zip
@@ -61,10 +62,20 @@ DATA_PATH = abspath(pjoin(dirname(__file__), 'data'))
 
 def test_listdeps():
     # smokey tests of list dependencies command
-    local_libs = set(['liba.dylib', 'libb.dylib', 'libc.dylib'])
+    libext_rpath = realpath(pjoin(DATA_PATH, 'libextfunc2_rpath.dylib'))
+    rp_cwd = realpath(os.getcwd()) + psep
+    # Replicate path stripping.
+    if libext_rpath.startswith(rp_cwd):
+        libext_rpath = libext_rpath[len(rp_cwd):]
+    local_libs = {
+        'liba.dylib',
+        'libb.dylib',
+        'libc.dylib',
+        libext_rpath,
+    }
     # single path, with libs
     code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH])
-    assert_equal(set(stdout), local_libs)
+    assert set(stdout) == local_libs
     assert_equal(code, 0)
     # single path, no libs
     with InTemporaryDirectory():
@@ -230,6 +241,7 @@ def test_fix_wheel_dylibs():
 
 
 def test_fix_wheel_archs():
+    # type: () -> None
     # Some tests for wheel fixing
     with InTemporaryDirectory() as tmpdir:
         # Test check of architectures
@@ -244,10 +256,12 @@ def test_fix_wheel_archs():
         archs = set(('x86_64', 'arm64'))
 
         def _fix_break(arch):
+            # type: (Text) -> None
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
 
         def _fix_break_fix(arch):
+            # type: (Text) -> None
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
             _thin_mod(fixed_wheel, arch)
@@ -264,10 +278,10 @@ def test_fix_wheel_archs():
                 ['delocate-wheel', fixed_wheel, '--check-archs'],
                 check_code=False)
             assert_false(code == 0)
-            stderr = stderr.decode('latin1').strip()
-            assert_true(stderr.startswith('Traceback'))
-            assert_true(stderr.endswith(
-                "Some missing architectures in wheel"))
+            stderr_unicode = stderr.decode('latin1').strip()
+            assert stderr_unicode.startswith('Traceback')
+            assert stderr_unicode.endswith(
+                "Some missing architectures in wheel")
             assert_equal(stdout.strip(), b'')
             # Checked, verbose
             _fix_break(arch)
@@ -276,11 +290,11 @@ def test_fix_wheel_archs():
                 check_code=False)
             assert_false(code == 0)
             stderr = stderr.decode('latin1').strip()
-            assert_true(stderr.startswith('Traceback'))
+            assert 'Traceback' in stderr
             assert_true(stderr.endswith(
                 "Some missing architectures in wheel"))
-            stdout = stdout.decode('latin1').strip()
-            assert_equal(stdout,
+            stdout_unicode = stdout.decode('latin1').strip()
+            assert_equal(stdout_unicode,
                          fmt_str.format(
                              fixed_wheel,
                              'fakepkg1/subpkg/module2.abi3.so',

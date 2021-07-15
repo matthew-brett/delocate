@@ -6,7 +6,11 @@ import os
 from os.path import (join as pjoin, dirname, basename, relpath, realpath,
                      splitext)
 import shutil
+from typing import Any, Iterable, List, Set, Text, Tuple
 from collections import namedtuple
+
+import pytest
+import six
 
 from ..delocating import (DelocationError, delocate_tree_libs, copy_recurse,
                           delocate_path, check_archs, bads_report,
@@ -31,6 +35,7 @@ LibtreeLibs = namedtuple(
 
 
 def _make_libtree(out_path):
+    # type: (Text) -> LibtreeLibs
     liba, libb, libc, test_lib = _copy_libs(
         [LIBA, LIBB, LIBC, TEST_LIB], out_path)
     sub_path = pjoin(out_path, 'subsub')
@@ -70,7 +75,9 @@ def without_system_libs(obj):
     return out
 
 
+@pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
 def test_delocate_tree_libs():
+    # type: () -> None
     # Test routine to copy library dependencies into a local directory
     with InTemporaryDirectory() as tmpdir:
         # Copy libs into a temporary directory
@@ -175,10 +182,9 @@ def test_delocate_tree_libs():
         ext_local_libs = {liba, libb, libc, slibc}
         assert_equal(set(os.listdir(copy_dir2)),
                      set([basename(lib) for lib in ext_local_libs]))
-        # Libraries using the copied libraries now have an install name starting # noqa: E501
+        # Libraries using the copied libraries now have an install name starting
         # with @loader_path, then pointing to the copied library directory
-        all_local_libs = liba, libb, libc, test_lib, slibc, stest_lib
-        for lib in all_local_libs:
+        for lib in (liba, libb, libc, test_lib, slibc, stest_lib):
             pathto_copies = relpath(realpath(copy_dir2),
                                     dirname(realpath(lib)))
             lib_inames = get_install_names(lib)
@@ -189,6 +195,7 @@ def test_delocate_tree_libs():
 
 
 def _copy_fixpath(files, directory):
+    # type: (Iterable[Text], Text) -> List[Text]
     new_fnames = []
     for fname in files:
         shutil.copy2(fname, directory)
@@ -201,12 +208,16 @@ def _copy_fixpath(files, directory):
 
 
 def _copy_to(fname, directory, new_base):
+    # type: (Text, Text, Text) -> Text
     new_name = pjoin(directory, new_base)
     shutil.copy2(fname, new_name)
     return new_name
 
 
+@pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:copy_recurse:DeprecationWarning")
 def test_copy_recurse():
+    # type: () -> None
     # Function to find / copy needed libraries recursively
     with InTemporaryDirectory():
         # Get some fixed up libraries to play with
@@ -220,6 +231,7 @@ def test_copy_recurse():
         # One library, depends only on system libs, system libs filtered
 
         def filt_func(libname):
+            # type: (Text) -> bool
             return not libname.startswith('/usr/lib')
         os.makedirs('subtree')
         _copy_fixpath([LIBA], 'subtree')
@@ -233,6 +245,7 @@ def test_copy_recurse():
         # copied first, then liba, libb
 
         def _st(fname):
+            # type: (Text) -> Text
             return _rp(pjoin('subtree2', basename(fname)))
         os.makedirs('subtree2')
         shutil.copy2(test_lib, 'subtree2')
@@ -304,7 +317,10 @@ def test_copy_recurse():
         assert_equal(copied_libs, copied_copied)
 
 
+@pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:copy_recurse:DeprecationWarning")
 def test_copy_recurse_overwrite():
+    # type: () -> None
     # Check that copy_recurse won't overwrite pre-existing libs
     with InTemporaryDirectory():
         # Get some fixed up libraries to play with
@@ -314,6 +330,7 @@ def test_copy_recurse_overwrite():
         # Filter system libs
 
         def filt_func(libname):
+            # type: (Text) -> bool
             return not libname.startswith('/usr/lib')
         os.makedirs('subtree')
         # libb depends on liba
@@ -327,6 +344,7 @@ def test_copy_recurse_overwrite():
 
 
 def test_delocate_path():
+    # type: () -> None
     # Test high-level path delocator script
     with InTemporaryDirectory():
         # Make a tree; use realpath for OSX /private/var - /var
@@ -358,6 +376,7 @@ def test_delocate_path():
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
 
         def filt(libname):
+            # type: (Text) -> bool
             return not (libname.startswith('/usr') or
                         'libfake' in libname)
         assert_equal(delocate_path('subtree3', 'deplibs3', None, filt), {})
@@ -368,6 +387,7 @@ def test_delocate_path():
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
 
         def lib_filt(filename):
+            # type: (Text) -> bool
             return not filename.endswith('subsub/libc.dylib')
         assert_equal(delocate_path('subtree4', 'deplibs4', lib_filt), {})
         assert_equal(len(os.listdir('deplibs4')), 0)
@@ -380,6 +400,7 @@ def test_delocate_path():
 
 
 def _make_bare_depends():
+    # type: () -> Tuple[Text, Text]
     # Copy:
     # * liba.dylib to 'libs' dir, which is a dependency of libb.dylib
     # * libb.dylib to 'subtree' dir, as 'libb' (no extension).
@@ -396,6 +417,7 @@ def _make_bare_depends():
 
 
 def test_delocate_path_dylibs():
+    # type: () -> None
     # Test options for delocating everything, or just dynamic libraries
     _rp = realpath  # shortcut
     with InTemporaryDirectory():
@@ -414,10 +436,12 @@ def test_delocate_path_dylibs():
         liba, bare_b = _make_bare_depends()
 
         def func(fn):
+            # type: (Text) -> bool
             return fn.endswith('.dylib')
         assert_equal(delocate_path('subtree', 'deplibs', func), {})
 
         def func(fn):
+            # type: (Text) -> bool
             return fn.endswith('libb')
         assert_equal(delocate_path('subtree', 'deplibs', None),
                      {_rp(pjoin('libs', 'liba.dylib')):
@@ -425,9 +449,10 @@ def test_delocate_path_dylibs():
 
 
 def test_check_archs():
+    # type: () -> None
     # Test utility to check architectures in copied_libs dict
     # No libs always OK
-    s0 = set()
+    s0 = set()  # type: Set[Any]
     assert_equal(check_archs({}), s0)
     # One lib to itself OK
     lib_M1_M1 = {LIBM1: {LIBM1: 'install_name'}}
@@ -435,7 +460,7 @@ def test_check_archs():
     assert_equal(check_archs(lib_M1_M1), s0)
     assert_equal(check_archs(lib_64_64), s0)
     # OK matching to another static lib of same arch
-    assert_equal(check_archs({LIB64A: {LIB64: 'install_name'}}), s0)
+    assert_equal(check_archs({LIB64A: {LIB64: u'install_name'}}), s0)
     # Or two libs
     two_libs = {LIB64A: {LIB64: 'install_name'},
                 LIBM1: {LIBM1: 'install_name'}}
@@ -505,6 +530,7 @@ def test_check_archs():
 
 
 def test_bads_report():
+    # type: () -> None
     # Test bads_report of architecture errors
     # No bads, no report
     assert_equal(bads_report(set()), '')
@@ -543,6 +569,7 @@ def test_bads_report():
 
 
 def test_dyld_library_path_lookups():
+    # type: () -> None
     # Test that DYLD_LIBRARY_PATH can be used to find libs during
     # delocation
     with TempDirWithoutEnvVars('DYLD_LIBRARY_PATH') as tmpdir:
@@ -565,6 +592,7 @@ def test_dyld_library_path_lookups():
 
 
 def test_dyld_library_path_beats_basename():
+    # type: () -> None
     # Test that we find libraries on DYLD_LIBRARY_PATH before basename
     with TempDirWithoutEnvVars('DYLD_LIBRARY_PATH') as tmpdir:
         # Copy libs into a temporary directory
@@ -582,12 +610,13 @@ def test_dyld_library_path_beats_basename():
         # /private/var, so we'll use realpath to resolve the two
         assert_equal(predicted_lib_location, os.path.realpath(libb))
         # Updating shows us the new lib
-        os.environ['DYLD_LIBRARY_PATH'] = subdir
+        os.environ['DYLD_LIBRARY_PATH'] = six.ensure_str(subdir)
         predicted_lib_location = search_environment_for_lib(libb)
         assert_equal(predicted_lib_location, new_libb)
 
 
 def test_dyld_fallback_library_path_loses_to_basename():
+    # type: () -> None
     # Test that we find libraries on basename before DYLD_FALLBACK_LIBRARY_PATH
     with TempDirWithoutEnvVars('DYLD_FALLBACK_LIBRARY_PATH') as tmpdir:
         # Copy libs into a temporary directory

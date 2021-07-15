@@ -22,7 +22,17 @@ def main():
         Option("-d", "--dylibs-only",
                action="store_true",
                help="Only analyze files with known dynamic library "
-               "extensions")])
+               "extensions"),
+        Option("--executable-path",
+               action="store", type='string',
+               default=os.path.dirname(sys.executable),
+               help="The path used to resolve @executable_path in dependencies"
+               ),
+        Option("--ignore-missing-dependencies",
+               action="store_true",
+               help="Skip dependencies which couldn't be found and delocate "
+               "as much as possible"),
+    ])
     (opts, paths) = parser.parse_args()
     if len(paths) < 1:
         parser.print_help()
@@ -37,7 +47,13 @@ def main():
             print(path)
         # evaluate paths relative to the path we are working on
         lib_path = os.path.join(path, opts.lib_path)
-        delocate_path(path, lib_path, lib_filt_func)
+        delocate_path(
+            path,
+            lib_path,
+            lib_filt_func,
+            executable_path=opts.executable_path,
+            ignore_missing=opts.ignore_missing_dependencies,
+        )
 
 
 if __name__ == '__main__':

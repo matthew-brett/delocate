@@ -9,6 +9,8 @@ from __future__ import division, print_function, absolute_import
 import os
 from os.path import join as pjoin, basename, exists, expanduser
 import sys
+import logging
+from typing import List, Optional, Text
 
 from optparse import OptionParser, Option
 
@@ -16,6 +18,7 @@ from delocate import delocate_wheel, __version__
 
 
 def main():
+    # type: () -> None
     parser = OptionParser(
         usage="%s WHEEL_FILENAME\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__)
@@ -28,8 +31,10 @@ def main():
                help="Directory to store delocated wheels (default is to "
                "overwrite input)"),
         Option("-v", "--verbose",
-               action="store_true",
-               help="Show more verbose report of progress and failure"),
+               action="count",
+               help="Show a more verbose report of progress and failure."
+               "  Additional flags show even more info, up to -vv.",
+               default=0),
         Option("-k", "--check-archs",
                action="store_true",
                help="Check architectures of depended libraries"),
@@ -39,13 +44,28 @@ def main():
                "extensions"),
         Option("--require-archs",
                action="store", type='string',
-               help=("Architectures that all wheel libraries should "
-                     "have (from 'intel', 'i386', 'x86_64', 'i386,x86_64')"
-                     "'universal2', 'x86_64,arm64'"))])
+               help="Architectures that all wheel libraries should "
+                    "have (from 'intel', 'i386', 'x86_64', 'i386,x86_64'"
+                    "'universal2', 'x86_64,arm64')"),
+        Option("--executable-path",
+               action="store", type='string',
+               default=os.path.dirname(sys.executable),
+               help="The path used to resolve @executable_path in dependencies"
+               ),
+        Option("--ignore-missing-dependencies",
+               action="store_true",
+               help="Skip dependencies which couldn't be found and delocate "
+               "as much as possible"),
+    ])
     (opts, wheels) = parser.parse_args()
     if len(wheels) < 1:
         parser.print_help()
         sys.exit(1)
+    logging.basicConfig(
+        level={
+            0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG
+        }.get(opts.verbose, logging.DEBUG)
+    )
     multi = len(wheels) > 1
     if opts.wheel_dir:
         wheel_dir = expanduser(opts.wheel_dir)
@@ -53,6 +73,7 @@ def main():
             os.makedirs(wheel_dir)
     else:
         wheel_dir = None
+    require_archs = None  # type: Optional[List[Text]]
     if opts.require_archs is None:
         require_archs = [] if opts.check_archs else None
     elif ',' in opts.require_archs:
@@ -67,10 +88,16 @@ def main():
             out_wheel = pjoin(wheel_dir, basename(wheel))
         else:
             out_wheel = wheel
-        copied = delocate_wheel(wheel, out_wheel, lib_filt_func=lib_filt_func,
-                                lib_sdir=opts.lib_sdir,
-                                require_archs=require_archs,
-                                check_verbose=opts.verbose)
+        copied = delocate_wheel(
+            wheel,
+            out_wheel,
+            lib_filt_func=lib_filt_func,
+            lib_sdir=opts.lib_sdir,
+            require_archs=require_archs,
+            check_verbose=opts.verbose,
+            executable_path=opts.executable_path,
+            ignore_missing=opts.ignore_missing_dependencies,
+        )
         if opts.verbose and len(copied):
             print("Copied to package {0} directory:".format(opts.lib_sdir))
             copy_lines = ['  ' + name for name in sorted(copied)]

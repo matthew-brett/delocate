@@ -23,6 +23,7 @@ DATA_PATH = pjoin(dirname(__file__), 'data')
 LIBA = pjoin(DATA_PATH, 'liba.dylib')
 LIBB = pjoin(DATA_PATH, 'libb.dylib')
 LIBC = pjoin(DATA_PATH, 'libc.dylib')
+LIBAM1_ARCH = pjoin(DATA_PATH, 'libam1-arch.dylib')
 LIBA_STATIC = pjoin(DATA_PATH, 'liba.a')
 A_OBJECT = pjoin(DATA_PATH, 'a.o')
 TEST_LIB = pjoin(DATA_PATH, 'test-lib')
@@ -41,6 +42,8 @@ def test_get_install_names():
                  set(('liba.dylib', 'libb.dylib') + EXT_LIBS))
     assert_equal(set(get_install_names(TEST_LIB)),
                  set(('libc.dylib',) + EXT_LIBS))
+    assert_equal(set(get_install_names(LIBAM1_ARCH)),
+                 set(EXT_LIBS))
     # Non-object file returns empty tuple
     assert_equal(get_install_names(__file__), ())
     # Static archive and object files returns empty tuple

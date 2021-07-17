@@ -180,6 +180,11 @@ def _cmd_out_err(cmd):
     return out.split('\n')
 
 
+# Sometimes the line starts with (architecture arm64) and sometimes not
+# The regex is used for matching both
+_LINE0_RE = re.compile(r"^(?: \(architecture .*\))?:(?P<further_report>.*)")
+
+
 def _line0_says_object(line0, filename):
     line0 = line0.strip()
     for test in BAD_OBJECT_TESTS:
@@ -188,9 +193,12 @@ def _line0_says_object(line0, filename):
     if line0.startswith('Archive :'):
         # nothing to do for static libs
         return False
-    if not line0.startswith(filename + ':'):
+    if not line0.startswith(filename):
         raise InstallNameError('Unexpected first line: ' + line0)
-    further_report = line0[len(filename) + 1:]
+    match = _LINE0_RE.match(line0[len(filename):])
+    if not match:
+        raise InstallNameError('Unexpected first line: ' + line0)
+    further_report = match.group("further_report")
     if further_report == '':
         return True
     raise InstallNameError(

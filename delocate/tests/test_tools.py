@@ -20,6 +20,7 @@ from .test_install_names import LIBSTDCXX
 
 DATA_PATH = pjoin(dirname(__file__), 'data')
 LIBM1 = pjoin(DATA_PATH, 'libam1.dylib')
+LIBM1_ARCH = pjoin(DATA_PATH, 'libam1-arch.dylib')
 LIB64 = pjoin(DATA_PATH, 'liba.dylib')
 LIBBOTH = pjoin(DATA_PATH, 'liba_both.dylib')
 LIB64A = pjoin(DATA_PATH, 'liba.a')
@@ -216,6 +217,7 @@ def test_cmp_contents():
 def test_get_archs_fuse():
     # Test routine to get architecture types from file
     assert_equal(get_archs(LIBM1), ARCH_M1)
+    assert_equal(get_archs(LIBM1_ARCH), ARCH_M1)
     assert_equal(get_archs(LIB64), ARCH_64)
     assert_equal(get_archs(LIB64A), ARCH_64)
     assert_equal(get_archs(LIBBOTH), ARCH_BOTH)

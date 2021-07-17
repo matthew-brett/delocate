@@ -55,6 +55,9 @@ $CXX_64 -o test-lib d.cc -L. -lc
 # Make a dual-arch library
 lipo -create liba.dylib libam1.dylib -output liba_both.dylib
 
+# Make a library with architecture name in otool -L line
+lipo -create libam1.dylib -output libam1-arch.dylib
+
 # Change permissions in nasty way to test working with permissions
 chmod 444 liba.dylib
 chmod 400 libb.dylib

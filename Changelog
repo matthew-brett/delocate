@@ -7,23 +7,36 @@
 Delocate change log
 ###################
 
-`Matthew Brett` (MB) wrote most of the code.  Min Ragan-Kelley (MinRK) did a
-lot of work discussing OSX things with MB, and contributes fixes too.
+`Matthew Brett` (MB) wrote most of the code.  Kyle Benesh (KB) did some heroic
+refactoring of the dependency tracing and added type hinting. Isuru Fernando
+(IF) developed the Universal2 (arm64) support. Min Ragan-Kelley (MinRK) did a
+lot of work discussing OSX things with MB, and contributed fixes as well.
 
 ********
 Releases
 ********
 
-* Unreleased
+* 0.9.0 (Saturday July 17th 2021)
 
-  * Libraries depending on ``@loader_path`` are now supported.
+  Refactoring, updating and `arm64` (M1) support.
+
+  * Libraries depending on ``@loader_path`` are now supported (KB).
   * ``@executable_path`` is supported and defaults to the current Python
-    executable path.  This can be changed with the ``--executable-path`` flag.
+    executable path.  This can be changed with the ``--executable-path`` flag
+    (KB).
   * The ``--ignore-missing-dependencies`` flag can be given to ignore errors and
-    delocate as many dependencies as possible.
-  * Dependencies are now delocated recursively.
-  * ``delocate.delocating.copy_recurse`` has been deprecated.
-  * ``delocate.libsana.resolve_rpath`` has been deprecated.
+    delocate as many dependencies as possible (KB).
+  * Dependencies are now delocated recursively (KB).
+  * ``delocate.delocating.copy_recurse`` has been deprecated (KB).
+  * ``delocate.libsana.resolve_rpath`` has been deprecated (KB).
+  * Add required ad-hoc signing for libraries (IF).
+  * Fix to escape regexp special characters to occur in library names (such as
+    `++` in `libc++` (Grzegorz Bokota).
+  * Support for new `otool` output from arm architecture fat libararies (IF).
+  * Various CI improvements, including refactoring for test wheel generation,
+    replacing `i386` with `arm64` for dual architectures, and start of Github
+    workflow tests (MB, KB).
+  * Various documentation fixes (Brad Solomon, Andrew Murray).
 
 * 0.8.2 (Sunday July 12th 2020)
 

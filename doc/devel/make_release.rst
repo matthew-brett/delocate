@@ -1,10 +1,10 @@
 .. _release-guide:
 
 ***********************************
-Guide to making a delocate release
+Guide to making a Delocate release
 ***********************************
 
-A guide for developers who are doing a delocate release
+A guide for developers who are doing a Delocate release
 
 .. _release-checklist:
 
@@ -49,7 +49,7 @@ Release checklist
     pytest --pyargs delocate
 
   Do this on a Python 2 and Python 3 setup.  Check on oldest supported version
-  of OSX.  Check on newest supported version.
+  of macOS.  Check on newest supported version.
 
 * Run the same tests after installing into a virtualenv, to test that
   installing works correctly::

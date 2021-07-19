@@ -13,7 +13,6 @@ from subprocess import Popen, PIPE
 from typing import (Callable, Dict, FrozenSet, Iterable, List, Mapping,
                     Optional, Set, Text, Tuple, Union)
 
-from .pycompat import string_types
 from .libsana import (tree_libs, stripped_lib_dict, get_rp_stripper,
                       walk_directory, get_dependencies)
 from .tools import (set_install_name, zip2dir, dir2zip, validate_signature,
@@ -672,7 +671,7 @@ def check_archs(
         ``depended_lib``.  An empty set means all architectures were present as
         required.
     """
-    if isinstance(require_archs, string_types):
+    if isinstance(require_archs, str):
         require_archs = _ARCH_LOOKUP.get(require_archs, [require_archs])
     require_archs_set = frozenset(require_archs)
     bads = []  # type: List[Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]]  # noqa: E501

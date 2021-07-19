@@ -10,7 +10,6 @@ from typing import Any, Iterable, List, Set, Text, Tuple
 from collections import namedtuple
 
 import pytest
-import six
 
 from ..delocating import (DelocationError, delocate_tree_libs, copy_recurse,
                           delocate_path, check_archs, bads_report,
@@ -610,7 +609,7 @@ def test_dyld_library_path_beats_basename():
         # /private/var, so we'll use realpath to resolve the two
         assert_equal(predicted_lib_location, os.path.realpath(libb))
         # Updating shows us the new lib
-        os.environ['DYLD_LIBRARY_PATH'] = six.ensure_str(subdir)
+        os.environ['DYLD_LIBRARY_PATH'] = subdir
         predicted_lib_location = search_environment_for_lib(libb)
         assert_equal(predicted_lib_location, new_libb)
 

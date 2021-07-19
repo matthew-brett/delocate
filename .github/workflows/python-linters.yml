@@ -21,3 +21,23 @@ jobs:
         checkName: 'flake8'  # NOTE: this needs to be the same as the job name.
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  mypy:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+      - name: Install MyPy
+        run: |
+          pip install mypy
+      - name: Install Delocate dependencies.
+        run: |
+          pip install pytest
+          python setup.py develop
+      - name: MyPy
+        uses: liskin/gh-problem-matcher-wrap@v1
+        with:
+          linters: mypy
+          run: mypy --show-column-numbers delocate/

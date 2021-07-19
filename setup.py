@@ -26,8 +26,6 @@ setup(name='delocate',
           "machomachomangler; sys_platform == 'win32'",
           "bindepend; sys_platform == 'win32'",
           "wheel",
-          "six",
-          "typing; python_version < '3.5'",
           "typing_extensions",
       ],
       package_data={'delocate.tests':
@@ -41,7 +39,9 @@ setup(name='delocate',
                      pjoin('data', 'test-lib'),
                      pjoin('data', '*patch'),
                      pjoin('data', 'make_libs.sh'),
-                     pjoin('data', 'icon.ico')]},
+                     pjoin('data', 'icon.ico')],
+                    'delocate': ['py.typed'],
+                    },
       entry_points={
           'console_scripts': [
               'delocate-{} = delocate.cmd.delocate_{}:main'.format(name, name)

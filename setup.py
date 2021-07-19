@@ -26,8 +26,6 @@ setup(name='delocate',
           "machomachomangler; sys_platform == 'win32'",
           "bindepend; sys_platform == 'win32'",
           "wheel",
-          "six",
-          "typing; python_version < '3.5'",
           "typing_extensions",
       ],
       package_data={'delocate.tests':

@@ -21,8 +21,6 @@ from typing import (
 )
 import warnings
 
-import six
-
 from .tools import (get_install_names, zip2dir, get_rpaths,
                     get_environment_variable_paths)
 from .tmpdirs import TemporaryDirectory
@@ -583,9 +581,8 @@ def wheel_libs(
     return stripped_lib_dict(lib_dict, realpath(tmpdir) + os.path.sep)
 
 
-def _paths_from_var(varname, lib_basename):
-    # type: (Text, Text) -> List[Text]
-    var = os.environ.get(six.ensure_str(varname))
+def _paths_from_var(varname: str, lib_basename: str) -> List[str]:
+    var = os.environ.get(varname)
     if var is None:
         return []
     return [pjoin(path, lib_basename) for path in var.split(':')]

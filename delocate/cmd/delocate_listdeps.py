@@ -9,9 +9,9 @@ from os import getcwd
 from os.path import isdir, realpath, sep as psep
 from optparse import OptionParser, Option
 
-from delocate import tree_libs, wheel_libs, __version__
+from delocate import wheel_libs, __version__
 from delocate.delocating import filter_system_libs
-from delocate.libsana import stripped_lib_dict
+from delocate.libsana import stripped_lib_dict, tree_libs_from_directory
 
 
 def main():
@@ -38,10 +38,10 @@ def main():
         else:
             indent = ''
         if isdir(path):
-            lib_dict = tree_libs(path)
+            lib_dict = tree_libs_from_directory(path, ignore_missing=True)
             lib_dict = stripped_lib_dict(lib_dict, realpath(getcwd()) + psep)
         else:
-            lib_dict = wheel_libs(path)
+            lib_dict = wheel_libs(path, ignore_missing=True)
         keys = sorted(lib_dict)
         if not opts.all:
             keys = [key for key in keys if filter_system_libs(key)]

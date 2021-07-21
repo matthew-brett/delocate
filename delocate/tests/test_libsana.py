@@ -14,7 +14,7 @@ from ..delocating import filter_system_libs
 from ..libsana import (tree_libs, get_prefix_stripper, get_rp_stripper,
                        stripped_lib_dict, wheel_libs, resolve_rpath,
                        get_dependencies, resolve_dynamic_paths,
-                       walk_library, walk_directory,
+                       walk_library, walk_directory, tree_libs_from_directory,
                        DependencyNotFound)
 
 from ..tools import set_install_name
@@ -42,7 +42,7 @@ def get_ext_dict(local_libs):
 @pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
 def test_tree_libs():
     # type: () -> None
-    # Test ability to walk through tree, finding dynamic libary refs
+    # Test ability to walk through tree, finding dynamic library refs
     # Copy specific files to avoid working tree cruft
     to_copy = [LIBA, LIBB, LIBC, TEST_LIB]
     with InTemporaryDirectory() as tmpdir:
@@ -112,6 +112,83 @@ def test_tree_libs():
         assert tree_libs(tmpdir, filt) == sl_exp_dict
 
 
+def test_tree_libs_from_directory() -> None:
+    # Test ability to walk through tree, finding dynamic library refs
+    # Copy specific files to avoid working tree cruft
+    to_copy = [LIBA, LIBB, LIBC, TEST_LIB]
+    with InTemporaryDirectory() as tmpdir:
+        local_libs = _copy_libs(to_copy, tmpdir)
+        rp_local_libs = [realpath(L) for L in local_libs]
+        liba, libb, libc, test_lib = local_libs
+        rp_liba, rp_libb, rp_libc, rp_test_lib = rp_local_libs
+        exp_dict = get_ext_dict(local_libs)
+        exp_dict.update(
+            {
+                rp_liba: {rp_libb: 'liba.dylib', rp_libc: 'liba.dylib'},
+                rp_libb: {rp_libc: 'libb.dylib'},
+                rp_libc: {rp_test_lib: 'libc.dylib'},
+            }
+        )
+        # default - no filtering
+        assert tree_libs_from_directory(tmpdir) == exp_dict
+
+        def filt(fname: str) -> bool:
+            return filter_system_libs(fname) and fname.endswith('.dylib')
+        exp_dict = get_ext_dict([liba, libb, libc])
+        exp_dict.update(
+            {
+                rp_liba: {rp_libb: 'liba.dylib', rp_libc: 'liba.dylib'},
+                rp_libb: {rp_libc: 'libb.dylib'}
+            }
+        )
+        # filtering
+        assert tree_libs_from_directory(tmpdir, lib_filt_func=filt) == exp_dict
+        # Copy some libraries into subtree to test tree walking
+        subtree = pjoin(tmpdir, 'subtree')
+        slibc, stest_lib = _copy_libs([libc, test_lib], subtree)
+        st_exp_dict = get_ext_dict([liba, libb, libc, slibc])
+        st_exp_dict.update({
+            rp_liba: {rp_libb: 'liba.dylib',
+                      rp_libc: 'liba.dylib',
+                      realpath(slibc): 'liba.dylib'},
+            rp_libb: {rp_libc: 'libb.dylib',
+                      realpath(slibc): 'libb.dylib'}})
+        assert tree_libs_from_directory(
+            tmpdir, lib_filt_func=filt
+        ) == st_exp_dict
+        # Change an install name, check this is ignored
+        set_install_name(slibc, 'liba.dylib', 'newlib')
+        inc_exp_dict = get_ext_dict([liba, libb, libc, slibc])
+        inc_exp_dict.update({
+            rp_liba: {rp_libb: 'liba.dylib',
+                      rp_libc: 'liba.dylib'},
+            rp_libb: {rp_libc: 'libb.dylib',
+                      realpath(slibc): 'libb.dylib'}})
+        assert tree_libs_from_directory(
+            tmpdir, lib_filt_func=filt, ignore_missing=True
+        ) == inc_exp_dict
+        # Symlink a depending canonical lib - should have no effect because of
+        # the canonical names
+        os.symlink(liba, pjoin(dirname(liba), 'funny.dylib'))
+        assert tree_libs_from_directory(
+            tmpdir, lib_filt_func=filt, ignore_missing=True
+        ) == inc_exp_dict
+        # Symlink a depended lib.  Now 'newlib' is a symlink to liba, and the
+        # dependency of slibc on newlib appears as a dependency on liba, but
+        # with install name 'newlib'
+        os.symlink(liba, 'newlib')
+        sl_exp_dict = get_ext_dict([liba, libb, libc, slibc])
+        sl_exp_dict.update({
+            rp_liba: {rp_libb: 'liba.dylib',
+                      rp_libc: 'liba.dylib',
+                      realpath(slibc): 'newlib'},
+            rp_libb: {rp_libc: 'libb.dylib',
+                      realpath(slibc): 'libb.dylib'}})
+        assert tree_libs_from_directory(
+            tmpdir, lib_filt_func=filt, ignore_missing=True
+        ) == sl_exp_dict
+
+
 def test_get_prefix_stripper():
     # type: () -> None
     # Test function factory to strip prefixes
@@ -164,7 +241,9 @@ def test_stripped_lib_dict():
             'libb.dylib': {'libc.dylib': 'libb.dylib'},
             'libc.dylib': {'test-lib': 'libc.dylib'}})
         my_path = realpath(tmpdir) + os.path.sep
-        assert_equal(stripped_lib_dict(tree_libs(tmpdir), my_path), exp_dict)
+        assert stripped_lib_dict(
+            tree_libs_from_directory(tmpdir), my_path
+        ) == exp_dict
         # Copy some libraries into subtree to test tree walking
         subtree = pjoin(tmpdir, 'subtree')
         liba, libb, libc, test_lib = local_libs
@@ -182,7 +261,9 @@ def test_stripped_lib_dict():
             'libc.dylib': {'test-lib': 'libc.dylib',
                            'subtree/test-lib': 'libc.dylib',
                            }})
-        assert_equal(stripped_lib_dict(tree_libs(tmpdir), my_path), exp_dict)
+        assert stripped_lib_dict(
+            tree_libs_from_directory(tmpdir), my_path
+        ) == exp_dict
 
 
 def test_wheel_libs():
@@ -191,9 +272,10 @@ def test_wheel_libs():
     assert_equal(wheel_libs(PURE_WHEEL), {})
     mod2 = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
     rp_stray = realpath(STRAY_LIB_DEP)
-    assert (wheel_libs(PLAT_WHEEL) ==
-            {rp_stray: {mod2: rp_stray},
-             realpath(LIBSYSTEMB): {mod2: LIBSYSTEMB}})
+    assert wheel_libs(PLAT_WHEEL) == {
+        rp_stray: {mod2: rp_stray},
+        realpath(LIBSYSTEMB): {mod2: LIBSYSTEMB, STRAY_LIB_DEP: LIBSYSTEMB},
+    }
 
     def filt(fname):
         # type: (Text) -> bool

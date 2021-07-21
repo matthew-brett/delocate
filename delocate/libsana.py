@@ -21,6 +21,7 @@ from typing import (
 )
 import warnings
 
+import delocate.delocating
 from .tools import (get_install_names, zip2dir, get_rpaths,
                     get_environment_variable_paths)
 from .tmpdirs import TemporaryDirectory
@@ -243,6 +244,140 @@ def walk_directory(
                 yield library_path
 
 
+def _tree_libs_from_libraries(
+    libraries: Iterable[str],
+    *,
+    lib_filt_func: Callable[[str], bool],
+    copy_filt_func: Callable[[str], bool],
+    executable_path: Optional[str] = None,
+    ignore_missing: bool = False,
+) -> Dict[str, Dict[str, str]]:
+    """ Return an analysis of the dependencies of ``libraries``.
+
+    libraries : iterable of str
+        The paths to the libraries to find dependencies of.
+    lib_filt_func : callable
+        A callable which accepts filename as argument and returns True if we
+        should inspect the file or False otherwise.
+        If `filt_func` filters a library it will will not further analyze any
+        of that library's dependencies.
+    copy_filt_func : None or callable
+        Called on each library name detected as a dependency; copy
+        where ``copy_filt_func(libname)`` is True, don't copy otherwise.
+    executable_path : None or str, optional
+        If not None, an alternative path to use for resolving
+        `@executable_path`.
+    ignore_missing : bool, default=False
+        Continue even if missing dependencies are detected.
+
+    Returns
+    -------
+    lib_dict : dict
+        dictionary with (key, value) pairs of (``libpath``,
+        ``dependings_dict``).
+
+        ``libpath`` is a canonical (``os.path.realpath``) filename of library,
+        or library name starting with {'@loader_path'}.
+
+
+        ``dependings_dict`` is a dict with (key, value) pairs of
+        (``depending_libpath``, ``install_name``), where ``dependings_libpath``
+        is the canonical (``os.path.realpath``) filename of the library
+        depending on ``libpath``, and ``install_name`` is the "install_name" by
+        which ``depending_libpath`` refers to ``libpath``.
+
+    Raises
+    ------
+    DelocationError
+        When any dependencies can not be located and ``ignore_missing`` is
+        False.
+    """
+    lib_dict: Dict[str, Dict[str, str]] = {}
+    missing_libs = False
+    for library_path in libraries:
+        for depending_path, install_name in get_dependencies(
+            library_path,
+            executable_path=executable_path,
+            filt_func=lib_filt_func,
+        ):
+            if depending_path is None:
+                missing_libs = True
+                continue
+            if copy_filt_func and not copy_filt_func(depending_path):
+                continue
+            lib_dict.setdefault(depending_path, {})
+            lib_dict[depending_path][library_path] = install_name
+
+    if missing_libs and not ignore_missing:
+        # Details of missing libraries would have already reported by
+        # get_dependencies.
+        raise delocate.delocating.DelocationError(
+            "Could not find all dependencies."
+        )
+
+    return lib_dict
+
+
+def tree_libs_from_directory(
+    start_path: str,
+    *,
+    lib_filt_func: Callable[[str], bool] = _filter_system_libs,
+    copy_filt_func: Callable[[str], bool] = lambda path: True,
+    executable_path: Optional[str] = None,
+    ignore_missing: bool = False,
+) -> Dict[Text, Dict[Text, Text]]:
+    """ Return an analysis of the libraries in the directory of ``start_path``.
+
+    start_path : iterable of str
+        Root path of tree to search for libraries depending on other libraries.
+    lib_filt_func : callable, optional
+        A callable which accepts filename as argument and returns True if we
+        should inspect the file or False otherwise.
+        If `filt_func` filters a library it will will not further analyze any
+        of that library's dependencies.
+        Defaults to inspecting all files except for system libraries.
+    copy_filt_func : callable, optional
+        Called on each library name detected as a dependency; copy
+        where ``copy_filt_func(libname)`` is True, don't copy otherwise.
+        Defaults to copying all detected dependencies.
+    executable_path : None or str, optional
+        If not None, an alternative path to use for resolving
+        `@executable_path`.
+    ignore_missing : bool, default=False
+        Continue even if missing dependencies are detected.
+
+    Returns
+    -------
+    lib_dict : dict
+        dictionary with (key, value) pairs of (``libpath``,
+        ``dependings_dict``).
+
+        ``libpath`` is a canonical (``os.path.realpath``) filename of library,
+        or library name starting with {'@loader_path'}.
+
+
+        ``dependings_dict`` is a dict with (key, value) pairs of
+        (``depending_libpath``, ``install_name``), where ``dependings_libpath``
+        is the canonical (``os.path.realpath``) filename of the library
+        depending on ``libpath``, and ``install_name`` is the "install_name" by
+        which ``depending_libpath`` refers to ``libpath``.
+
+    Raises
+    ------
+    DelocationError
+        When any dependencies can not be located and ``ignore_missing`` is
+        False.
+    """
+    return _tree_libs_from_libraries(
+        walk_directory(
+            start_path, lib_filt_func, executable_path=executable_path
+        ),
+        lib_filt_func=lib_filt_func,
+        copy_filt_func=copy_filt_func,
+        ignore_missing=ignore_missing,
+    )
+
+
 def tree_libs(
     start_path,  # type: Text
     filt_func=None,  # type: Optional[Callable[[Text], bool]]
@@ -285,6 +420,8 @@ def tree_libs(
     .. deprecated:: 0.9
         This function does not support `@loader_path` and only returns the
         direct dependencies of the libraries in `start_path`.
+
+        :func:`tree_libs_from_directory` should be used instead.
     """
     warnings.warn(
         "tree_libs doesn't support @loader_path and has been deprecated.",
@@ -548,10 +685,11 @@ def stripped_lib_dict(lib_dict, strip_prefix):
 
 
 def wheel_libs(
-    wheel_fname,  # type: Text
-    filt_func=None  # type: Optional[Callable[[Text], bool]]
-):
-    # type: (...) -> Dict[Text, Dict[Text, Text]]
+    wheel_fname: str,
+    filt_func: Optional[Callable[[Text], bool]] = None,
+    *,
+    ignore_missing: bool = False,
+) -> Dict[Text, Dict[Text, Text]]:
     """ Return analysis of library dependencies with a Python wheel
 
     Use this routine for a dump of the dependency tree.
@@ -561,9 +699,9 @@ def wheel_libs(
     wheel_fname : str
         Filename of wheel
     filt_func : None or callable, optional
-        If None, inspect all files for library dependencies. If callable,
-        accepts filename as argument, returns True if we should inspect the
-        file, False otherwise.
+        If None, inspect all non-system files for library dependencies.
+        If callable, accepts filename as argument, returns True if we should
+        inspect the file, False otherwise.
 
     Returns
     -------
@@ -574,10 +712,19 @@ def wheel_libs(
         is (key, value) of (``depending_lib_path``, ``install_name``).  Again,
         ``depending_lib_path`` is library relative to wheel root path, if
         within wheel tree.
+
+    Raises
+    ------
+    DelocationError
+        When dependencies can not be located and ``ignore_missing`` is False.
     """
+    if filt_func is None:
+        filt_func = _filter_system_libs
     with TemporaryDirectory() as tmpdir:
         zip2dir(wheel_fname, tmpdir)
-        lib_dict = tree_libs(tmpdir, filt_func)
+        lib_dict = tree_libs_from_directory(
+            tmpdir, lib_filt_func=filt_func, ignore_missing=ignore_missing
+        )
     return stripped_lib_dict(lib_dict, realpath(tmpdir) + os.path.sep)
 
 

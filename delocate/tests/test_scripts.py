@@ -10,11 +10,11 @@ from __future__ import division, print_function, absolute_import
 
 import os
 from os.path import (dirname, join as pjoin, isfile, abspath, realpath,
-                     basename, exists, splitext, sep as psep)
+                     basename, exists, splitext)
 import shutil
 from typing import Text
 
-from ..tmpdirs import InTemporaryDirectory
+from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
 from ..tools import back_tick, set_install_name, zip2dir, dir2zip
 from ..wheeltools import InWheel
 from .scriptrunner import ScriptRunner
@@ -62,70 +62,77 @@ DATA_PATH = abspath(pjoin(dirname(__file__), 'data'))
 
 def test_listdeps():
     # smokey tests of list dependencies command
-    libext_rpath = realpath(pjoin(DATA_PATH, 'libextfunc2_rpath.dylib'))
-    rp_cwd = realpath(os.getcwd()) + psep
-    # Replicate path stripping.
-    if libext_rpath.startswith(rp_cwd):
-        libext_rpath = libext_rpath[len(rp_cwd):]
     local_libs = {
         'liba.dylib',
         'libb.dylib',
         'libc.dylib',
-        libext_rpath,
+        'libextfunc2_rpath.dylib',
     }
     # single path, with libs
-    code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH])
+    with InGivenDirectory(DATA_PATH):
+        code, stdout, stderr = run_command(['delocate-listdeps', DATA_PATH])
     assert set(stdout) == local_libs
-    assert_equal(code, 0)
+    assert code == 0
     # single path, no libs
     with InTemporaryDirectory():
         zip2dir(PURE_WHEEL, 'pure')
         code, stdout, stderr = run_command(['delocate-listdeps', 'pure'])
-        assert_equal(set(stdout), set())
-        assert_equal(code, 0)
+        assert set(stdout) == set()
+        assert code == 0
         # Multiple paths one with libs
         zip2dir(PLAT_WHEEL, 'plat')
         code, stdout, stderr = run_command(
             ['delocate-listdeps', 'pure', 'plat'])
         rp_stray = realpath(STRAY_LIB_DEP)
         assert stdout == ['pure:', 'plat:', rp_stray]
-        assert_equal(code, 0)
+        assert code == 0
         # With -d flag, get list of dependending modules
         code, stdout, stderr = run_command(
             ['delocate-listdeps', '-d', 'pure', 'plat'])
-        assert_equal(stdout,
-                     ['pure:', 'plat:', rp_stray + ':',
-                      pjoin('plat', 'fakepkg1', 'subpkg',
-                            'module2.abi3.so')])
-        assert_equal(code, 0)
+        assert stdout == [
+            'pure:',
+            'plat:',
+            rp_stray + ':',
+            pjoin('plat', 'fakepkg1', 'subpkg', 'module2.abi3.so'),
+        ]
+        assert code == 0
+
     # With --all flag, get all dependencies
-    code, stdout, stderr = run_command(
-        ['delocate-listdeps', '--all', DATA_PATH])
+    with InGivenDirectory(DATA_PATH):
+        code, stdout, stderr = run_command(
+            ['delocate-listdeps', '--all', DATA_PATH]
+        )
     rp_ext_libs = set(realpath(L) for L in EXT_LIBS)
-    assert_equal(set(stdout), local_libs | rp_ext_libs)
-    assert_equal(code, 0)
+    assert set(stdout) == local_libs | rp_ext_libs
+    assert code == 0
     # Works on wheels as well
+    code, stdout, stderr = run_command(['delocate-listdeps', PURE_WHEEL])
+    assert set(stdout) == set()
     code, stdout, stderr = run_command(
-        ['delocate-listdeps', PURE_WHEEL])
-    assert_equal(set(stdout), set())
-    code, stdout, stderr = run_command(
-        ['delocate-listdeps', PURE_WHEEL, PLAT_WHEEL])
-    assert_equal(stdout,
-                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', rp_stray])
+        ['delocate-listdeps', PURE_WHEEL, PLAT_WHEEL]
+    )
+    assert stdout == [PURE_WHEEL + ':', PLAT_WHEEL + ':', rp_stray]
     # -d flag (is also --dependency flag)
     m2 = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
     code, stdout, stderr = run_command(
-        ['delocate-listdeps', '--depending', PURE_WHEEL, PLAT_WHEEL])
-    assert_equal(stdout,
-                 [PURE_WHEEL + ':', PLAT_WHEEL + ':', rp_stray + ':',
-                  m2])
+        ['delocate-listdeps', '--depending', PURE_WHEEL, PLAT_WHEEL]
+    )
+    assert stdout == [
+        PURE_WHEEL + ':', PLAT_WHEEL + ':', rp_stray + ':', m2
+    ]
     # Can be used with --all
     code, stdout, stderr = run_command(
-        ['delocate-listdeps', '--all', '--depending', PURE_WHEEL, PLAT_WHEEL])
-    assert_equal(stdout,
-                 [PURE_WHEEL + ':', PLAT_WHEEL + ':',
-                  rp_stray + ':', m2,
-                  EXT_LIBS[1] + ':', m2])
+        ['delocate-listdeps', '--all', '--depending', PURE_WHEEL, PLAT_WHEEL]
+    )
+    assert stdout == [
+        PURE_WHEEL + ':',
+        PLAT_WHEEL + ':',
+        rp_stray + ':',
+        m2,
+        EXT_LIBS[1] + ':',
+        m2,
+        rp_stray,
+    ]
 
 
 def test_path():

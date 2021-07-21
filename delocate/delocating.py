@@ -14,7 +14,7 @@ from typing import (Callable, Dict, FrozenSet, Iterable, List, Mapping,
                     Optional, Set, Text, Tuple, Union)
 
 from .libsana import (tree_libs, stripped_lib_dict, get_rp_stripper,
-                      walk_directory, get_dependencies)
+                      tree_libs_from_directory)
 from .tools import (set_install_name, zip2dir, dir2zip, validate_signature,
                     find_package_dirs, set_install_id, get_archs)
 from .tmpdirs import TemporaryDirectory
@@ -418,28 +418,13 @@ def delocate_path(
     # Do not inspect dependencies of libraries that will not be copied.
     filt_func = (lambda path: lib_filt_func(path) and copy_filt_func(path))
 
-    lib_dict = {}  # type: Dict[Text, Dict[Text, Text]]
-    missing_libs = False
-    for library_path in walk_directory(
-        tree_path, filt_func, executable_path=executable_path
-    ):
-        for depending_path, install_name in get_dependencies(
-            library_path,
-            executable_path=executable_path,
-            filt_func=filt_func,
-        ):
-            if depending_path is None:
-                missing_libs = True
-                continue
-            if not filt_func(depending_path):
-                continue
-            lib_dict.setdefault(depending_path, {})
-            lib_dict[depending_path][library_path] = install_name
-
-    if missing_libs and not ignore_missing:
-        # Details of missing libraries would have already reported by
-        # get_dependencies.
-        raise DelocationError("Could not find all dependencies.")
+    lib_dict = tree_libs_from_directory(
+        tree_path,
+        lib_filt_func=filt_func,
+        copy_filt_func=filt_func,
+        executable_path=executable_path,
+        ignore_missing=ignore_missing,
+    )
 
     return delocate_tree_libs(lib_dict, lib_path, tree_path)
 

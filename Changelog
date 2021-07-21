@@ -23,6 +23,9 @@ Releases
 
   First release that requires Python 3.
 
+  * ``wheel_libs`` now supports recursive dependencies.
+  * ``listdeps`` command now supports recursive dependencies.
+
 * 0.9.1 (Friday September 17th 2021)
 
   Bugfix release.

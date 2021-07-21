@@ -1,6 +1,7 @@
 [flake8]
 max-line-length = 80
 per-file-ignores =
-    setup.py: F401 E402
     delocate/tmpdirs.py: E266
+select = E,F,W
+ignore = W503,W504
 exclude = versioneer.py delocate/_version.py

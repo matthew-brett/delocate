@@ -25,7 +25,7 @@ from .pytest_tools import assert_equal
 
 from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
                                  EXT_LIBS, LIBSYSTEMB, DATA_PATH)
-from .test_wheelies import (PLAT_WHEEL, PURE_WHEEL, STRAY_LIB_DEP)
+from .test_wheelies import (PlatWheel, PLAT_WHEEL, PURE_WHEEL)
 
 
 def get_ext_dict(local_libs):
@@ -266,19 +266,19 @@ def test_stripped_lib_dict():
         ) == exp_dict
 
 
-def test_wheel_libs():
-    # type: () -> None
+def test_wheel_libs(plat_wheel: PlatWheel) -> None:
     # Test routine to list dependencies from wheels
-    assert_equal(wheel_libs(PURE_WHEEL), {})
+    assert wheel_libs(PURE_WHEEL) == {}
     mod2 = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
-    rp_stray = realpath(STRAY_LIB_DEP)
-    assert wheel_libs(PLAT_WHEEL) == {
-        rp_stray: {mod2: rp_stray},
-        realpath(LIBSYSTEMB): {mod2: LIBSYSTEMB, STRAY_LIB_DEP: LIBSYSTEMB},
+
+    assert wheel_libs(plat_wheel.whl) == {
+        plat_wheel.stray_lib: {mod2: plat_wheel.stray_lib},
+        realpath(LIBSYSTEMB): {
+            mod2: LIBSYSTEMB, plat_wheel.stray_lib: LIBSYSTEMB
+        },
     }
 
-    def filt(fname):
-        # type: (Text) -> bool
+    def filt(fname: str) -> bool:
         return not fname.endswith(mod2)
     assert wheel_libs(PLAT_WHEEL, filt) == {}
 

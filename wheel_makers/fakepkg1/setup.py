@@ -15,7 +15,7 @@ EXTLIB = pjoin(LIBS, 'libextfunc.dylib')
 arch_flags = ['-arch', 'arm64', '-arch', 'x86_64']  # dual arch
 check_call(['cc', '-dynamiclib', pjoin(LIBS, 'extfunc.c'),
             '-o', EXTLIB] + arch_flags)
-check_call(['install_name_tool', '-id', EXTLIB, EXTLIB])
+check_call(['install_name_tool', '-id', 'libextfunc.dylib', EXTLIB])
 
 exts = [
     Extension(

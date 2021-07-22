@@ -28,6 +28,3 @@ OUT_PATH=../delocate/tests/data
 rm $OUT_PATH/fakepkg*.whl
 cp */dist/*.whl $OUT_PATH
 cp */libs/*.dylib $OUT_PATH
-# Record wheel building path
-python -c "import os; print(os.path.realpath(os.getcwd()))" \
-    > $OUT_PATH/wheel_build_path.txt

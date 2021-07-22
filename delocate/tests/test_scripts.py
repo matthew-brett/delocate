@@ -24,8 +24,8 @@ from .pytest_tools import (assert_true, assert_false, assert_equal,
 
 from .test_install_names import EXT_LIBS
 from .test_delocating import _make_libtree, _copy_to, _make_bare_depends
-from .test_wheelies import (_fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
-                            STRAY_LIB_DEP, WHEEL_PATCH, WHEEL_PATCH_BAD,
+from .test_wheelies import (PlatWheel, _fixed_wheel, PLAT_WHEEL, PURE_WHEEL,
+                            WHEEL_PATCH, WHEEL_PATCH_BAD,
                             _thin_lib, _thin_mod, _rename_module)
 from .test_fuse import assert_same_tree
 from .test_wheeltools import (assert_winfo_similar, EXP_ITEMS, EXTRA_PLATS,
@@ -60,7 +60,7 @@ bytes_runner = ScriptRunner()
 DATA_PATH = abspath(pjoin(dirname(__file__), 'data'))
 
 
-def test_listdeps():
+def test_listdeps(plat_wheel: PlatWheel) -> None:
     # smokey tests of list dependencies command
     local_libs = {
         'liba.dylib',
@@ -80,11 +80,10 @@ def test_listdeps():
         assert set(stdout) == set()
         assert code == 0
         # Multiple paths one with libs
-        zip2dir(PLAT_WHEEL, 'plat')
+        zip2dir(plat_wheel.whl, 'plat')
         code, stdout, stderr = run_command(
             ['delocate-listdeps', 'pure', 'plat'])
-        rp_stray = realpath(STRAY_LIB_DEP)
-        assert stdout == ['pure:', 'plat:', rp_stray]
+        assert stdout == ['pure:', 'plat:', plat_wheel.stray_lib]
         assert code == 0
         # With -d flag, get list of dependending modules
         code, stdout, stderr = run_command(
@@ -92,7 +91,7 @@ def test_listdeps():
         assert stdout == [
             'pure:',
             'plat:',
-            rp_stray + ':',
+            plat_wheel.stray_lib + ':',
             pjoin('plat', 'fakepkg1', 'subpkg', 'module2.abi3.so'),
         ]
         assert code == 0
@@ -109,29 +108,37 @@ def test_listdeps():
     code, stdout, stderr = run_command(['delocate-listdeps', PURE_WHEEL])
     assert set(stdout) == set()
     code, stdout, stderr = run_command(
-        ['delocate-listdeps', PURE_WHEEL, PLAT_WHEEL]
+        ['delocate-listdeps', PURE_WHEEL, plat_wheel.whl]
     )
-    assert stdout == [PURE_WHEEL + ':', PLAT_WHEEL + ':', rp_stray]
+    assert stdout == [
+        PURE_WHEEL + ':', plat_wheel.whl + ':', plat_wheel.stray_lib
+    ]
     # -d flag (is also --dependency flag)
     m2 = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
     code, stdout, stderr = run_command(
-        ['delocate-listdeps', '--depending', PURE_WHEEL, PLAT_WHEEL]
+        ['delocate-listdeps', '--depending', PURE_WHEEL, plat_wheel.whl]
     )
     assert stdout == [
-        PURE_WHEEL + ':', PLAT_WHEEL + ':', rp_stray + ':', m2
+        PURE_WHEEL + ':', plat_wheel.whl + ':', plat_wheel.stray_lib + ':', m2
     ]
     # Can be used with --all
     code, stdout, stderr = run_command(
-        ['delocate-listdeps', '--all', '--depending', PURE_WHEEL, PLAT_WHEEL]
+        [
+            'delocate-listdeps',
+            '--all',
+            '--depending',
+            PURE_WHEEL,
+            plat_wheel.whl,
+        ]
     )
     assert stdout == [
         PURE_WHEEL + ':',
-        PLAT_WHEEL + ':',
-        rp_stray + ':',
+        plat_wheel.whl + ':',
+        plat_wheel.stray_lib + ':',
         m2,
         EXT_LIBS[1] + ':',
         m2,
-        rp_stray,
+        plat_wheel.stray_lib,
     ]
 
 

@@ -414,8 +414,8 @@ def resolve_rpath(lib_path, rpaths):
         "Couldn't find {0} on paths:\n\t{1}".format(
             lib_path,
             '\n\t'.join(realpath(path) for path in rpaths),
-            )
         )
+    )
     return lib_path
 
 

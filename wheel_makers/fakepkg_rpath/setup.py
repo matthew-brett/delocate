@@ -56,5 +56,5 @@ setup(
         'fakepkg',
         'fakepkg.subpkg',
         'fakepkg.tests',
-        ],
+    ],
 )

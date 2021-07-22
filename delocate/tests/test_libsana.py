@@ -51,10 +51,13 @@ def test_tree_libs():
         liba, libb, libc, test_lib = local_libs
         rp_liba, rp_libb, rp_libc, rp_test_lib = rp_local_libs
         exp_dict = get_ext_dict(local_libs)
-        exp_dict.update({
-             rp_liba: {rp_libb: 'liba.dylib', rp_libc: 'liba.dylib'},
-             rp_libb: {rp_libc: 'libb.dylib'},
-             rp_libc: {rp_test_lib: 'libc.dylib'}})
+        exp_dict.update(
+            {
+                rp_liba: {rp_libb: 'liba.dylib', rp_libc: 'liba.dylib'},
+                rp_libb: {rp_libc: 'libb.dylib'},
+                rp_libc: {rp_test_lib: 'libc.dylib'}
+            }
+        )
         # default - no filtering
         assert tree_libs(tmpdir) == exp_dict
 
@@ -62,9 +65,12 @@ def test_tree_libs():
             # type: (Text) -> bool
             return fname.endswith('.dylib')
         exp_dict = get_ext_dict([liba, libb, libc])
-        exp_dict.update({
-             rp_liba: {rp_libb: 'liba.dylib', rp_libc: 'liba.dylib'},
-             rp_libb: {rp_libc: 'libb.dylib'}})
+        exp_dict.update(
+            {
+                rp_liba: {rp_libb: 'liba.dylib', rp_libc: 'liba.dylib'},
+                rp_libb: {rp_libc: 'libb.dylib'}
+            }
+        )
         # filtering
         assert tree_libs(tmpdir, filt) == exp_dict
         # Copy some libraries into subtree to test tree walking

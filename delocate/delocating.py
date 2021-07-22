@@ -346,16 +346,12 @@ def _copy_required(
         copied_libs[required] = procd_requirings
 
 
-def _dylibs_only(filename):
-    # type: (Text) -> bool
-    return (filename.endswith('.so') or
-            filename.endswith('.dylib'))
+def _dylibs_only(filename: str) -> bool:
+    return filename.endswith('.so') or filename.endswith('.dylib')
 
 
-def filter_system_libs(libname):
-    # type: (Text) -> bool
-    return not (libname.startswith('/usr/lib') or
-                libname.startswith('/System'))
+def filter_system_libs(libname: str) -> bool:
+    return not (libname.startswith('/usr/lib') or libname.startswith('/System'))
 
 
 def delocate_path(

@@ -54,7 +54,7 @@ def _make_libtree(out_path):
         (slibc, 'liba.dylib', out_path),
         (slibc, 'libb.dylib', out_path),
         (stest_lib, 'libc.dylib', sub_path),
-                        ):
+    ):
         set_install_name(fname, using, pjoin(path, using))
     # Check scripts now execute correctly
     back_tick([test_lib])
@@ -501,9 +501,7 @@ def test_check_archs():
          LIB64: {LIBM1: 'install_name'}}),
         {(LIB64, LIBM1, ARCH_M1)})
     # For single archs depending, dual archs in depended is OK
-    assert_equal(check_archs(
-        {LIBBOTH: {LIB64A: 'install_name'}}),
-         s0)
+    assert check_archs({LIBBOTH: {LIB64A: 'install_name'}}) == s0
     # For dual archs in depending, both must be present
     assert_equal(check_archs(
         {LIBBOTH: {LIBBOTH: 'install_name'}}),

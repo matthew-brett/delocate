@@ -340,7 +340,7 @@ def get_rpaths(filename):
         line_no += 1
         if line != 'cmd LC_RPATH':
             continue
-        cmdsize, path = lines[line_no:line_no+2]
+        cmdsize, path = lines[line_no:line_no + 2]
         assert cmdsize.startswith('cmdsize ')
         paths.append(RPATH_RE.match(path).groups()[0])
         line_no += 2
@@ -518,7 +518,8 @@ def get_archs(libname):
     for reggie in (
         'Non-fat file: {0} is architecture: (.*)'.format(re.escape(libname)),
         'Architectures in the fat file: {0} are: (.*)'.format(
-                                                            re.escape(libname))
+            re.escape(libname)
+        )
     ):
         reggie = re.compile(reggie)
         match = reggie.match(line)

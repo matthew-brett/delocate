@@ -188,13 +188,6 @@ def test_fix_plat_dylibs():
         dep_mod = pjoin('fakepkg1', 'subpkg', 'module.other')
         assert_equal(delocate_wheel('test.whl'),
                      {realpath(stray_lib): {dep_mod: stray_lib}})
-        # With func that does find the module
-
-        def func(fn):
-            return fn.endswith('.other')
-
-        assert_equal(delocate_wheel('test2.whl', lib_filt_func=func),
-                     {realpath(stray_lib): {dep_mod: stray_lib}})
 
 
 def _thin_lib(stray_lib, arch):

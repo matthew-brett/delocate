@@ -252,7 +252,7 @@ def _tree_libs_from_libraries(
     executable_path: Optional[str] = None,
     ignore_missing: bool = False,
 ) -> Dict[str, Dict[str, str]]:
-    """ Return an analysis of the dependencies of ``libraries``.
+    """ Return an analysis of the dependencies of `libraries`.
 
     libraries : iterable of str
         The paths to the libraries to find dependencies of.
@@ -326,7 +326,7 @@ def tree_libs_from_directory(
     executable_path: Optional[str] = None,
     ignore_missing: bool = False,
 ) -> Dict[Text, Dict[Text, Text]]:
-    """ Return an analysis of the libraries in the directory of ``start_path``.
+    """ Return an analysis of the libraries in the directory of `start_path`.
 
     start_path : iterable of str
         Root path of tree to search for libraries depending on other libraries.
@@ -702,6 +702,8 @@ def wheel_libs(
         If None, inspect all non-system files for library dependencies.
         If callable, accepts filename as argument, returns True if we should
         inspect the file, False otherwise.
+    ignore_missing : bool, default=False, optional
+        If False, raise error for missing dependencies.  If True, continue without error.
 
     Returns
     -------
@@ -716,7 +718,7 @@ def wheel_libs(
     Raises
     ------
     DelocationError
-        When dependencies can not be located and ``ignore_missing`` is False.
+        When dependencies can not be located and `ignore_missing` is False.
     """
     if filt_func is None:
         filt_func = _filter_system_libs

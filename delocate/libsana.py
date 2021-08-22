@@ -256,18 +256,18 @@ def _tree_libs_from_libraries(
 
     libraries : iterable of str
         The paths to the libraries to find dependencies of.
-    lib_filt_func : callable
+    lib_filt_func : callable, keyword-only
         A callable which accepts filename as argument and returns True if we
         should inspect the file or False otherwise.
         If `filt_func` filters a library it will will not further analyze any
         of that library's dependencies.
-    copy_filt_func : None or callable
+    copy_filt_func : callable, keyword-only
         Called on each library name detected as a dependency; copy
         where ``copy_filt_func(libname)`` is True, don't copy otherwise.
-    executable_path : None or str, optional
+    executable_path : None or str, optional, keyword-only
         If not None, an alternative path to use for resolving
         `@executable_path`.
-    ignore_missing : bool, default=False
+    ignore_missing : bool, default=False, keyword-only
         Continue even if missing dependencies are detected.
 
     Returns
@@ -330,20 +330,20 @@ def tree_libs_from_directory(
 
     start_path : iterable of str
         Root path of tree to search for libraries depending on other libraries.
-    lib_filt_func : callable, optional
+    lib_filt_func : callable, optional, keyword-only
         A callable which accepts filename as argument and returns True if we
         should inspect the file or False otherwise.
         If `filt_func` filters a library it will will not further analyze any
         of that library's dependencies.
         Defaults to inspecting all files except for system libraries.
-    copy_filt_func : callable, optional
+    copy_filt_func : callable, optional, keyword-only
         Called on each library name detected as a dependency; copy
         where ``copy_filt_func(libname)`` is True, don't copy otherwise.
         Defaults to copying all detected dependencies.
-    executable_path : None or str, optional
+    executable_path : None or str, optional, keyword-only
         If not None, an alternative path to use for resolving
         `@executable_path`.
-    ignore_missing : bool, default=False
+    ignore_missing : bool, default=False, keyword-only
         Continue even if missing dependencies are detected.
 
     Returns
@@ -702,8 +702,8 @@ def wheel_libs(
         If None, inspect all non-system files for library dependencies.
         If callable, accepts filename as argument, returns True if we should
         inspect the file, False otherwise.
-    ignore_missing : bool, default=False, optional
-        If False, raise error for missing dependencies.  If True, continue without error.
+    ignore_missing : bool, default=False, keyword-only
+        Continue even if missing dependencies are detected.
 
     Returns
     -------

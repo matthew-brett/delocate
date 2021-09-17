@@ -184,7 +184,6 @@ def test_fix_plat_dylibs():
 
         assert_equal(delocate_wheel('test.whl', lib_filt_func=func), {})
         # Default - looks in every file
-        shutil.copyfile('test.whl', 'test2.whl')  # for following test
         dep_mod = pjoin('fakepkg1', 'subpkg', 'module.other')
         assert_equal(delocate_wheel('test.whl'),
                      {realpath(stray_lib): {dep_mod: stray_lib}})
@@ -315,3 +314,26 @@ def test_fix_rpath():
         with InWheel('tmp.whl'):
             check_call(['codesign', '--verify',
                         'fakepkg/.dylibs/libextfunc_rpath.dylib'])
+
+        # Now test filters with recursive dependencies.
+        def ignore_libextfunc(path: str) -> bool:
+            """Ignore libextfunc which will also ignore its dependency and
+            include no files.
+            """
+            return "libextfunc_rpath.dylib" not in path
+
+        assert delocate_wheel(
+            RPATH_WHEEL, 'tmp.whl', lib_filt_func=ignore_libextfunc) == {}
+
+        def ignore_libextfunc2(path: str) -> bool:
+            """Ignore libextfunc2.  libextfunc will still be bundled."""
+            return "libextfunc2_rpath.dylib" not in path
+
+        # Only the direct dependencies of module2.abi3.so
+        stray_libs_only_direct = {
+            realpath('libs/libextfunc_rpath.dylib'): {dep_mod: dep_path},
+        }
+
+        assert delocate_wheel(
+            RPATH_WHEEL, 'tmp.whl', lib_filt_func=ignore_libextfunc2
+        ) == stray_libs_only_direct

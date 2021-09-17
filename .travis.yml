@@ -63,6 +63,5 @@ script:
 after_success:
   - |
     if [ -n "$COVERAGE" ]; then
-      cd tmp_test_dir
       bash <(curl -s https://codecov.io/bash)
     fi

@@ -61,4 +61,8 @@ script:
     pytest $COVER_ARGS --pyargs $PKG_NAME --log-level DEBUG
 
 after_success:
-  - if [ -n "$COVERAGE" ]; then codecov; fi
+  - |
+    if [ -n "$COVERAGE" ]; then
+      cd tmp_test_dir
+      bash <(curl -s https://codecov.io/bash)
+    fi

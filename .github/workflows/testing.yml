@@ -44,7 +44,15 @@ jobs:
           pip install -r test-requirements.txt
       - name: Install delocate
         run: |
-          pip install . --use-feature=in-tree-build
+          python setup.py develop bdist_wheel
       - name: Run tests
         run: |
-          mkdir tmp && cd tmp && pytest --pyargs delocate --log-level DEBUG
+          pytest --pyargs delocate --log-level DEBUG --cov-config=.coveragerc --cov=delocate
+      - name: Collect code coverage data
+        run: |
+          coverage xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true
+          token: "624762bf-aaf0-4a75-b450-16f5ebece0b1"

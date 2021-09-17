@@ -1,5 +1,7 @@
 .. image:: https://travis-ci.org/matthew-brett/delocate.svg?branch=master
     :target: https://travis-ci.org/matthew-brett/delocate
+.. image:: https://codecov.io/gh/matthew-brett/delocate/branch/master/graph/badge.svg?token=wvAWRBK5Di
+    :target: https://codecov.io/gh/matthew-brett/delocate
 
 ########
 Delocate

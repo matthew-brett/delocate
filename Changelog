@@ -23,6 +23,10 @@ Releases
 
   First release that requires Python 3.
 
+* 0.9.1 (Friday September 17th 2021)
+
+  Bugfix release.
+
   * Fixed issue where Delocate would attempt to modify the install names of a
     non-copied library which dynamically links to a copied library.
     [#120](https://github.com/matthew-brett/delocate/pull/120)

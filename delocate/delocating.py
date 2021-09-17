@@ -415,6 +415,7 @@ def delocate_path(
         copy_filt_func = (lambda _: True)
     if not exists(lib_path):
         os.makedirs(lib_path)
+    # Do not inspect dependencies of libraries that will not be copied.
     filt_func = (lambda path: lib_filt_func(path) and copy_filt_func(path))
 
     lib_dict = {}  # type: Dict[Text, Dict[Text, Text]]

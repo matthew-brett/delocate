@@ -1,4 +1,6 @@
 # .coveragerc to control coverage.py
 [run]
 include = delocate/*
-omit = delocate/_version.py
+omit =
+    */_version.py
+    */tests/*

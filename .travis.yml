@@ -4,6 +4,7 @@ language:
 env:
   global:
     - MB_PYTHON_VERSION=3.7
+    - PKG_NAME=delocate
     - WHEEL_SPEC="wheel"
     - WHEELHOUSE_UPLOADER_USERNAME=travis-worker
     # Following generated with
@@ -18,6 +19,8 @@ matrix:
       - env: MB_PYTHON_VERSION=3.6
       - env: MB_PYTHON_VERSION=3.8
       - env: MB_PYTHON_VERSION=3.9
+        env:
+          - COVERAGE=1
       # Xcode 12.0 macOS 10.15.5
       - osx_image: xcode12
       # Xcode 9.0 macOS 10.12
@@ -30,6 +33,12 @@ matrix:
           - MB_PYTHON_OSX_VER=10.9
           - BUILD_WHEELS=1
 
+before_install:
+  - if [ -n "$COVERAGE" ]; then
+    pip install coverage;
+    pip install codecov;
+    fi
+
 install:
   - source multibuild/osx_utils.sh
   - get_macpython_environment $MB_PYTHON_VERSION venv
@@ -40,7 +49,16 @@ install:
   - pip install .
 
 script:
-  - echo $PWD
-  - mkdir tmp_test_dir
-  - cd tmp_test_dir
-  - pytest --pyargs delocate --log-level DEBUG
+  - |
+    echo $PWD
+    mkdir tmp_test_dir
+    cd tmp_test_dir
+    if [ -n "$COVERAGE" ]; then
+      cp ../.coveragerc .
+      pip install pytest-cov
+      COVER_ARGS="--cov=$PKG_NAME"
+    fi
+    pytest $COVER_ARGS --pyargs $PKG_NAME --log-level DEBUG
+
+after_success:
+  - if [ -n "$COVERAGE" ]; then codecov; fi

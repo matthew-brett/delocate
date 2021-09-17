@@ -41,7 +41,7 @@ jobs:
           if-no-files-found: error
       - name: Install test dependencies
         run: |
-          pip install -r test-requirements.txt
+          pip install -r test-requirements.txt pytest-cov
       - name: Install delocate
         run: |
           python setup.py develop bdist_wheel

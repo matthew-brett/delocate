@@ -382,6 +382,7 @@ def delocate_path(
         Default is callable rejecting only libraries beginning with
         ``/usr/lib`` or ``/System``.  None means copy all libraries. This will
         usually end up copying large parts of the system run-time.
+        Libraries which won't be copied will not be inspected for dependencies.
     executable_path : None or str, optional
         If not None, an alternative path to use for resolving
         `@executable_path`.
@@ -410,23 +411,27 @@ def delocate_path(
         raise TypeError('lib_filt_func string can only be "dylibs-only"')
     if lib_filt_func is None:
         lib_filt_func = (lambda _: True)
+    if copy_filt_func is None:
+        copy_filt_func = (lambda _: True)
     if not exists(lib_path):
         os.makedirs(lib_path)
+    # Do not inspect dependencies of libraries that will not be copied.
+    filt_func = (lambda path: lib_filt_func(path) and copy_filt_func(path))
 
     lib_dict = {}  # type: Dict[Text, Dict[Text, Text]]
     missing_libs = False
     for library_path in walk_directory(
-        tree_path, lib_filt_func, executable_path=executable_path
+        tree_path, filt_func, executable_path=executable_path
     ):
         for depending_path, install_name in get_dependencies(
             library_path,
             executable_path=executable_path,
-            filt_func=lib_filt_func,
+            filt_func=filt_func,
         ):
             if depending_path is None:
                 missing_libs = True
                 continue
-            if copy_filt_func and not copy_filt_func(depending_path):
+            if not filt_func(depending_path):
                 continue
             lib_dict.setdefault(depending_path, {})
             lib_dict[depending_path][library_path] = install_name

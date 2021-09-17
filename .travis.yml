@@ -5,11 +5,6 @@ env:
   global:
     - MB_PYTHON_VERSION=3.7
     - PKG_NAME=delocate
-    - WHEEL_SPEC="wheel"
-    - WHEELHOUSE_UPLOADER_USERNAME=travis-worker
-    # Following generated with
-    # travis encrypt -r matthew-brett/delocate WHEELHOUSE_UPLOADER_SECRET=<the api key>
-    - secure: "BRc15pHO6+WwBh36X7KK4KFC+/hD7G3r5bmkKkWqUSrm1fhFkqDizj9V5g/9pGEcAl5FRLV0VZjTeceISfu2UhXxQxj4CkkTy7KYuSbZak2pEntfsDs7YBpQ3NHJ6ic8YdcWgptRXIQfmg/KPc9FsBIfLxJ2yVyyY7D9XpK+SvQ="
 
 # Default macOS (xcode image) is 10.13 (xcode 9.4.1) as of 2021-07-09
 # See: https://docs.travis-ci.com/user/reference/osx

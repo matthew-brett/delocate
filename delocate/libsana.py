@@ -254,6 +254,8 @@ def _tree_libs_from_libraries(
 ) -> Dict[str, Dict[str, str]]:
     """ Return an analysis of the dependencies of `libraries`.
 
+    Parameters
+    ----------
     libraries : iterable of str
         The paths to the libraries to find dependencies of.
     lib_filt_func : callable, keyword-only
@@ -267,7 +269,7 @@ def _tree_libs_from_libraries(
     executable_path : None or str, optional, keyword-only
         If not None, an alternative path to use for resolving
         `@executable_path`.
-    ignore_missing : bool, default=False, keyword-only
+    ignore_missing : bool, default=False, optional, keyword-only
         Continue even if missing dependencies are detected.
 
     Returns
@@ -309,8 +311,8 @@ def _tree_libs_from_libraries(
             lib_dict[depending_path][library_path] = install_name
 
     if missing_libs and not ignore_missing:
-        # Details of missing libraries would have already reported by
-        # get_dependencies.
+        # get_dependencies will already have logged details of missing
+        # libraries.
         raise delocate.delocating.DelocationError(
             "Could not find all dependencies."
         )
@@ -328,6 +330,8 @@ def tree_libs_from_directory(
 ) -> Dict[Text, Dict[Text, Text]]:
     """ Return an analysis of the libraries in the directory of `start_path`.
 
+    Parameters
+    ----------
     start_path : iterable of str
         Root path of tree to search for libraries depending on other libraries.
     lib_filt_func : callable, optional, keyword-only
@@ -343,7 +347,7 @@ def tree_libs_from_directory(
     executable_path : None or str, optional, keyword-only
         If not None, an alternative path to use for resolving
         `@executable_path`.
-    ignore_missing : bool, default=False, keyword-only
+    ignore_missing : bool, default=False, optional, keyword-only
         Continue even if missing dependencies are detected.
 
     Returns
@@ -702,7 +706,7 @@ def wheel_libs(
         If None, inspect all non-system files for library dependencies.
         If callable, accepts filename as argument, returns True if we should
         inspect the file, False otherwise.
-    ignore_missing : bool, default=False, keyword-only
+    ignore_missing : bool, default=False, optional, keyword-only
         Continue even if missing dependencies are detected.
 
     Returns

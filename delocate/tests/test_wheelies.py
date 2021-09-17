@@ -316,7 +316,7 @@ def test_fix_rpath():
                         'fakepkg/.dylibs/libextfunc_rpath.dylib'])
 
         # Now test filters with recursive dependencies.
-        def ignore_libextfunc(path: str) -> bool:
+        def ignore_libextfunc(path):
             """Ignore libextfunc which will also ignore its dependency and
             include no files.
             """
@@ -325,7 +325,7 @@ def test_fix_rpath():
         assert delocate_wheel(
             RPATH_WHEEL, 'tmp.whl', lib_filt_func=ignore_libextfunc) == {}
 
-        def ignore_libextfunc2(path: str) -> bool:
+        def ignore_libextfunc2(path):
             """Ignore libextfunc2.  libextfunc will still be bundled."""
             return "libextfunc2_rpath.dylib" not in path
 

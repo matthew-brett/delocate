@@ -10,7 +10,7 @@ from typing import Dict, Iterable, Text
 
 import pytest
 
-from ..delocating import filter_system_libs
+from ..delocating import DelocationError, filter_system_libs
 from ..libsana import (tree_libs, get_prefix_stripper, get_rp_stripper,
                        stripped_lib_dict, wheel_libs, resolve_rpath,
                        get_dependencies, resolve_dynamic_paths,
@@ -25,7 +25,7 @@ from .pytest_tools import assert_equal
 
 from .test_install_names import (LIBA, LIBB, LIBC, TEST_LIB, _copy_libs,
                                  EXT_LIBS, LIBSYSTEMB, DATA_PATH)
-from .test_wheelies import (PlatWheel, PLAT_WHEEL, PURE_WHEEL)
+from .test_wheelies import (PlatWheel, PLAT_WHEEL, PURE_WHEEL, RPATH_WHEEL)
 
 
 def get_ext_dict(local_libs):
@@ -281,6 +281,15 @@ def test_wheel_libs(plat_wheel: PlatWheel) -> None:
     def filt(fname: str) -> bool:
         return not fname.endswith(mod2)
     assert wheel_libs(PLAT_WHEEL, filt) == {}
+
+
+def test_wheel_libs_ignore_missing() -> None:
+    # Test wheel_libs ignore_missing parameter.
+    with InTemporaryDirectory() as tmpdir:
+        shutil.copy(RPATH_WHEEL, pjoin(tmpdir, "rpath.whl"))
+        with pytest.raises(DelocationError):
+            wheel_libs("rpath.whl")
+        wheel_libs("rpath.whl", ignore_missing=True)
 
 
 def test_resolve_dynamic_paths():

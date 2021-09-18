@@ -7,6 +7,7 @@ import stat
 from glob import glob
 import shutil
 from subprocess import check_call
+from typing import NamedTuple
 
 from ..delocating import (DelocationError, delocate_wheel, patch_wheel,
                           DLC_PREFIX)
@@ -39,11 +40,15 @@ PURE_WHEEL = _collect_wheel('fakepkg2-1.0-py*.whl')
 RPATH_WHEEL = _collect_wheel('fakepkg_rpath-1.0-cp*.whl')
 STRAY_LIB = pjoin(DATA_PATH, 'libextfunc.dylib')
 # The install_name in the wheel for the stray library
-with open(pjoin(DATA_PATH, 'wheel_build_path.txt'), 'rt') as fobj:
-    _wheel_build_path = fobj.read().strip()
-STRAY_LIB_DEP = _wheel_build_path + '/fakepkg1/libs/libextfunc.dylib'
+STRAY_LIB_DEP = realpath(STRAY_LIB)
 WHEEL_PATCH = pjoin(DATA_PATH, 'fakepkg2.patch')
 WHEEL_PATCH_BAD = pjoin(DATA_PATH, 'fakepkg2.bad_patch')
+
+
+class PlatWheel(NamedTuple):
+    """ Information about a temporary platform wheel. """
+    whl: str  # Path to the wheel.
+    stray_lib: str  # Path to the external library.
 
 
 def test_fix_pure_python():

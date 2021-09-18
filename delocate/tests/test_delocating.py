@@ -6,7 +6,7 @@ import os
 from os.path import (join as pjoin, dirname, basename, relpath, realpath,
                      splitext)
 import shutil
-from typing import Any, Iterable, List, Set, Text, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Set, Text, Tuple
 from collections import namedtuple
 
 import pytest
@@ -14,7 +14,8 @@ import pytest
 from ..delocating import (DelocationError, delocate_tree_libs, copy_recurse,
                           delocate_path, check_archs, bads_report,
                           filter_system_libs)
-from ..libsana import (tree_libs, search_environment_for_lib)
+from ..libsana import (tree_libs, search_environment_for_lib,
+                       tree_libs_from_directory)
 from ..tools import (get_install_names, set_install_name, back_tick)
 
 from ..tmpdirs import InTemporaryDirectory
@@ -75,8 +76,11 @@ def without_system_libs(obj):
 
 
 @pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
-def test_delocate_tree_libs():
-    # type: () -> None
+@pytest.mark.parametrize(
+    "tree_libs_func", [tree_libs, tree_libs_from_directory])
+def test_delocate_tree_libs(
+    tree_libs_func: Callable[[str], Dict[Text, Dict[Text, Text]]]
+) -> None:
     # Test routine to copy library dependencies into a local directory
     with InTemporaryDirectory() as tmpdir:
         # Copy libs into a temporary directory
@@ -87,18 +91,12 @@ def test_delocate_tree_libs():
         os.makedirs(copy_dir)
         # First check that missing out-of-system tree library causes error.
         sys_lib = EXT_LIBS[0]
-        set_install_name(liba,
-                         sys_lib,
-                         '/unlikely/libname.dylib')
-        lib_dict = without_system_libs(tree_libs(subtree))
-        assert_raises(DelocationError,
-                      delocate_tree_libs, lib_dict, copy_dir, subtree)
-        # Fix the location error, by reversing install name check.
-        # This causes incorrect library to be filtered again.
-        set_install_name(liba,
-                         '/unlikely/libname.dylib',
-                         sys_lib)
-        lib_dict = without_system_libs(tree_libs(subtree))
+        lib_dict = without_system_libs(tree_libs_func(subtree))
+        lib_dict.update({"/unlikely/libname.dylib": {}})
+        with pytest.raises(DelocationError):
+            delocate_tree_libs(lib_dict, copy_dir, subtree)
+
+        lib_dict = without_system_libs(tree_libs_func(subtree))
         copied = delocate_tree_libs(lib_dict, copy_dir, subtree)
         # There are no out-of-tree libraries, nothing gets copied
         assert len(copied) == 0
@@ -107,7 +105,7 @@ def test_delocate_tree_libs():
         fake_lib = realpath(pjoin('out_of_tree', 'libfake.dylib'))
         shutil.copyfile(liba, fake_lib)
         set_install_name(liba, sys_lib, fake_lib)
-        lib_dict = without_system_libs(tree_libs(subtree))
+        lib_dict = without_system_libs(tree_libs_func(subtree))
         copied = delocate_tree_libs(lib_dict, copy_dir, subtree)
         # Out-of-tree library copied.
         assert_equal(copied, {fake_lib: {realpath(liba): fake_lib}})
@@ -136,7 +134,7 @@ def test_delocate_tree_libs():
         # Another copy to delocate, now without faked out-of-tree dependency.
         subtree = pjoin(tmpdir, 'subtree1')
         out_libs = _make_libtree(subtree)
-        lib_dict = without_system_libs(tree_libs(subtree))
+        lib_dict = without_system_libs(tree_libs_func(subtree))
         copied = delocate_tree_libs(lib_dict, copy_dir, subtree)
         # Now no out-of-tree libraries, nothing copied.
         assert_equal(copied, {})
@@ -151,7 +149,7 @@ def test_delocate_tree_libs():
         # Trying to delocate where all local libraries appear to be
         # out-of-tree will raise an error because of duplicate library names
         # (libc and slibc both named <something>/libc.dylib)
-        lib_dict2 = without_system_libs(tree_libs(subtree2))
+        lib_dict2 = without_system_libs(tree_libs_func(subtree2))
         assert_raises(DelocationError,
                       delocate_tree_libs, lib_dict2, copy_dir2, '/fictional')
         # Rename a library to make this work
@@ -164,7 +162,7 @@ def test_delocate_tree_libs():
         back_tick([test_lib])
         back_tick([stest_lib])
         # Delocation now works
-        lib_dict2 = without_system_libs(tree_libs(subtree2))
+        lib_dict2 = without_system_libs(tree_libs_func(subtree2))
         copied2 = delocate_tree_libs(lib_dict2, copy_dir2, '/fictional')
         local_libs = [liba, libb, libc, slibc, test_lib, stest_lib]
         rp_liba, rp_libb, rp_libc, rp_slibc, rp_test_lib, rp_stest_lib = \

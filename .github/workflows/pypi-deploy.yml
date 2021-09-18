@@ -1,0 +1,28 @@
+name: Deploy delocate to PyPI
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # checkout@v1 is required since versioneer uses git describe.
+      - uses: actions/checkout@v1
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+      - name: Install deployment dependencies
+        run: |
+          pip install wheel twine
+      - name: Build distribution
+        run: |
+          python setup.py sdist bdist_wheel
+      - name: Upload to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          twine upload dist/* --non-interactive --skip-existing

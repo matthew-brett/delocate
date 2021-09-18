@@ -52,12 +52,6 @@ See those too with::
 The output tells me that Scipy has picked up dynamic libraries from my
 Homebrew installation of ``gfortran`` (as well as the system libs).
 
-.. warning::
-
-    Dependency paths starting with ``@loader_path/`` or ``@executable_path/``
-    are ignored by Delocate.  These files will be skipped by the
-    ``delocate-wheel`` command.
-
 You can get a listing of the files depending on each of the libraries,
 using the ``--depending`` flag::
 

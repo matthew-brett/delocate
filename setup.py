@@ -6,11 +6,6 @@ import codecs
 
 import versioneer
 
-versioneer.VCS = 'git'
-versioneer.versionfile_source = pjoin('delocate', '_version.py')
-versioneer.versionfile_build = pjoin('delocate', '_version.py')
-versioneer.tag_prefix = ''
-versioneer.parentdir_prefix = 'delocate-'
 
 setup(name='delocate',
       version=versioneer.get_version(),

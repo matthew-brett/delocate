@@ -38,6 +38,7 @@ def _collect_wheel(globber):
 PLAT_WHEEL = _collect_wheel('fakepkg1-1.0-cp*.whl')
 PURE_WHEEL = _collect_wheel('fakepkg2-1.0-py*.whl')
 RPATH_WHEEL = _collect_wheel('fakepkg_rpath-1.0-cp*.whl')
+TOPLEVEL_WHEEL = _collect_wheel('fakepkg_toplevel-1.0-cp*.whl')
 STRAY_LIB = pjoin(DATA_PATH, 'libextfunc.dylib')
 # The install_name in the wheel for the stray library
 STRAY_LIB_DEP = realpath(STRAY_LIB)
@@ -140,8 +141,8 @@ def test_fix_plat():
         zip2dir(fixed_wheel, 'plat_pkg3')
         base_stray = basename(stray_lib)
         the_lib = pjoin('plat_pkg3', 'fakepkg1', '.dylibs', base_stray)
-        inst_id = DLC_PREFIX + 'fakepkg1/' + base_stray
-        assert_equal(get_install_id(the_lib), inst_id)
+        inst_id = DLC_PREFIX + 'fakepkg1/.dylibs/' + base_stray
+        assert get_install_id(the_lib) == inst_id
 
 
 def test_script_permissions():
@@ -342,3 +343,22 @@ def test_fix_rpath():
         assert delocate_wheel(
             RPATH_WHEEL, 'tmp.whl', lib_filt_func=ignore_libextfunc2
         ) == stray_libs_only_direct
+
+
+def test_fix_toplevel() -> None:
+    # Test wheels which are not organized into packages.
+
+    with InTemporaryDirectory():
+        # The module was set to expect its dependency in the libs/ directory
+        os.symlink(DATA_PATH, 'libs')
+
+        dep_mod = 'module2.abi3.so'
+        dep_path = '@rpath/libextfunc2_rpath.dylib'
+
+        stray_libs = {
+            realpath('libs/libextfunc2_rpath.dylib'): {dep_mod: dep_path},
+        }
+
+        assert delocate_wheel(TOPLEVEL_WHEEL, 'out.whl') == stray_libs
+        with InWheel("out.whl") as wheel_path:
+            assert "fakepkg_toplevel.dylibs" in os.listdir(wheel_path)

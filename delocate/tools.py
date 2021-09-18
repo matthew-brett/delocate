@@ -4,6 +4,7 @@ from subprocess import Popen, PIPE
 
 import os
 from os.path import join as pjoin, relpath, isdir, exists
+from typing import Set
 import zipfile
 import re
 import stat
@@ -443,7 +444,7 @@ def dir2zip(in_dir, zip_fname):
     z.close()
 
 
-def find_package_dirs(root_path):
+def find_package_dirs(root_path: str) -> Set[str]:
     """ Find python package directories in directory `root_path`
 
     Parameters

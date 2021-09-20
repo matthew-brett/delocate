@@ -55,7 +55,7 @@ jobs:
           if-no-files-found: error
       - name: Run tests
         run: |
-          pytest --pyargs delocate --log-level DEBUG --cov-config=.coveragerc --cov=delocate
+          pytest --pyargs delocate --log-level DEBUG --cov-config=.coveragerc --cov=delocate --doctest-modules
       - name: Collect code coverage data
         run: |
           coverage xml
@@ -91,4 +91,4 @@ jobs:
           pip install pytest
       - name: Run isolated tests
         run: |
-          pytest --pyargs delocate --log-level DEBUG
+          pytest --pyargs delocate --log-level DEBUG --doctest-modules

@@ -437,19 +437,6 @@ def _copy_lib_dict(lib_dict):
     }
 
 
-def _merge_lib_dict(d1, d2):
-    # type: (Dict[Text, Dict[Text, Text]], Mapping[Text, Mapping[Text, Text]]) -> None  # noqa: E501
-    """ Merges lib_dict `d2` into lib_dict `d1`
-    """
-    for required, requirings in d2.items():
-        if required in d1:
-            d1[required].update(requirings)
-        else:
-            # Convert to dict to satisfy type checking.
-            d1[required] = dict(requirings)
-    return None
-
-
 def _decide_dylib_bundle_directory(
     wheel_dir: str, package_name: str, lib_sdir: str = ".dylibs"
 ) -> str:

@@ -569,7 +569,7 @@ def delocate_wheel(
         to sequence ``['x86_64, 'i386']``) or name of required architecture
         (e.g "i386" or "x86_64").
     check_verbose : bool, optional
-        If True, print warning messages about missing required architectures
+        This flag is currently ignored.
     executable_path : str, optional
         An alternative path to use for resolving `@executable_path`.
     ignore_missing : bool, default=False
@@ -618,13 +618,12 @@ def delocate_wheel(
             shutil.rmtree(lib_path)
         # Check architectures
         if require_archs is not None:
-            stop_fast = not check_verbose
-            bads = check_archs(copied_libs, require_archs, stop_fast)
-            if len(bads) != 0:
-                if check_verbose:
-                    print(bads_report(bads, pjoin(tmpdir, 'wheel')))
+            bads = check_archs(copied_libs, require_archs)
+            if bads:
                 raise DelocationError(
-                    "Some missing architectures in wheel")
+                    "Some missing architectures in wheel"
+                    f"\n{bads_report(bads, pjoin(tmpdir, 'wheel'))}"
+                )
         libraries_in_lib_path = [
             pjoin(lib_path, basename(lib)) for lib in copied_libs
         ]

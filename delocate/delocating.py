@@ -462,7 +462,9 @@ def _decide_dylib_bundle_directory(
     package_name : str
         The name of the package.
     lib_sdir : str, optional
-        This value passed in via :func:`delocate_wheel`.
+        Default value for lib sub-directory passed in via
+        :func:`delocate_wheel`.
+        Ignored if wheel has no package directories.
 
     Returns
     -------
@@ -510,7 +512,8 @@ def delocate_wheel(
     lib_sdir : str, optional
         Subdirectory name in wheel package directory (or directories) to store
         needed libraries.
-        This may be ignored depending on how the wheel is structured.
+       Ignored if the wheel has no package directories, and only contains
+       stand-alone modules.
     lib_filt_func : None or str or callable, optional
         If None, inspect all files for dependencies on dynamic libraries. If
         callable, accepts filename as argument, returns True if we should
@@ -575,8 +578,8 @@ def delocate_wheel(
         )
         if copied_libs and lib_path_exists:
             raise DelocationError(
-                '{0} already exists in wheel but need to copy '
-                '{1}'.format(lib_path, '; '.join(copied_libs)))
+                'f{lib_path} already exists in wheel but need to copy ' +
+                "; ".join(copied_libs))
         if len(os.listdir(lib_path)) == 0:
             shutil.rmtree(lib_path)
         # Check architectures

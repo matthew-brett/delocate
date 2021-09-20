@@ -39,6 +39,7 @@ PLAT_WHEEL = _collect_wheel('fakepkg1-1.0-cp*.whl')
 PURE_WHEEL = _collect_wheel('fakepkg2-1.0-py*.whl')
 RPATH_WHEEL = _collect_wheel('fakepkg_rpath-1.0-cp*.whl')
 TOPLEVEL_WHEEL = _collect_wheel('fakepkg_toplevel-1.0-cp*.whl')
+NAMESPACE_WHEEL = _collect_wheel('fakepkg_namespace-1.0-cp*.whl')
 STRAY_LIB = pjoin(DATA_PATH, 'libextfunc.dylib')
 # The install_name in the wheel for the stray library
 STRAY_LIB_DEP = realpath(STRAY_LIB)
@@ -365,3 +366,19 @@ def test_fix_toplevel() -> None:
         assert delocate_wheel(TOPLEVEL_WHEEL, 'out.whl') == stray_libs
         with InWheel("out.whl") as wheel_path:
             assert "fakepkg_toplevel.dylibs" in os.listdir(wheel_path)
+
+
+def test_fix_namespace() -> None:
+    # Test wheels which are organized with a namespace.
+    with InTemporaryDirectory():
+        # The module was set to expect its dependency in the libs/ directory
+        os.makedirs("libs")
+        shutil.copy(pjoin(DATA_PATH, "libextfunc2_rpath.dylib"), "libs")
+
+        dep_mod = 'namespace/subpkg/module2.abi3.so'
+        dep_path = '@rpath/libextfunc2_rpath.dylib'
+        stray_libs = {
+            realpath('libs/libextfunc2_rpath.dylib'): {dep_mod: dep_path},
+        }
+
+        assert delocate_wheel(NAMESPACE_WHEEL, 'out.whl') == stray_libs

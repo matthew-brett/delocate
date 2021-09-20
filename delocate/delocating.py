@@ -473,7 +473,7 @@ def _decide_dylib_bundle_directory(
 def _make_install_name_ids_unique(
     libraries: Iterable[str], install_id_prefix: str
 ) -> None:
-    """Replace each libraries install name ids with a unique id.
+    """Replace each library's install name id with a unique id.
 
     This is to change install ids to be unique within Python space.
 

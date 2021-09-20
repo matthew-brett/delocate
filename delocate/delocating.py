@@ -483,6 +483,41 @@ def _decide_dylib_bundle_directory(
     return pjoin(wheel_dir, f"{package_name}.dylibs")
 
 
+def _make_install_name_ids_unique(
+    libraries: Iterable[str], install_id_prefix: str
+) -> None:
+    """Replace each libraries install name ids with a unique id.
+
+    This is to change install ids to be unique within Python space.
+
+    Parameters
+    ----------
+    libraries : iterable of str
+        The libraries to be modified.
+        These files are assumed to be in the same directory.
+    install_id_prefix : str
+        A unique path to use as a prefix for the install name ids.
+        This must be a Unix absolute path.
+
+    Examples
+    --------
+    >>> _make_install_name_ids_unique((), "/")
+    >>> _make_install_name_ids_unique((), "")
+    Traceback (most recent call last):
+        ...
+    ValueError: install_id_prefix should start with '/', got ''
+    """
+    if not install_id_prefix.startswith("/"):
+        raise ValueError(
+            "install_id_prefix should start with '/',"
+            f" got {install_id_prefix!r}")
+    if not install_id_prefix.endswith("/"):
+        install_id_prefix += "/"
+    for lib in libraries:
+        set_install_id(lib, install_id_prefix + basename(lib))
+        validate_signature(lib)
+
+
 def delocate_wheel(
     in_wheel,  # type: Text
     out_wheel=None,  # type: Optional[Text]
@@ -558,7 +593,6 @@ def delocate_wheel(
         out_wheel = abspath(out_wheel)
     in_place = in_wheel == out_wheel
     with TemporaryDirectory() as tmpdir:
-        all_copied = {}  # type: Dict[Text, Dict[Text, Text]]
         wheel_dir = realpath(pjoin(tmpdir, 'wheel'))
         zip2dir(in_wheel, wheel_dir)
         # Assume the package name from the wheel filename.
@@ -567,7 +601,7 @@ def delocate_wheel(
             wheel_dir, package_name, lib_sdir
         )
         lib_path = pjoin(wheel_dir, lib_sdir)
-        lib_path_exists = exists(lib_path)
+        lib_path_exists_before_delocate = exists(lib_path)
         copied_libs = delocate_path(
             wheel_dir,
             lib_path,
@@ -576,7 +610,7 @@ def delocate_wheel(
             executable_path=executable_path,
             ignore_missing=ignore_missing,
         )
-        if copied_libs and lib_path_exists:
+        if copied_libs and lib_path_exists_before_delocate:
             raise DelocationError(
                 'f{lib_path} already exists in wheel but need to copy ' +
                 "; ".join(copied_libs))
@@ -591,19 +625,18 @@ def delocate_wheel(
                     print(bads_report(bads, pjoin(tmpdir, 'wheel')))
                 raise DelocationError(
                     "Some missing architectures in wheel")
-        # Change install ids to be unique within Python space
-        install_id_root = DLC_PREFIX + relpath(lib_sdir, wheel_dir) + '/'
-        for lib in copied_libs:
-            lib_base = basename(lib)
-            copied_path = pjoin(lib_path, lib_base)
-            set_install_id(copied_path, install_id_root + lib_base)
-            validate_signature(copied_path)
-        _merge_lib_dict(all_copied, copied_libs)
-        if len(all_copied):
+        libraries_in_lib_path = [
+            pjoin(lib_path, basename(lib)) for lib in copied_libs
+        ]
+        _make_install_name_ids_unique(
+            libraries=libraries_in_lib_path,
+            install_id_prefix=DLC_PREFIX + relpath(lib_sdir, wheel_dir),
+        )
+        if len(copied_libs):
             rewrite_record(wheel_dir)
-        if len(all_copied) or not in_place:
+        if len(copied_libs) or not in_place:
             dir2zip(wheel_dir, out_wheel)
-    return stripped_lib_dict(all_copied, wheel_dir + os.path.sep)
+    return stripped_lib_dict(copied_libs, wheel_dir + os.path.sep)
 
 
 def patch_wheel(in_wheel, patch_fname, out_wheel=None):

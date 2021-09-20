@@ -298,7 +298,9 @@ def test_fix_rpath():
     # Also verifies the delocated libraries signature
     with InTemporaryDirectory():
         # The module was set to expect its dependency in the libs/ directory
-        os.symlink(DATA_PATH, 'libs')
+        os.makedirs("libs")
+        shutil.copy(pjoin(DATA_PATH, "libextfunc_rpath.dylib"), "libs")
+        shutil.copy(pjoin(DATA_PATH, "libextfunc2_rpath.dylib"), "libs")
 
         with InWheel(RPATH_WHEEL):
             # dep_mod can vary depending the Python version used to build
@@ -350,7 +352,8 @@ def test_fix_toplevel() -> None:
 
     with InTemporaryDirectory():
         # The module was set to expect its dependency in the libs/ directory
-        os.symlink(DATA_PATH, 'libs')
+        os.makedirs("libs")
+        shutil.copy(pjoin(DATA_PATH, "libextfunc2_rpath.dylib"), "libs")
 
         dep_mod = 'module2.abi3.so'
         dep_path = '@rpath/libextfunc2_rpath.dylib'

@@ -94,7 +94,6 @@ def main():
             lib_filt_func=lib_filt_func,
             lib_sdir=opts.lib_sdir,
             require_archs=require_archs,
-            check_verbose=opts.verbose,
             executable_path=opts.executable_path,
             ignore_missing=opts.ignore_missing_dependencies,
         )

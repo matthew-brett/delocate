@@ -9,6 +9,8 @@ import shutil
 from subprocess import check_call
 from typing import NamedTuple
 
+import pytest
+
 from ..delocating import (DelocationError, delocate_wheel, patch_wheel,
                           DLC_PREFIX)
 from ..tools import (get_install_names, set_install_name, zip2dir,
@@ -220,6 +222,7 @@ def test__thinning():
             assert_equal(get_archs(mod_fname), ARCH_M1)
 
 
+@pytest.mark.filterwarnings("ignore:The check_verbose flag is deprecated")
 def test_check_plat_archs():
     # Check flag to check architectures
     with InTemporaryDirectory() as tmpdir:

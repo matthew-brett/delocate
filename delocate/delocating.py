@@ -506,17 +506,16 @@ def _make_install_name_ids_unique(
 
 
 def delocate_wheel(
-    in_wheel,  # type: Text
-    out_wheel=None,  # type: Optional[Text]
-    lib_sdir='.dylibs',  # type: Text
-    lib_filt_func=None,  # type: Union[None, str, Callable[[Text], bool]]
-    copy_filt_func=filter_system_libs,  # type: Optional[Callable[[Text], bool]]
-    require_archs=None,  # type: Union[None, Text, Iterable[Text]]
-    check_verbose=False,  # type: bool
-    executable_path=None,  # type: Optional[Text]
-    ignore_missing=False,  # type: bool
-):
-    # type: (...) -> Dict[Text, Dict[Text, Text]]
+    in_wheel: str,
+    out_wheel: Optional[str] = None,
+    lib_sdir: str = '.dylibs',
+    lib_filt_func: Union[None, str, Callable[[str], bool]] = None,
+    copy_filt_func: Optional[Callable[[str], bool]] = filter_system_libs,
+    require_archs: Union[None, str, Iterable[str]] = None,
+    check_verbose: Optional[bool] = None,
+    executable_path: Optional[str] = None,
+    ignore_missing: bool = False,
+) -> Dict[str, Dict[str, str]]:
     """ Update wheel by copying required libraries to `lib_sdir` in wheel
 
     Create `lib_sdir` in wheel tree only if we are copying one or more
@@ -556,10 +555,10 @@ def delocate_wheel(
         to sequence ``['x86_64, 'i386']``) or name of required architecture
         (e.g "i386" or "x86_64").
     check_verbose : bool, optional
-        This flag is currently ignored.
-    executable_path : str, optional
+        This flag is deprecated and shouldn't be provided.
+    executable_path : str, optional, keyword-only
         An alternative path to use for resolving `@executable_path`.
-    ignore_missing : bool, default=False
+    ignore_missing : bool, default=False, keyword-only
         Continue even if missing dependencies are detected.
 
     Returns
@@ -573,6 +572,13 @@ def delocate_wheel(
         is the ``install_name`` of ``copied_lib_path`` in the depending
         library. The filenames in the keys are relative to the wheel root path.
     """
+    if check_verbose is not None:
+        warnings.warn(
+            "The check_verbose flag is deprecated and shouldn't be provided,"
+            " all remaining parameters should be changed over to keywords.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     in_wheel = abspath(in_wheel)
     if out_wheel is None:
         out_wheel = in_wheel

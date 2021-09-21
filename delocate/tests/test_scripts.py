@@ -264,9 +264,7 @@ def test_fix_wheel_archs():
         code, stdout, stderr = run_command(
             ['delocate-wheel', fixed_wheel, '-k'])
         _check_wheel(fixed_wheel, '.dylibs')
-        # Broken with one architecture removed still OK without checking
-        # But if we check, raise error
-        fmt_str = 'Fixing: {0}\n{1} needs arch {2} missing from {3}'
+        # Broken with one architecture removed
         archs = set(('x86_64', 'arm64'))
 
         def _fix_break(arch):
@@ -294,8 +292,10 @@ def test_fix_wheel_archs():
             assert_false(code == 0)
             stderr_unicode = stderr.decode('latin1').strip()
             assert stderr_unicode.startswith('Traceback')
-            assert stderr_unicode.endswith(
-                "Some missing architectures in wheel")
+            assert (
+                "DelocationError: Some missing architectures in wheel"
+                in stderr_unicode
+            )
             assert_equal(stdout.strip(), b'')
             # Checked, verbose
             _fix_break(arch)
@@ -305,15 +305,14 @@ def test_fix_wheel_archs():
             assert_false(code == 0)
             stderr = stderr.decode('latin1').strip()
             assert 'Traceback' in stderr
-            assert_true(stderr.endswith(
-                "Some missing architectures in wheel"))
+            assert stderr.endswith(
+                "DelocationError: Some missing architectures in wheel"
+                f"\n{'fakepkg1/subpkg/module2.abi3.so'}"
+                f" needs arch {archs.difference([arch]).pop()}"
+                f" missing from {stray_lib}"
+            )
             stdout_unicode = stdout.decode('latin1').strip()
-            assert_equal(stdout_unicode,
-                         fmt_str.format(
-                             fixed_wheel,
-                             'fakepkg1/subpkg/module2.abi3.so',
-                             archs.difference([arch]).pop(),
-                             stray_lib))
+            assert stdout_unicode == f"Fixing: {fixed_wheel}"
             # Require particular architectures
         both_archs = 'arm64,x86_64'
         for ok in ('universal2', 'arm64', 'x86_64', both_archs):

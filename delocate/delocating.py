@@ -437,31 +437,85 @@ def _copy_lib_dict(lib_dict):
     }
 
 
-def _merge_lib_dict(d1, d2):
-    # type: (Dict[Text, Dict[Text, Text]], Mapping[Text, Mapping[Text, Text]]) -> None  # noqa: E501
-    """ Merges lib_dict `d2` into lib_dict `d1`
+def _decide_dylib_bundle_directory(
+    wheel_dir: str, package_name: str, lib_sdir: str = ".dylibs"
+) -> str:
+    """Return a relative directory which should be used to store dylib files.
+
+    Parameters
+    ----------
+    wheel_dir : str
+        The directory of an unpacked wheel to analyse.
+    package_name : str
+        The name of the package.
+    lib_sdir : str, optional
+        Default value for lib sub-directory passed in via
+        :func:`delocate_wheel`.
+        Ignored if wheel has no package directories.
+
+    Returns
+    -------
+    dylibs_dir : str
+        A path to within `wheel_dir` where any library files should be put.
     """
-    for required, requirings in d2.items():
-        if required in d1:
-            d1[required].update(requirings)
-        else:
-            # Convert to dict to satisfy type checking.
-            d1[required] = dict(requirings)
-    return None
+    package_dirs = find_package_dirs(wheel_dir)
+    for directory in package_dirs:
+        if directory.endswith(package_name):
+            # Prefer using the directory with the same name as the package.
+            return pjoin(directory, lib_sdir)
+    if package_dirs:
+        # Otherwise, store dylib files in the first package alphabetically.
+        return pjoin(min(package_dirs), lib_sdir)
+    # Otherwise, use an auditwheel-style top-level name.
+    return pjoin(wheel_dir, f"{package_name}.dylibs")
+
+
+def _make_install_name_ids_unique(
+    libraries: Iterable[str], install_id_prefix: str
+) -> None:
+    """Replace each library's install name id with a unique id.
+
+    This is to change install ids to be unique within Python space.
+
+    Parameters
+    ----------
+    libraries : iterable of str
+        The libraries to be modified.
+        These files are assumed to be in the same directory.
+    install_id_prefix : str
+        A unique path to use as a prefix for the install name ids.
+        This must be a Unix absolute path.
+
+    Examples
+    --------
+    >>> _make_install_name_ids_unique((), "/")
+    >>> _make_install_name_ids_unique((), "")
+    Traceback (most recent call last):
+        ...
+    ValueError: install_id_prefix should start with '/', got ''
+    """
+    if not install_id_prefix.startswith("/"):
+        raise ValueError(
+            "install_id_prefix should start with '/',"
+            f" got {install_id_prefix!r}")
+    if not install_id_prefix.endswith("/"):
+        install_id_prefix += "/"
+    for lib in libraries:
+        set_install_id(lib, install_id_prefix + basename(lib))
+        validate_signature(lib)
 
 
 def delocate_wheel(
-    in_wheel,  # type: Text
-    out_wheel=None,  # type: Optional[Text]
-    lib_sdir='.dylibs',  # type: Text
-    lib_filt_func=None,  # type: Union[None, str, Callable[[Text], bool]]
-    copy_filt_func=filter_system_libs,  # type: Optional[Callable[[Text], bool]]
-    require_archs=None,  # type: Union[None, Text, Iterable[Text]]
-    check_verbose=False,  # type: bool
-    executable_path=None,  # type: Optional[Text]
-    ignore_missing=False,  # type: bool
-):
-    # type: (...) -> Dict[Text, Dict[Text, Text]]
+    in_wheel: str,
+    out_wheel: Optional[str] = None,
+    lib_sdir: str = '.dylibs',
+    lib_filt_func: Union[None, str, Callable[[str], bool]] = None,
+    copy_filt_func: Optional[Callable[[str], bool]] = filter_system_libs,
+    require_archs: Union[None, str, Iterable[str]] = None,
+    check_verbose: Optional[bool] = None,
+    executable_path: Optional[str] = None,
+    ignore_missing: bool = False,
+) -> Dict[str, Dict[str, str]]:
     """ Update wheel by copying required libraries to `lib_sdir` in wheel
 
     Create `lib_sdir` in wheel tree only if we are copying one or more
@@ -479,6 +533,8 @@ def delocate_wheel(
     lib_sdir : str, optional
         Subdirectory name in wheel package directory (or directories) to store
         needed libraries.
+       Ignored if the wheel has no package directories, and only contains
+       stand-alone modules.
     lib_filt_func : None or str or callable, optional
         If None, inspect all files for dependencies on dynamic libraries. If
         callable, accepts filename as argument, returns True if we should
@@ -499,10 +555,10 @@ def delocate_wheel(
         to sequence ``['x86_64, 'i386']``) or name of required architecture
         (e.g "i386" or "x86_64").
     check_verbose : bool, optional
-        If True, print warning messages about missing required architectures
-    executable_path : str, optional
+        This flag is deprecated and shouldn't be provided.
+    executable_path : str, optional, keyword-only
         An alternative path to use for resolving `@executable_path`.
-    ignore_missing : bool, default=False
+    ignore_missing : bool, default=False, keyword-only
         Continue even if missing dependencies are detected.
 
     Returns
@@ -516,6 +572,13 @@ def delocate_wheel(
         is the ``install_name`` of ``copied_lib_path`` in the depending
         library. The filenames in the keys are relative to the wheel root path.
     """
+    if check_verbose is not None:
+        warnings.warn(
+            "The check_verbose flag is deprecated and shouldn't be provided,"
+            " all remaining parameters should be changed over to keywords.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     in_wheel = abspath(in_wheel)
     if out_wheel is None:
         out_wheel = in_wheel
@@ -523,50 +586,49 @@ def delocate_wheel(
         out_wheel = abspath(out_wheel)
     in_place = in_wheel == out_wheel
     with TemporaryDirectory() as tmpdir:
-        all_copied = {}  # type: Dict[Text, Dict[Text, Text]]
         wheel_dir = realpath(pjoin(tmpdir, 'wheel'))
         zip2dir(in_wheel, wheel_dir)
-        for package_path in find_package_dirs(wheel_dir):
-            lib_path = pjoin(package_path, lib_sdir)
-            lib_path_exists = exists(lib_path)
-            copied_libs = delocate_path(
-                package_path,
-                lib_path,
-                lib_filt_func,
-                copy_filt_func,
-                executable_path=executable_path,
-                ignore_missing=ignore_missing,
-            )
-            if copied_libs and lib_path_exists:
+        # Assume the package name from the wheel filename.
+        package_name = basename(in_wheel).split("-")[0]
+        lib_sdir = _decide_dylib_bundle_directory(
+            wheel_dir, package_name, lib_sdir
+        )
+        lib_path = pjoin(wheel_dir, lib_sdir)
+        lib_path_exists_before_delocate = exists(lib_path)
+        copied_libs = delocate_path(
+            wheel_dir,
+            lib_path,
+            lib_filt_func,
+            copy_filt_func,
+            executable_path=executable_path,
+            ignore_missing=ignore_missing,
+        )
+        if copied_libs and lib_path_exists_before_delocate:
+            raise DelocationError(
+                'f{lib_path} already exists in wheel but need to copy ' +
+                "; ".join(copied_libs))
+        if len(os.listdir(lib_path)) == 0:
+            shutil.rmtree(lib_path)
+        # Check architectures
+        if require_archs is not None:
+            bads = check_archs(copied_libs, require_archs)
+            if bads:
                 raise DelocationError(
-                    '{0} already exists in wheel but need to copy '
-                    '{1}'.format(lib_path, '; '.join(copied_libs)))
-            if len(os.listdir(lib_path)) == 0:
-                shutil.rmtree(lib_path)
-            # Check architectures
-            if require_archs is not None:
-                stop_fast = not check_verbose
-                bads = check_archs(copied_libs, require_archs, stop_fast)
-                if len(bads) != 0:
-                    if check_verbose:
-                        print(bads_report(bads, pjoin(tmpdir, 'wheel')))
-                    raise DelocationError(
-                        "Some missing architectures in wheel")
-            # Change install ids to be unique within Python space
-            install_id_root = (DLC_PREFIX +
-                               relpath(package_path, wheel_dir) +
-                               '/')
-            for lib in copied_libs:
-                lib_base = basename(lib)
-                copied_path = pjoin(lib_path, lib_base)
-                set_install_id(copied_path, install_id_root + lib_base)
-                validate_signature(copied_path)
-            _merge_lib_dict(all_copied, copied_libs)
-        if len(all_copied):
+                    "Some missing architectures in wheel"
+                    f"\n{bads_report(bads, pjoin(tmpdir, 'wheel'))}"
+                )
+        libraries_in_lib_path = [
+            pjoin(lib_path, basename(lib)) for lib in copied_libs
+        ]
+        _make_install_name_ids_unique(
+            libraries=libraries_in_lib_path,
+            install_id_prefix=DLC_PREFIX + relpath(lib_sdir, wheel_dir),
+        )
+        if len(copied_libs):
             rewrite_record(wheel_dir)
-        if len(all_copied) or not in_place:
+        if len(copied_libs) or not in_place:
             dir2zip(wheel_dir, out_wheel)
-    return stripped_lib_dict(all_copied, wheel_dir + os.path.sep)
+    return stripped_lib_dict(copied_libs, wheel_dir + os.path.sep)
 
 
 def patch_wheel(in_wheel, patch_fname, out_wheel=None):

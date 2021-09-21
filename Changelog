@@ -25,6 +25,11 @@ Releases
 
   * ``wheel_libs`` now supports recursive dependencies.
   * ``listdeps`` command now supports recursive dependencies.
+  * Wheels with top-level extension modules or wheels using namespaces can now
+    be delocated.
+    [#123](https://github.com/matthew-brett/delocate/pull/123)
+  * Wheels with multiple packages will no longer copy duplicate libraries.
+    [#35](https://github.com/matthew-brett/delocate/issues/35)
 
 * 0.9.1 (Friday September 17th 2021)
 

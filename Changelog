@@ -30,6 +30,8 @@ Releases
     [#123](https://github.com/matthew-brett/delocate/pull/123)
   * Wheels with multiple packages will no longer copy duplicate libraries.
     [#35](https://github.com/matthew-brett/delocate/issues/35)
+  * ``delocate.tools.back_tick`` has been deprecated.
+    [#126](https://github.com/matthew-brett/delocate/pull/126)
 
 * 0.9.1 (Friday September 17th 2021)
 

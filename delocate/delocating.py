@@ -555,8 +555,8 @@ def delocate_wheel(
         to sequence ``['x86_64, 'i386']``) or name of required architecture
         (e.g "i386" or "x86_64").
     check_verbose : bool, optional
-        This flag is deprecated and shouldn't be provided.
-    executable_path : str, optional, keyword-only
+        This flag is deprecated, and has no effect.
+    executable_path : None or str, optional, keyword-only
         An alternative path to use for resolving `@executable_path`.
     ignore_missing : bool, default=False, keyword-only
         Continue even if missing dependencies are detected.
@@ -575,7 +575,7 @@ def delocate_wheel(
     if check_verbose is not None:
         warnings.warn(
             "The check_verbose flag is deprecated and shouldn't be provided,"
-            " all remaining parameters should be changed over to keywords.",
+            " all subsequent parameters should be changed over to keywords.",
             DeprecationWarning,
             stacklevel=2,
         )

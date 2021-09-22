@@ -21,10 +21,13 @@ Releases
 
 * [Unreleased]
 
+* [0.10.0] - 2021-09-22
+
   First release that requires Python 3.
 
   * ``wheel_libs`` now supports recursive dependencies.
   * ``listdeps`` command now supports recursive dependencies.
+    [#118](https://github.com/matthew-brett/delocate/pull/118)
   * Wheels with top-level extension modules or wheels using namespaces can now
     be delocated.
     [#123](https://github.com/matthew-brett/delocate/pull/123)

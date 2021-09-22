@@ -12,10 +12,11 @@ import os
 from os.path import (dirname, join as pjoin, isfile, abspath, realpath,
                      basename, exists, splitext)
 import shutil
+import subprocess
 from typing import Text
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
-from ..tools import back_tick, set_install_name, zip2dir, dir2zip
+from ..tools import set_install_name, zip2dir, dir2zip
 from ..wheeltools import InWheel
 from .scriptrunner import ScriptRunner
 
@@ -142,7 +143,7 @@ def test_listdeps(plat_wheel: PlatWheel) -> None:
     ]
 
 
-def test_path():
+def test_path() -> None:
     # Test path cleaning
     with InTemporaryDirectory():
         # Make a tree; use realpath for OSX /private/var - /var
@@ -153,16 +154,16 @@ def test_path():
         fake_lib = realpath(_copy_to(liba, 'fakelibs', 'libfake.dylib'))
         _, _, _, test_lib, slibc, stest_lib = _make_libtree(
             realpath('subtree2'))
-        back_tick([test_lib])
-        back_tick([stest_lib])
+        subprocess.run([test_lib], check=True)
+        subprocess.run([stest_lib], check=True)
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
         # Check it fixes up correctly
         code, stdout, stderr = run_command(
             ['delocate-path', 'subtree', 'subtree2', '-L', 'deplibs'])
-        assert_equal(len(os.listdir(pjoin('subtree', 'deplibs'))), 0)
+        assert len(os.listdir(pjoin('subtree', 'deplibs'))) == 0
         # Check fake libary gets copied and delocated
         out_path = pjoin('subtree2', 'deplibs')
-        assert_equal(os.listdir(out_path), ['libfake.dylib'])
+        assert os.listdir(out_path) == ['libfake.dylib']
 
 
 def test_path_dylibs():

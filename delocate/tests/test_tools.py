@@ -3,8 +3,11 @@ from __future__ import division, print_function
 
 import os
 from os.path import join as pjoin, dirname
+import subprocess
 import stat
 import shutil
+
+import pytest
 
 from ..tools import (back_tick, unique_by_index, ensure_writable, chmod_perms,
                      ensure_permissions, parse_install_name, zip2dir, dir2zip,
@@ -30,13 +33,14 @@ ARCH_BOTH = ARCH_64 | ARCH_M1
 ARCH_32 = frozenset(['i386'])
 
 
-def test_back_tick():
-    cmd = 'python -c "print(\'Hello\')"'
-    assert_equal(back_tick(cmd), "Hello")
-    assert_equal(back_tick(cmd, ret_err=True), ("Hello", ""))
-    assert_equal(back_tick(cmd, True, False), (b"Hello", b""))
-    cmd = 'python -c "raise ValueError()"'
-    assert_raises(RuntimeError, back_tick, cmd)
+@pytest.mark.filterwarnings("ignore:back_tick is deprecated")
+def test_back_tick() -> None:
+    cmd = '''python -c "print('Hello')"'''
+    assert back_tick(cmd) == "Hello"
+    assert back_tick(cmd, ret_err=True) == ("Hello", "")
+    assert back_tick(cmd, True, False) == (b"Hello", b"")
+    with pytest.raises(RuntimeError):
+        back_tick('python -c "raise ValueError()"')
 
 
 def test_uniqe_by_index():
@@ -239,11 +243,11 @@ def test_get_archs_fuse():
                       'libcopy64', LIB64, 'yetanother')
 
 
-def test_validate_signature():
+def test_validate_signature() -> None:
     # Fully test the validate_signature tool
-    def check_signature(filename):
-        """Raises RuntimeError if codesign can not verify the signature."""
-        back_tick(['codesign', '--verify', filename], raise_err=True)
+    def check_signature(filename: str) -> None:
+        """Raises CalledProcessError if the signature can not be verified."""
+        subprocess.run(['codesign', '--verify', filename], check=True)
 
     with InTemporaryDirectory():
         # Copy a binary file to test with, any binary file would work
@@ -253,7 +257,8 @@ def test_validate_signature():
         validate_signature('libcopy')
 
         # codesign should raise an error (missing signature)
-        assert_raises(RuntimeError, check_signature, 'libcopy')
+        with pytest.raises(subprocess.CalledProcessError):
+            check_signature('libcopy')
 
         replace_signature('libcopy', '-')  # Force this file to be signed
         validate_signature('libcopy')  # Cover the `is already valid` code path
@@ -264,7 +269,8 @@ def test_validate_signature():
         add_rpath('libcopy', '/dummy/path', ad_hoc_sign=False)
 
         # codesign should raise a new error (invalid signature)
-        assert_raises(RuntimeError, check_signature, 'libcopy')
+        with pytest.raises(subprocess.CalledProcessError):
+            check_signature('libcopy')
 
         validate_signature('libcopy')  # Replace the broken signature
         check_signature('libcopy')
@@ -277,15 +283,20 @@ def test_validate_signature():
         set_install_id('libcopy', 'libcopy-name')
         check_signature('libcopy')
 
-        set_install_name('libcopy', LIBSTDCXX,
-                         '/usr/lib/libstdc++.7.dylib')
+        set_install_name('libcopy', LIBSTDCXX, '/usr/lib/libstdc++.7.dylib')
         check_signature('libcopy')
 
         # check that altering the contents without ad-hoc sign invalidates
         # signatures
         set_install_id('libcopy', 'libcopy-name2', ad_hoc_sign=False)
-        assert_raises(RuntimeError, check_signature, 'libcopy')
+        with pytest.raises(subprocess.CalledProcessError):
+            check_signature('libcopy')
 
-        set_install_name('libcopy', '/usr/lib/libstdc++.7.dylib',
-                         '/usr/lib/libstdc++.8.dylib', ad_hoc_sign=False)
-        assert_raises(RuntimeError, check_signature, 'libcopy')
+        set_install_name(
+            'libcopy',
+            '/usr/lib/libstdc++.7.dylib',
+            '/usr/lib/libstdc++.8.dylib',
+            ad_hoc_sign=False,
+        )
+        with pytest.raises(subprocess.CalledProcessError):
+            check_signature('libcopy')

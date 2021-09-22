@@ -1,10 +1,9 @@
 """ Tools for getting and setting install names """
-
-from subprocess import Popen, PIPE
-
 import os
 from os.path import join as pjoin, relpath, isdir, exists
-from typing import Set
+from typing import Any, FrozenSet, List, Optional, Sequence, Set, Union
+import subprocess
+import warnings
 import zipfile
 import re
 import stat
@@ -15,7 +14,12 @@ class InstallNameError(Exception):
     pass
 
 
-def back_tick(cmd, ret_err=False, as_str=True, raise_err=None):
+def back_tick(
+    cmd: Union[str, Sequence[str]],
+    ret_err: bool = False,
+    as_str: bool = True,
+    raise_err: Optional[bool] = None,
+) -> Any:
     """ Run command `cmd`, return stdout, or stdout, stderr if `ret_err`
 
     Roughly equivalent to ``check_output`` in Python 2.7
@@ -45,29 +49,35 @@ def back_tick(cmd, ret_err=False, as_str=True, raise_err=None):
     ------
     Raises RuntimeError if command returns non-zero exit code and `raise_err`
     is True
+
+    .. deprecated:: 0.10
+        This function was deprecated because the return type is too dynamic.
+        You should use :func:`subprocess.run` instead.
     """
+    warnings.warn(
+        "back_tick is deprecated, replace this call with subprocess.run.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if raise_err is None:
         raise_err = False if ret_err else True
     cmd_is_seq = isinstance(cmd, (list, tuple))
-    proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=not cmd_is_seq)
-    out, err = proc.communicate()
-    retcode = proc.returncode
-    cmd_str = ' '.join(cmd) if cmd_is_seq else cmd
-    if retcode is None:
-        proc.terminate()
-        raise RuntimeError(cmd_str + ' process did not terminate')
-    if raise_err and retcode != 0:
-        raise RuntimeError('{0} returned code {1} with error {2}'.format(
-                           cmd_str, retcode, err.decode('latin-1')))
-    out = out.strip()
-    if as_str:
-        out = out.decode('latin-1')
+    try:
+        proc = subprocess.run(
+            cmd,
+            shell=not cmd_is_seq,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=as_str,
+            check=raise_err,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(
+            f"{exc.cmd} returned code {exc.returncode} with error {exc.stderr}"
+        )
     if not ret_err:
-        return out
-    err = err.strip()
-    if as_str:
-        err = err.decode('latin-1')
-    return out, err
+        return proc.stdout.strip()
+    return proc.stdout.strip(), proc.stderr.strip()
 
 
 def unique_by_index(sequence):
@@ -174,10 +184,17 @@ BAD_OBJECT_TESTS = [
 ]
 
 
-def _cmd_out_err(cmd):
-    # Run command, return stdout or stderr if stdout is empty
-    out, err = back_tick(cmd, ret_err=True)
-    out = err if not len(out) else out
+def _cmd_out_err(cmd: Sequence[str]) -> List[str]:
+    """Run command, return stdout or stderr if stdout is empty."""
+    proc = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    out = proc.stdout.strip()
+    if not out:
+        out = proc.stderr.strip()
     return out.split('\n')
 
 
@@ -260,7 +277,9 @@ def get_install_id(filename):
 
 
 @ensure_writable
-def set_install_name(filename, oldname, newname, ad_hoc_sign=True):
+def set_install_name(
+    filename: str, oldname: str, newname: str, ad_hoc_sign: bool = True
+) -> None:
     """ Set install name `oldname` to `newname` in library filename
 
     Parameters
@@ -278,7 +297,12 @@ def set_install_name(filename, oldname, newname, ad_hoc_sign=True):
     if oldname not in names:
         raise InstallNameError('{0} not in install names for {1}'.format(
             oldname, filename))
-    back_tick(['install_name_tool', '-change', oldname, newname, filename])
+    subprocess.run(
+        ['install_name_tool', '-change', oldname, newname, filename],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True
+    )
     if ad_hoc_sign:
         # ad hoc signature is represented by a dash
         # https://developer.apple.com/documentation/security/seccodesignatureflags/kseccodesignatureadhoc
@@ -286,7 +310,7 @@ def set_install_name(filename, oldname, newname, ad_hoc_sign=True):
 
 
 @ensure_writable
-def set_install_id(filename, install_id, ad_hoc_sign=True):
+def set_install_id(filename: str, install_id: str, ad_hoc_sign: bool = True):
     """ Set install id for library named in `filename`
 
     Parameters
@@ -304,7 +328,12 @@ def set_install_id(filename, install_id, ad_hoc_sign=True):
     """
     if get_install_id(filename) is None:
         raise InstallNameError('{0} has no install id'.format(filename))
-    back_tick(['install_name_tool', '-id', install_id, filename])
+    subprocess.run(
+        ['install_name_tool', '-id', install_id, filename],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True
+    )
     if ad_hoc_sign:
         replace_signature(filename, '-')
 
@@ -373,7 +402,7 @@ def get_environment_variable_paths():
 
 
 @ensure_writable
-def add_rpath(filename, newpath, ad_hoc_sign=True):
+def add_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
     """ Add rpath `newpath` to library `filename`
 
     Parameters
@@ -385,12 +414,17 @@ def add_rpath(filename, newpath, ad_hoc_sign=True):
     ad_hoc_sign : {True, False}, optional
         If True, sign file with ad-hoc signature
     """
-    back_tick(['install_name_tool', '-add_rpath', newpath, filename])
+    subprocess.run(
+        ['install_name_tool', '-add_rpath', newpath, filename],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True
+    )
     if ad_hoc_sign:
         replace_signature(filename, '-')
 
 
-def zip2dir(zip_fname, out_dir):
+def zip2dir(zip_fname: str, out_dir: str) -> None:
     """ Extract `zip_fname` into output directory `out_dir`
 
     Parameters
@@ -402,7 +436,12 @@ def zip2dir(zip_fname, out_dir):
     """
     # Use unzip command rather than zipfile module to preserve permissions
     # http://bugs.python.org/issue15795
-    back_tick(['unzip', '-o', '-d', out_dir, zip_fname])
+    subprocess.run(
+        ['unzip', '-o', '-d', out_dir, zip_fname],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True
+    )
 
 
 def dir2zip(in_dir, zip_fname):
@@ -489,7 +528,7 @@ def cmp_contents(filename1, filename2):
     return contents1 == contents2
 
 
-def get_archs(libname):
+def get_archs(libname: str) -> FrozenSet[str]:
     """ Return architecture types from library `libname`
 
     Parameters
@@ -506,8 +545,15 @@ def get_archs(libname):
     if not exists(libname):
         raise RuntimeError(libname + " is not a file")
     try:
-        stdout = back_tick(['lipo', '-info', libname])
-    except RuntimeError:
+        lipo = subprocess.run(
+            ['lipo', '-info', libname],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            check=True,
+        )
+        stdout = lipo.stdout.strip()
+    except subprocess.CalledProcessError:
         return frozenset()
     lines = [line.strip() for line in stdout.split('\n') if line.strip()]
     # For some reason, output from lipo -info on .a file generates this line
@@ -522,15 +568,16 @@ def get_archs(libname):
             re.escape(libname)
         )
     ):
-        reggie = re.compile(reggie)
-        match = reggie.match(line)
+        match = re.match(reggie, line)
         if match is not None:
             return frozenset(match.groups()[0].split(' '))
     raise ValueError("Unexpected output: '{0}' for {1}".format(
         stdout, libname))
 
 
-def lipo_fuse(in_fname1, in_fname2, out_fname, ad_hoc_sign=True):
+def lipo_fuse(
+    in_fname1: str, in_fname2: str, out_fname: str, ad_hoc_sign: bool = True
+) -> str:
     """ Use lipo to merge libs `filename1`, `filename2`, store in `out_fname`
 
     Parameters
@@ -543,17 +590,29 @@ def lipo_fuse(in_fname1, in_fname2, out_fname, ad_hoc_sign=True):
         filename to which to write new fused library
     ad_hoc_sign : {True, False}, optional
         If True, sign file with ad-hoc signature
+
+    Raises
+    ------
+    RuntimeError
+        If the lipo command exits with an error.
     """
-    out = back_tick(['lipo', '-create',
-                     in_fname1, in_fname2,
-                     '-output', out_fname])
+    try:
+        lipo = subprocess.run(
+            ['lipo', '-create', in_fname1, in_fname2, '-output', out_fname],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+            universal_newlines=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(f"Command {exc.cmd} failed with error: {exc.stderr}")
     if ad_hoc_sign:
         replace_signature(out_fname, '-')
-    return out
+    return lipo.stdout.strip()
 
 
 @ensure_writable
-def replace_signature(filename, identity):
+def replace_signature(filename: str, identity: str) -> None:
     """ Replace the signature of a binary file using `identity`
 
     See the codesign documentation for more info
@@ -565,11 +624,15 @@ def replace_signature(filename, identity):
     identity : str
         The signing identity to use.
     """
-    back_tick(['codesign', '--force', '--sign', identity, filename],
-              raise_err=True)
+    subprocess.run(
+        ['codesign', '--force', '--sign', identity, filename],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True
+    )
 
 
-def validate_signature(filename):
+def validate_signature(filename: str) -> None:
     """ Remove invalid signatures from a binary file
 
     If the file signature is missing or valid then it will be ignored
@@ -582,11 +645,15 @@ def validate_signature(filename):
     filename : str
         Filepath to a binary file
     """
-    out, err = back_tick(['codesign', '--verify', filename],
-                         ret_err=True, as_str=True, raise_err=False)
-    if not err:
+    codesign = subprocess.run(
+        ['codesign', '--verify', filename],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    if not codesign.stderr:
         return  # The existing signature is valid
-    if 'code object is not signed at all' in err:
+    if 'code object is not signed at all' in codesign.stderr:
         return  # File has no signature, and adding a new one isn't necessary
 
     # This file's signature is invalid and needs to be replaced

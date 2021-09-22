@@ -19,7 +19,7 @@ rules on making a good Changelog.
 Releases
 ********
 
-* Unreleased
+* [Unreleased]
 
   First release that requires Python 3.
 
@@ -33,7 +33,7 @@ Releases
   * ``delocate.tools.back_tick`` has been deprecated.
     [#126](https://github.com/matthew-brett/delocate/pull/126)
 
-* 0.9.1 (Friday September 17th 2021)
+* [0.9.1] - 2021-09-17
 
   Bugfix release.
 
@@ -41,7 +41,7 @@ Releases
     non-copied library which dynamically links to a copied library.
     [#120](https://github.com/matthew-brett/delocate/pull/120)
 
-* 0.9.0 (Saturday July 17th 2021)
+* [0.9.0] - 2021-07-17
 
   Refactoring, updating and `arm64` (M1) support.
 
@@ -63,7 +63,7 @@ Releases
     Github workflow tests (MB, KB).
   * Various documentation fixes (Brad Solomon, Andrew Murray).
 
-* 0.8.2 (Sunday July 12th 2020)
+* [0.8.2] - 2020-07-12
 
   Bugfix release.
 
@@ -72,7 +72,7 @@ Releases
     gives an encoding error.  See GH issue 81.  Thanks to Joshua Haberman for
     the report.
 
-* 0.8.1 (Sunday June 28th 2020)
+* [0.8.1] - 2020-06-28
 
   Bugfix release.
 
@@ -83,7 +83,7 @@ Releases
     problems in dealing with single module extensions (Brad Solomon)
   * PEP8 maintenance by Grzegorz Bokota.
 
-* 0.8.0 (Wednesday November 6th 2019)
+* [0.8.0] - 2019-11-06
 
   Bugfix and new feature release.
 
@@ -95,7 +95,7 @@ Releases
   * Bugfix for use of undefined variable in ``get_install_id`` (Anthony
     Sottile).
 
-* 0.7.4 (Monday October 1st 2018)
+* [0.7.4] - 2018-10-01
 
   Bugfix release to deal with large number of breaking changes in wheel
   0.32.0.
@@ -105,30 +105,30 @@ Releases
   * Refactor to use Pytest (many thanks to Github user Xoviat).
   * Beginning of Windows refactor (Xoviat again).
 
-* 0.7.3 (Monday December 4th 2017
+* [0.7.3] - 2017-12-04
 
   Also deal with xcode 8.3 message from another binary file.
 
-* 0.7.2 (Saturday December 2nd 2017
+* [0.7.2] - 2017-12-02
 
   Make compatible with latest Xcode error messages.
 
-* 0.7.1 (Tuesday June 27th 2017)
+* [0.7.1] - 2017-06-27
 
   Fix broken tests from 0.7.0.
 
-* 0.7.0 (Tuesday June 27th 2017)
+* [0.7.0] - 2017-06-27
 
   Add ability to deal with rpath.  Thanks to Kyle Stewart.
 
-* 0.6.5 (Friday June 16 2017)
+* [0.6.5] - 2017-06-16
 
   More changes for compatibility with newer OSX Xcode messages.  Thanks to
   Sean Gillies.
 
   * more adaptations to changes to output of ``otool``.
 
-* 0.6.4 (Wednesday November 23 2016)
+* [0.6.4] - 2016-11-23
 
   Changes for compatibility with newer OSX.  Thanks to Tommy Sparber.
 
@@ -136,7 +136,7 @@ Releases
   * adapt to changes in otool output;
   * rebuild testing wheels for OSX 10.6 compatibility.
 
-* 0.6.3 (Monday July 20 2015)
+* [0.6.3] - 2015-07-20
 
   * Inspect all files looking for linked libraries, instead of inspecting only
     files ending in library extensions.  This means that you will also pick up
@@ -146,30 +146,30 @@ Releases
   * Remove silly check for library existence when delocating libraries that
     are in the tree to delocate.
 
-* 0.6.2 (Monday November 10 2014)
+* [0.6.2] - 2014-11-10
 
   * Bugfix for zipfile unpacking losing permissions; This wiped out useful
     permissions like execute permissions for scripts when modifying zip files.
 
-* 0.6.1 (Thursday October 23 2014)
+* [0.6.1] - 2014-10-23
 
   * Add some useful flags to ``delocate-add-platform``
   * Refactoring
 
-* 0.6.0 (Saturday September 13 2014)
+* [0.6.0] - 2014-09-13
 
   * Add utility to add platform tags to wheel contents and name
   * Add more general wheel context manager
   * Some refactoring for neatness
 
-* 0.5.0 (Tuesday July 22 2014)
+* [0.5.0] - 2014-07-22
 
   * Add utilities and script to apply a patch to a wheel
   * Add utilities and script to test for architectures in libraries and
     require named architectures
   * Docstring fixes and refactoring
 
-* 0.4.0 (Wednesday June 25 2014)
+* [0.4.0] - 2014-06-25
 
   * Set ``install_name_id`` for copied libraries to be unique to this package.
     OSX uses the ``install_name_id`` to identify a library uniquely on the
@@ -193,7 +193,7 @@ Releases
     ``delocate-wheel`` script. Now flag input like ``delocate-wheel -w ~/wheels
     some_wheel.whl`` will correctly output to ``$HOME/wheels``.
 
-* 0.3.0 (Monday May 5 2014)
+* [0.3.0] - 2014-05-05
 
   * Switch to using just ``@loader_path`` rather than a combination of
     ``@loader_path`` and ``@rpath`` for pointing to relocated libraries.  Using
@@ -215,13 +215,13 @@ Releases
   * Don't raise an error when delocating a wheel that was previously delocated
     (MinRK)
 
-* 0.2.1 (Monday March 31 2014)
+* [0.2.1] - 2014-03-31
 
   Bugfix release
 
   * Rewrite wheel RECORD file when writing wheel.  Delocated wheels were
     breaking ``wheel unpack`` command.
 
-* 0.2.0 (Tuesday March 25 2014)
+* [0.2.0] - 2014-03-25
 
   First public release

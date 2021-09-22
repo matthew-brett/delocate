@@ -4,6 +4,7 @@
 import os
 from os.path import join as pjoin, exists, isfile, basename, realpath, splitext
 import shutil
+from typing import AnyStr
 
 try:
     from wheel.install import WheelFile
@@ -37,9 +38,8 @@ EXTRA_EXPS = [('Generator', 'bdist_wheel {pip_version}'),
                   for plat in (EXP_PLAT,) + EXTRA_PLATS]
 
 
-def assert_record_equal(record_orig, record_new):
-    assert_equal(sorted(record_orig.splitlines()),
-                 sorted(record_new.splitlines()))
+def assert_record_equal(record_orig: AnyStr, record_new: AnyStr) -> None:
+    assert sorted(record_orig.splitlines()) == sorted(record_new.splitlines())
 
 
 def test_rewrite_record():

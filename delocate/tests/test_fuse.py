@@ -4,26 +4,27 @@
 import os
 import sys
 from os.path import (join as pjoin, relpath, isdir, dirname, basename)
+import subprocess
 import shutil
 
-from ..tools import (cmp_contents, get_archs, zip2dir, dir2zip, back_tick,
+from ..tools import (cmp_contents, get_archs, zip2dir, dir2zip,
                      open_readable)
 from ..fuse import fuse_trees, fuse_wheels
 from ..tmpdirs import InTemporaryDirectory
 from ..wheeltools import rewrite_record
 
-from .pytest_tools import (assert_true, assert_false, assert_equal)
+from .pytest_tools import (assert_false, assert_equal)
 
 from .test_tools import LIBM1, LIB64, LIB64A
 from .test_wheelies import PURE_WHEEL
 from .test_wheeltools import assert_record_equal
 
 
-def assert_same_tree(tree1, tree2):
+def assert_same_tree(tree1: str, tree2: str) -> None:
     for dirpath, dirnames, filenames in os.walk(tree1):
         tree2_dirpath = pjoin(tree2, relpath(dirpath, tree1))
         for dname in dirnames:
-            assert_true(isdir(pjoin(tree2_dirpath, dname)))
+            assert isdir(pjoin(tree2_dirpath, dname))
         for fname in filenames:
             tree1_path = pjoin(dirpath, fname)
             with open_readable(tree1_path, 'rb') as fobj:
@@ -33,7 +34,7 @@ def assert_same_tree(tree1, tree2):
             if fname == 'RECORD':  # Record can have different line orders
                 assert_record_equal(contents1, contents2)
             else:
-                assert_equal(contents1, contents2)
+                assert contents1 == contents2
 
 
 def assert_listdir_equal(path, listing):
@@ -85,7 +86,7 @@ def test_fuse_trees():
             ['afile.txt', 'anotherfile.txt', 'liba.a', 'tests'])
 
 
-def test_fuse_wheels():
+def test_fuse_wheels() -> None:
     # Test function to fuse two wheels
     wheel_base = basename(PURE_WHEEL)
     with InTemporaryDirectory():
@@ -97,7 +98,9 @@ def test_fuse_wheels():
         zip2dir(wheel_base, 'fused_wheel')
         assert_same_tree('to_wheel', 'fused_wheel')
         # Check unpacking works on fused wheel
-        back_tick([sys.executable, '-m', 'wheel', 'unpack', wheel_base])
+        subprocess.run(
+            [sys.executable, '-m', 'wheel', 'unpack', wheel_base], check=True
+        )
         # Put lib into wheel
         shutil.copyfile(LIB64A, pjoin('from_wheel', 'fakepkg2', 'liba.a'))
         rewrite_record('from_wheel')
@@ -118,4 +121,4 @@ def test_fuse_wheels():
         fuse_wheels('to_wheel.whl', 'from_wheel.whl', wheel_base)
         zip2dir(wheel_base, 'fused_wheel')
         fused_fname = pjoin('fused_wheel', 'fakepkg2', 'liba.dylib')
-        assert_equal(get_archs(fused_fname), set(('arm64', 'x86_64')))
+        assert get_archs(fused_fname) == set(('arm64', 'x86_64'))

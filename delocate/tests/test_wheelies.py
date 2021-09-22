@@ -6,6 +6,7 @@ from os.path import (join as pjoin, basename, realpath, abspath, exists, isdir)
 import stat
 from glob import glob
 import shutil
+import subprocess
 from subprocess import check_call
 from typing import NamedTuple
 
@@ -14,7 +15,7 @@ import pytest
 from ..delocating import (DelocationError, delocate_wheel, patch_wheel,
                           DLC_PREFIX)
 from ..tools import (get_install_names, set_install_name, zip2dir,
-                     dir2zip, back_tick, get_install_id, get_archs)
+                     dir2zip, get_install_id, get_archs)
 from ..wheeltools import InWheel
 
 from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
@@ -93,53 +94,54 @@ def _rename_module(in_wheel, mod_fname, out_wheel):
     return out_wheel
 
 
-def test_fix_plat():
+def test_fix_plat() -> None:
     # Can we fix a wheel with a stray library?
     # We have to make one that works first
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        assert_true(exists(stray_lib))
+        assert exists(stray_lib)
         # Shortcut
         _rp = realpath
         # In-place fix
         dep_mod = pjoin('fakepkg1', 'subpkg', 'module2.abi3.so')
-        assert_equal(delocate_wheel(fixed_wheel),
-                     {_rp(stray_lib): {dep_mod: stray_lib}})
+        assert delocate_wheel(fixed_wheel) == {
+            _rp(stray_lib): {dep_mod: stray_lib}
+        }
         zip2dir(fixed_wheel, 'plat_pkg')
-        assert_true(exists(pjoin('plat_pkg', 'fakepkg1')))
+        assert exists(pjoin('plat_pkg', 'fakepkg1'))
         dylibs = pjoin('plat_pkg', 'fakepkg1', '.dylibs')
-        assert_true(exists(dylibs))
-        assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
+        assert exists(dylibs)
+        assert os.listdir(dylibs) == ['libextfunc.dylib']
         # New output name
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        assert_equal(delocate_wheel(fixed_wheel, 'fixed_wheel.ext'),
-                     {_rp(stray_lib): {dep_mod: stray_lib}})
+        assert delocate_wheel(
+            fixed_wheel, 'fixed_wheel.ext'
+        ) == {_rp(stray_lib): {dep_mod: stray_lib}}
         zip2dir('fixed_wheel.ext', 'plat_pkg1')
-        assert_true(exists(pjoin('plat_pkg1', 'fakepkg1')))
+        assert exists(pjoin('plat_pkg1', 'fakepkg1'))
         dylibs = pjoin('plat_pkg1', 'fakepkg1', '.dylibs')
-        assert_true(exists(dylibs))
-        assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
+        assert exists(dylibs)
+        assert os.listdir(dylibs) == ['libextfunc.dylib']
         # Test another lib output directory
-        assert_equal(delocate_wheel(fixed_wheel,
-                                    'fixed_wheel2.ext',
-                                    'dylibs_dir'),
-                     {_rp(stray_lib): {dep_mod: stray_lib}})
+        assert delocate_wheel(
+            fixed_wheel, 'fixed_wheel2.ext', 'dylibs_dir'
+        ) == {_rp(stray_lib): {dep_mod: stray_lib}}
         zip2dir('fixed_wheel2.ext', 'plat_pkg2')
-        assert_true(exists(pjoin('plat_pkg2', 'fakepkg1')))
+        assert exists(pjoin('plat_pkg2', 'fakepkg1'))
         dylibs = pjoin('plat_pkg2', 'fakepkg1', 'dylibs_dir')
-        assert_true(exists(dylibs))
-        assert_equal(os.listdir(dylibs), ['libextfunc.dylib'])
+        assert exists(dylibs)
+        assert os.listdir(dylibs) == ['libextfunc.dylib']
         # Test check for existing output directory
-        assert_raises(DelocationError,
-                      delocate_wheel,
-                      fixed_wheel,
-                      'broken_wheel.ext',
-                      'subpkg')
+        with pytest.raises(DelocationError):
+            delocate_wheel(fixed_wheel, 'broken_wheel.ext', 'subpkg')
         # Test that `wheel unpack` works
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        assert_equal(delocate_wheel(fixed_wheel),
-                     {_rp(stray_lib): {dep_mod: stray_lib}})
-        back_tick([sys.executable, '-m', 'wheel', 'unpack', fixed_wheel])
+        assert delocate_wheel(fixed_wheel) == {
+            _rp(stray_lib): {dep_mod: stray_lib}
+        }
+        subprocess.run(
+            [sys.executable, '-m', 'wheel', 'unpack', fixed_wheel], check=True
+        )
         # Check that copied libraries have modified install_name_ids
         zip2dir(fixed_wheel, 'plat_pkg3')
         base_stray = basename(stray_lib)
@@ -270,7 +272,7 @@ def test_check_plat_archs():
                       require_archs=(), check_verbose=True)
 
 
-def test_patch_wheel():
+def test_patch_wheel() -> None:
     # Check patching of wheel
     with InTemporaryDirectory():
         # First wheel needs proper wheel filename for later unpack test
@@ -278,23 +280,25 @@ def test_patch_wheel():
         patch_wheel(PURE_WHEEL, WHEEL_PATCH, out_fname)
         zip2dir(out_fname, 'wheel1')
         with open(pjoin('wheel1', 'fakepkg2', '__init__.py'), 'rt') as fobj:
-            assert_equal(fobj.read(), 'print("Am in init")\n')
+            assert fobj.read() == 'print("Am in init")\n'
         # Check that wheel unpack works
-        back_tick([sys.executable, '-m', 'wheel', 'unpack', out_fname])
+        subprocess.run(
+            [sys.executable, '-m', 'wheel', 'unpack', out_fname], check=True
+        )
         # Copy the original, check it doesn't have patch
         shutil.copyfile(PURE_WHEEL, 'copied.whl')
         zip2dir('copied.whl', 'wheel2')
         with open(pjoin('wheel2', 'fakepkg2', '__init__.py'), 'rt') as fobj:
-            assert_equal(fobj.read(), '')
+            assert fobj.read() == ''
         # Overwrite input wheel (the default)
         patch_wheel('copied.whl', WHEEL_PATCH)
         # Patched
         zip2dir('copied.whl', 'wheel3')
         with open(pjoin('wheel3', 'fakepkg2', '__init__.py'), 'rt') as fobj:
-            assert_equal(fobj.read(), 'print("Am in init")\n')
+            assert fobj.read() == 'print("Am in init")\n'
         # Check bad patch raises error
-        assert_raises(RuntimeError,
-                      patch_wheel, PURE_WHEEL, WHEEL_PATCH_BAD, 'out.whl')
+        with pytest.raises(RuntimeError):
+            patch_wheel(PURE_WHEEL, WHEEL_PATCH_BAD, 'out.whl')
 
 
 def test_fix_rpath():

@@ -1,3 +1,5 @@
+.. image:: https://img.shields.io/pypi/v/delocate
+    :target: https://pypi.org/project/delocate/
 .. image:: https://travis-ci.org/matthew-brett/delocate.svg?branch=master
     :target: https://travis-ci.org/matthew-brett/delocate
 .. image:: https://codecov.io/gh/matthew-brett/delocate/branch/master/graph/badge.svg?token=wvAWRBK5Di
@@ -202,68 +204,6 @@ This is not a problem specific to Delocate; you will need to do this to
 make sure that ``myext.so`` can load ``libme.dylib`` without ``libme.dylib``
 being in the current working directory.  For ``CMAKE`` builds you may want to
 check out CMAKE_INSTALL_NAME_DIR_.
-
-External library is not bundled into wheel
-------------------------------------------
-
-If your project is structured as a standalone Python module rather
-than package, ``delocate-wheel`` may not find the extension modules
-that you want to patch::
-
-    $ delocate-wheel -w fixed_wheels -v my-wheel-name.whl
-    Fixing: my-wheel-name.whl
-
-The above output is missing a line indicating that an external
-shared library was copied into the wheel as intended.
-
-To show this visually, this project layout will **not** work::
-
-    ├── extension_module.cpp
-    ├── setup.py
-    └── README.md
-
-Instead, ``delocate-wheel`` requires a project organized as a Python
-package rather than single standalone module::
-
-    ├── proj/
-    │   ├── __init__.py
-    │   ├── extension_module.cpp
-    ├── setup.py
-    └── README.md
-
-Here, ``__init__.py`` contains::
-
-    from .extension_module import *
-
-Along with this, make sure to include the ``packages`` argument
-to ``setup()`` in ``setup.py``::
-
-    # setup.py
-    from setuptools import setup, find_packages
-
-    # ...
-
-    setup(
-        # ...
-        packages=find_packages(),  # or packages=["proj"]
-        # ...
-    )
-
-After these changes, you should see the dylibs successfully copied in::
-
-    $ delocate-wheel -w fixed_wheels -v my-wheel-name.whl
-    Fixing: my-wheel-name.whl
-    Copied to package .dylibs directory:
-      /usr/local/Cellar/package/1.0/lib/mylib.22.dylib
-
-Refer to `Issue 12`_, `Issue 15`_, and `Issue 45`_ for more detail.
-
-.. _Issue 12:
-   https://github.com/matthew-brett/delocate/issues/12
-.. _Issue 15:
-   https://github.com/matthew-brett/delocate/issues/15
-.. _Issue 45:
-   https://github.com/matthew-brett/delocate/issues/45
 
 ****
 Code

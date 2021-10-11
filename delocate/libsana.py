@@ -391,6 +391,11 @@ def tree_libs_from_directory(
     )
 
 
+def _allow_all(path: str) -> bool:
+    """A filter which returns True for all files."""
+    return True
+
+
 def tree_libs(
     start_path,  # type: Text
     filt_func=None,  # type: Optional[Callable[[Text], bool]]
@@ -442,7 +447,7 @@ def tree_libs(
         stacklevel=2,
     )
     if filt_func is None:
-        filt_func = lambda _: True
+        filt_func = _allow_all
     lib_dict = {}  # type: Dict[Text, Dict[Text, Text]]
     for dirpath, dirnames, basenames in os.walk(start_path):
         for base in basenames:

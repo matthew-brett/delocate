@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function
 
+import functools
 import logging
 import os
 import shutil
@@ -26,6 +27,7 @@ from typing import (
 )
 
 from .libsana import (
+    _allow_all,
     get_rp_stripper,
     stripped_lib_dict,
     tree_libs,
@@ -381,6 +383,17 @@ def filter_system_libs(libname: str) -> bool:
     return not (libname.startswith("/usr/lib") or libname.startswith("/System"))
 
 
+def _delocate_filter_function(
+    path: str,
+    *,
+    lib_filt_func: Callable[[str], bool],
+    copy_filt_func: Callable[[str], bool],
+) -> bool:
+    """Combines the library inspection and copy filters so that libraries
+    which won't be copied will not be followed."""
+    return lib_filt_func(path) and copy_filt_func(path)
+
+
 def delocate_path(
     tree_path,  # type: Text
     lib_path,  # type: Text
@@ -437,13 +450,17 @@ def delocate_path(
     elif isinstance(lib_filt_func, str):
         raise TypeError('lib_filt_func string can only be "dylibs-only"')
     if lib_filt_func is None:
-        lib_filt_func = lambda _: True
+        lib_filt_func = _allow_all
     if copy_filt_func is None:
-        copy_filt_func = lambda _: True
+        copy_filt_func = _allow_all
     if not exists(lib_path):
         os.makedirs(lib_path)
     # Do not inspect dependencies of libraries that will not be copied.
-    filt_func = lambda path: lib_filt_func(path) and copy_filt_func(path)
+    filt_func = functools.partial(
+        _delocate_filter_function,
+        lib_filt_func=lib_filt_func,
+        copy_filt_func=copy_filt_func,
+    )
 
     lib_dict = tree_libs_from_directory(
         tree_path,

@@ -1,0 +1,6 @@
+# A common convention for ignoring commits with automated formatting.
+# To ignore anything new add the commit hash and the first line of the commit
+# message.
+
+# Format all sources with Black.
+4c3d0dcf5256a34828252e0b78b097a10ae9eff6

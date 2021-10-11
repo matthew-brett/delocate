@@ -14,15 +14,17 @@ or (adds tags for OSX 10.9 and 10.10):
     delocate-addplat -x 10_9 -x 10_10 *.whl
 """
 # vim: ft=python
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
 
-import sys
 import os
-from os.path import join as exists, expanduser, realpath
-from optparse import OptionParser, Option
+import sys
+from optparse import Option, OptionParser
+from os.path import expanduser
+from os.path import join as exists
+from os.path import realpath
 
 from delocate import __version__
-from delocate.wheeltools import add_platforms, WheelToolsError
+from delocate.wheeltools import WheelToolsError, add_platforms
 
 
 def main():

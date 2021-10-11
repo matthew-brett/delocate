@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """ setup script for delocate package """
-from os.path import join as pjoin
-from setuptools import setup, find_packages
 import codecs
+from os.path import join as pjoin
 
 import versioneer
-
+from setuptools import find_packages, setup
 
 setup(
     name="delocate",

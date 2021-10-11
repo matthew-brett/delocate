@@ -4,12 +4,12 @@
 Overwrites the first wheel in-place by default
 """
 # vim: ft=python
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
 
-from os.path import join as pjoin, basename, expanduser, abspath
 import sys
-
-from optparse import OptionParser, Option
+from optparse import Option, OptionParser
+from os.path import abspath, basename, expanduser
+from os.path import join as pjoin
 
 from delocate import __version__
 from delocate.fuse import fuse_wheels

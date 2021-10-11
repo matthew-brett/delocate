@@ -3,9 +3,11 @@
 fakepkg1 is a - fake package - that has extensions and links against an external
 dynamic lib.  We use it to build a wheel, then test we can delocate it.
 """
-from os.path import join as pjoin, abspath, dirname
-from setuptools import setup, Extension
+from os.path import abspath, dirname
+from os.path import join as pjoin
 from subprocess import check_call
+
+from setuptools import Extension, setup
 
 HERE = abspath(dirname(__file__))
 LIBS = pjoin(HERE, "libs")

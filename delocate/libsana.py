@@ -3,11 +3,13 @@
 Analyze library dependencies in paths and wheel files
 """
 
-import os
-from os.path import basename, dirname, join as pjoin, realpath
-import sys
-
 import logging
+import os
+import sys
+import warnings
+from os.path import basename, dirname
+from os.path import join as pjoin
+from os.path import realpath
 from typing import (
     Callable,
     Dict,
@@ -19,17 +21,16 @@ from typing import (
     Text,
     Tuple,
 )
-import warnings
 
 import delocate.delocating
-from .tools import (
-    get_install_names,
-    zip2dir,
-    get_rpaths,
-    get_environment_variable_paths,
-)
-from .tmpdirs import TemporaryDirectory
 
+from .tmpdirs import TemporaryDirectory
+from .tools import (
+    get_environment_variable_paths,
+    get_install_names,
+    get_rpaths,
+    zip2dir,
+)
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,8 @@
 # Init for delocate package
 
+from . import _version
 from .delocating import delocate_path, delocate_wheel, patch_wheel
 from .libsana import tree_libs, wheel_libs
-
-from . import _version
 
 __version__ = _version.get_versions()["version"]
 del _version

@@ -3,20 +3,14 @@
 
 from __future__ import division, print_function
 
-import os
-from os.path import (
-    join as pjoin,
-    dirname,
-    basename,
-    exists,
-    abspath,
-    relpath,
-    realpath,
-)
 import logging
+import os
 import shutil
 import warnings
-from subprocess import Popen, PIPE
+from os.path import abspath, basename, dirname, exists
+from os.path import join as pjoin
+from os.path import realpath, relpath
+from subprocess import PIPE, Popen
 from typing import (
     Callable,
     Dict,
@@ -32,23 +26,22 @@ from typing import (
 )
 
 from .libsana import (
-    tree_libs,
-    stripped_lib_dict,
     get_rp_stripper,
+    stripped_lib_dict,
+    tree_libs,
     tree_libs_from_directory,
 )
-from .tools import (
-    set_install_name,
-    zip2dir,
-    dir2zip,
-    validate_signature,
-    find_package_dirs,
-    set_install_id,
-    get_archs,
-)
 from .tmpdirs import TemporaryDirectory
-from .wheeltools import rewrite_record, InWheel
-
+from .tools import (
+    dir2zip,
+    find_package_dirs,
+    get_archs,
+    set_install_id,
+    set_install_name,
+    validate_signature,
+    zip2dir,
+)
+from .wheeltools import InWheel, rewrite_record
 
 logger = logging.getLogger(__name__)
 

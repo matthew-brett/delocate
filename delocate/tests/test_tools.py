@@ -2,41 +2,35 @@
 from __future__ import division, print_function
 
 import os
-from os.path import join as pjoin, dirname
-import subprocess
-import stat
 import shutil
+import stat
+import subprocess
+from os.path import dirname
+from os.path import join as pjoin
 
 import pytest
 
+from ..tmpdirs import InTemporaryDirectory
 from ..tools import (
+    add_rpath,
     back_tick,
-    unique_by_index,
-    ensure_writable,
     chmod_perms,
-    ensure_permissions,
-    parse_install_name,
-    zip2dir,
-    dir2zip,
-    find_package_dirs,
     cmp_contents,
+    dir2zip,
+    ensure_permissions,
+    ensure_writable,
+    find_package_dirs,
     get_archs,
     lipo_fuse,
+    parse_install_name,
     replace_signature,
-    validate_signature,
-    add_rpath,
     set_install_id,
     set_install_name,
+    unique_by_index,
+    validate_signature,
+    zip2dir,
 )
-
-from ..tmpdirs import InTemporaryDirectory
-
-from .pytest_tools import (
-    assert_true,
-    assert_false,
-    assert_equal,
-    assert_raises,
-)
+from .pytest_tools import assert_equal, assert_false, assert_raises, assert_true
 from .test_install_names import LIBSTDCXX
 
 DATA_PATH = pjoin(dirname(__file__), "data")

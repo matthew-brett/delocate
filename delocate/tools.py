@@ -1,13 +1,15 @@
 """ Tools for getting and setting install names """
 import os
-from os.path import join as pjoin, relpath, isdir, exists
-from typing import Any, FrozenSet, List, Optional, Sequence, Set, Union
-import subprocess
-import warnings
-import zipfile
 import re
 import stat
+import subprocess
 import time
+import warnings
+import zipfile
+from os.path import exists, isdir
+from os.path import join as pjoin
+from os.path import relpath
+from typing import Any, FrozenSet, List, Optional, Sequence, Set, Union
 
 
 class InstallNameError(Exception):

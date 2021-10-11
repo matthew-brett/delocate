@@ -2,14 +2,15 @@
 """ List library dependencies for libraries in path or wheel
 """
 # vim: ft=python
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import sys
+from optparse import Option, OptionParser
 from os import getcwd
-from os.path import isdir, realpath, sep as psep
-from optparse import OptionParser, Option
+from os.path import isdir, realpath
+from os.path import sep as psep
 
-from delocate import wheel_libs, __version__
+from delocate import __version__, wheel_libs
 from delocate.delocating import filter_system_libs
 from delocate.libsana import stripped_lib_dict, tree_libs_from_directory
 

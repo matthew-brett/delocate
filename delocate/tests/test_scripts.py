@@ -6,54 +6,40 @@ If we appear to be running from the development directory, use the scripts in
 the top-level folder ``scripts``.  Otherwise try and get the scripts from the
 path
 """
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import os
-from os.path import (
-    dirname,
-    join as pjoin,
-    isfile,
-    abspath,
-    realpath,
-    basename,
-    exists,
-    splitext,
-)
 import shutil
 import subprocess
+from os.path import abspath, basename, dirname, exists, isfile
+from os.path import join as pjoin
+from os.path import realpath, splitext
 from typing import Text
 
-from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
-from ..tools import set_install_name, zip2dir, dir2zip
+from ..tmpdirs import InGivenDirectory, InTemporaryDirectory
+from ..tools import dir2zip, set_install_name, zip2dir
 from ..wheeltools import InWheel
+from .pytest_tools import assert_equal, assert_false, assert_raises, assert_true
 from .scriptrunner import ScriptRunner
-
-from .pytest_tools import (
-    assert_true,
-    assert_false,
-    assert_equal,
-    assert_raises,
-)
-
+from .test_delocating import _copy_to, _make_bare_depends, _make_libtree
+from .test_fuse import assert_same_tree
 from .test_install_names import EXT_LIBS
-from .test_delocating import _make_libtree, _copy_to, _make_bare_depends
 from .test_wheelies import (
-    PlatWheel,
-    _fixed_wheel,
     PLAT_WHEEL,
     PURE_WHEEL,
     WHEEL_PATCH,
     WHEEL_PATCH_BAD,
+    PlatWheel,
+    _fixed_wheel,
+    _rename_module,
     _thin_lib,
     _thin_mod,
-    _rename_module,
 )
-from .test_fuse import assert_same_tree
 from .test_wheeltools import (
-    assert_winfo_similar,
     EXP_ITEMS,
-    EXTRA_PLATS,
     EXTRA_EXPS,
+    EXTRA_PLATS,
+    assert_winfo_similar,
 )
 
 

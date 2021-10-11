@@ -3,10 +3,10 @@ from pathlib import Path
 from typing import Iterator
 
 import pytest
-
 from delocate.tools import set_install_name
 from delocate.wheeltools import InWheelCtx
-from .test_wheelies import PlatWheel, STRAY_LIB_DEP, PLAT_WHEEL
+
+from .test_wheelies import PLAT_WHEEL, STRAY_LIB_DEP, PlatWheel
 
 
 @pytest.fixture

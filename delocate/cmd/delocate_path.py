@@ -2,13 +2,13 @@
 """ Copy, relink library dependencies for libraries in path
 """
 # vim: ft=python
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
 
-import sys
 import os
-from optparse import OptionParser, Option
+import sys
+from optparse import Option, OptionParser
 
-from delocate import delocate_path, __version__
+from delocate import __version__, delocate_path
 
 
 def main():

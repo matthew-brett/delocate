@@ -14,18 +14,20 @@ libraries.
 
 
 import os
-from os.path import join as pjoin, exists, splitext, relpath, abspath
 import shutil
+from os.path import abspath, exists
+from os.path import join as pjoin
+from os.path import relpath, splitext
 
+from .tmpdirs import InTemporaryDirectory
 from .tools import (
-    zip2dir,
-    dir2zip,
+    chmod_perms,
     cmp_contents,
+    dir2zip,
     lipo_fuse,
     open_rw,
-    chmod_perms,
+    zip2dir,
 )
-from .tmpdirs import InTemporaryDirectory
 from .wheeltools import rewrite_record
 
 

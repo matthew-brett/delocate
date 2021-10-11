@@ -3,61 +3,45 @@
 from __future__ import division, print_function
 
 import os
-from os.path import (
-    join as pjoin,
-    dirname,
-    basename,
-    relpath,
-    realpath,
-    splitext,
-)
 import shutil
 import subprocess
-from typing import Any, Callable, Dict, Iterable, List, Set, Text, Tuple
 from collections import namedtuple
+from os.path import basename, dirname
+from os.path import join as pjoin
+from os.path import realpath, relpath, splitext
+from typing import Any, Callable, Dict, Iterable, List, Set, Text, Tuple
 
 import pytest
 
 from ..delocating import (
     DelocationError,
-    delocate_tree_libs,
+    bads_report,
+    check_archs,
     copy_recurse,
     delocate_path,
-    check_archs,
-    bads_report,
+    delocate_tree_libs,
     filter_system_libs,
 )
 from ..libsana import (
-    tree_libs,
     search_environment_for_lib,
+    tree_libs,
     tree_libs_from_directory,
 )
-from ..tools import get_install_names, set_install_name
-
 from ..tmpdirs import InTemporaryDirectory
-
-from .pytest_tools import assert_raises, assert_equal
-
-from .test_install_names import (
-    LIBA,
-    LIBB,
-    LIBC,
-    TEST_LIB,
-    _copy_libs,
-    EXT_LIBS,
-)
+from ..tools import get_install_names, set_install_name
+from .env_tools import TempDirWithoutEnvVars
+from .pytest_tools import assert_equal, assert_raises
+from .test_install_names import EXT_LIBS, LIBA, LIBB, LIBC, TEST_LIB, _copy_libs
 from .test_tools import (
-    LIBM1,
+    ARCH_32,
+    ARCH_64,
+    ARCH_BOTH,
+    ARCH_M1,
     LIB64,
     LIB64A,
     LIBBOTH,
-    ARCH_64,
-    ARCH_M1,
-    ARCH_BOTH,
-    ARCH_32,
+    LIBM1,
 )
-from .env_tools import TempDirWithoutEnvVars
-
 
 LibtreeLibs = namedtuple(
     "LibtreeLibs", ("liba", "libb", "libc", "test_lib", "slibc", "stest_lib")

@@ -4,17 +4,17 @@
 Overwrites the wheel in-place by default
 """
 # vim: ft=python
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
 
-import os
-from os.path import join as pjoin, basename, exists, expanduser
-import sys
 import logging
+import os
+import sys
+from optparse import Option, OptionParser
+from os.path import basename, exists, expanduser
+from os.path import join as pjoin
 from typing import List, Optional, Text
 
-from optparse import OptionParser, Option
-
-from delocate import delocate_wheel, __version__
+from delocate import __version__, delocate_wheel
 
 
 def main():

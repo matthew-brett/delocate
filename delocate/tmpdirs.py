@@ -9,10 +9,11 @@
 """
 Contexts for *with* statement providing temporary directories
 """
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
+
 import os
 import shutil
-from tempfile import template, mkdtemp
+from tempfile import mkdtemp, template
 
 
 class TemporaryDirectory(object):

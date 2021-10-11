@@ -2,8 +2,10 @@
 """
 
 import os
-from os.path import join as pjoin, exists, isfile, basename, realpath, splitext
 import shutil
+from os.path import basename, exists, isfile
+from os.path import join as pjoin
+from os.path import realpath, splitext
 from typing import AnyStr
 
 try:
@@ -11,26 +13,18 @@ try:
 except ImportError:  # As of Wheel 0.32.0
     from wheel.wheelfile import WheelFile
 
+from ..tmpdirs import InTemporaryDirectory
+from ..tools import open_readable, zip2dir
 from ..wheeltools import (
-    rewrite_record,
     InWheel,
     InWheelCtx,
     WheelToolsError,
-    add_platforms,
     _get_wheelinfo_name,
+    add_platforms,
+    rewrite_record,
 )
-from ..tmpdirs import InTemporaryDirectory
-from ..tools import zip2dir, open_readable
-
-from .pytest_tools import (
-    assert_true,
-    assert_false,
-    assert_raises,
-    assert_equal,
-)
-
-from .test_wheelies import PURE_WHEEL, PLAT_WHEEL
-
+from .pytest_tools import assert_equal, assert_false, assert_raises, assert_true
+from .test_wheelies import PLAT_WHEEL, PURE_WHEEL
 
 # Template for testing expected wheel information
 EXP_PLAT = splitext(PLAT_WHEEL)[0].split("-")[-1]

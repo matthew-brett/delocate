@@ -4,45 +4,43 @@ Utilities for analyzing library dependencies in trees and wheels
 """
 
 import os
-from os.path import join as pjoin, dirname, realpath, relpath, split
 import shutil
+from os.path import dirname
+from os.path import join as pjoin
+from os.path import realpath, relpath, split
 from typing import Dict, Iterable, Text
 
 import pytest
 
 from ..delocating import DelocationError, filter_system_libs
 from ..libsana import (
-    tree_libs,
+    DependencyNotFound,
+    get_dependencies,
     get_prefix_stripper,
     get_rp_stripper,
-    stripped_lib_dict,
-    wheel_libs,
-    resolve_rpath,
-    get_dependencies,
     resolve_dynamic_paths,
-    walk_library,
-    walk_directory,
+    resolve_rpath,
+    stripped_lib_dict,
+    tree_libs,
     tree_libs_from_directory,
-    DependencyNotFound,
+    walk_directory,
+    walk_library,
+    wheel_libs,
 )
-
-from ..tools import set_install_name
-
 from ..tmpdirs import InTemporaryDirectory
-
+from ..tools import set_install_name
 from .pytest_tools import assert_equal
-
 from .test_install_names import (
+    DATA_PATH,
+    EXT_LIBS,
     LIBA,
     LIBB,
     LIBC,
+    LIBSYSTEMB,
     TEST_LIB,
     _copy_libs,
-    EXT_LIBS,
-    LIBSYSTEMB,
-    DATA_PATH,
 )
-from .test_wheelies import PlatWheel, PLAT_WHEEL, PURE_WHEEL, RPATH_WHEEL
+from .test_wheelies import PLAT_WHEEL, PURE_WHEEL, RPATH_WHEEL, PlatWheel
 
 
 def get_ext_dict(local_libs):

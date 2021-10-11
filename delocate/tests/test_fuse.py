@@ -2,19 +2,19 @@
 """
 
 import os
-import sys
-from os.path import join as pjoin, relpath, isdir, dirname, basename
-import subprocess
 import shutil
+import subprocess
+import sys
+from os.path import basename, dirname, isdir
+from os.path import join as pjoin
+from os.path import relpath
 
-from ..tools import cmp_contents, get_archs, zip2dir, dir2zip, open_readable
 from ..fuse import fuse_trees, fuse_wheels
 from ..tmpdirs import InTemporaryDirectory
+from ..tools import cmp_contents, dir2zip, get_archs, open_readable, zip2dir
 from ..wheeltools import rewrite_record
-
-from .pytest_tools import assert_false, assert_equal
-
-from .test_tools import LIBM1, LIB64, LIB64A
+from .pytest_tools import assert_equal, assert_false
+from .test_tools import LIB64, LIB64A, LIBM1
 from .test_wheelies import PURE_WHEEL
 from .test_wheeltools import assert_record_equal
 

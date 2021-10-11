@@ -1,26 +1,24 @@
 """ Tests for install name utilities """
 
 import os
-from os.path import join as pjoin, exists, dirname, basename
-
 import shutil
-
-from ..tools import (
-    InstallNameError,
-    get_install_names,
-    set_install_name,
-    get_install_id,
-    get_rpaths,
-    add_rpath,
-    parse_install_name,
-    set_install_id,
-    get_environment_variable_paths,
-)
+from os.path import basename, dirname, exists
+from os.path import join as pjoin
 
 from ..tmpdirs import InTemporaryDirectory
-
-from .pytest_tools import assert_raises, assert_equal
+from ..tools import (
+    InstallNameError,
+    add_rpath,
+    get_environment_variable_paths,
+    get_install_id,
+    get_install_names,
+    get_rpaths,
+    parse_install_name,
+    set_install_id,
+    set_install_name,
+)
 from .env_tools import TempDirWithoutEnvVars
+from .pytest_tools import assert_equal, assert_raises
 
 # External libs linked from test data
 LIBSTDCXX = "/usr/lib/libc++.1.dylib"

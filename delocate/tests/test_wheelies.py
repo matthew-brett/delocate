@@ -1,44 +1,38 @@
 """ Direct tests of fixes to wheels """
 
 import os
-import sys
-from os.path import join as pjoin, basename, realpath, abspath, exists, isdir
-import stat
-from glob import glob
 import shutil
+import stat
 import subprocess
+import sys
+from glob import glob
+from os.path import abspath, basename, exists, isdir
+from os.path import join as pjoin
+from os.path import realpath
 from subprocess import check_call
 from typing import NamedTuple
 
 import pytest
 
 from ..delocating import (
+    DLC_PREFIX,
     DelocationError,
     delocate_wheel,
     patch_wheel,
-    DLC_PREFIX,
 )
+from ..tmpdirs import InGivenDirectory, InTemporaryDirectory
 from ..tools import (
+    dir2zip,
+    get_archs,
+    get_install_id,
     get_install_names,
     set_install_name,
     zip2dir,
-    dir2zip,
-    get_install_id,
-    get_archs,
 )
 from ..wheeltools import InWheel
-
-from ..tmpdirs import InTemporaryDirectory, InGivenDirectory
-
-from .pytest_tools import (
-    assert_true,
-    assert_false,
-    assert_raises,
-    assert_equal,
-)
-
+from .pytest_tools import assert_equal, assert_false, assert_raises, assert_true
 from .test_install_names import DATA_PATH, EXT_LIBS
-from .test_tools import ARCH_M1, ARCH_BOTH
+from .test_tools import ARCH_BOTH, ARCH_M1
 
 
 def _collect_wheel(globber):

@@ -3,9 +3,11 @@
 This fake package has an extension which links against a library using @rpath
 in its install name.  The library will also be signed with an ad-hoc signature.
 """
-from os.path import join as pjoin, abspath, dirname
-from setuptools import setup, Extension
+from os.path import abspath, dirname
+from os.path import join as pjoin
 from subprocess import check_call
+
+from setuptools import Extension, setup
 
 HERE = abspath(dirname(__file__))
 LIBS = pjoin(HERE, "libs")

@@ -6,7 +6,7 @@ from ..tmpdirs import InTemporaryDirectory
 
 @contextmanager
 def TempDirWithoutEnvVars(*env_vars):
-    """ Remove `env_vars` from the environment and restore them after
+    """Remove `env_vars` from the environment and restore them after
     testing is complete.
     """
     old_vars = {}

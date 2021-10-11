@@ -14,11 +14,17 @@ libraries.
 
 
 import os
-from os.path import (join as pjoin, exists, splitext, relpath, abspath)
+from os.path import join as pjoin, exists, splitext, relpath, abspath
 import shutil
 
-from .tools import (zip2dir, dir2zip, cmp_contents, lipo_fuse,
-                    open_rw, chmod_perms)
+from .tools import (
+    zip2dir,
+    dir2zip,
+    cmp_contents,
+    lipo_fuse,
+    open_rw,
+    chmod_perms,
+)
 from .tmpdirs import InTemporaryDirectory
 from .wheeltools import rewrite_record
 
@@ -26,15 +32,15 @@ from .wheeltools import rewrite_record
 def _copyfile(in_fname, out_fname):
     # Copies files without read / write permission
     perms = chmod_perms(in_fname)
-    with open_rw(in_fname, 'rb') as fobj:
+    with open_rw(in_fname, "rb") as fobj:
         contents = fobj.read()
-    with open_rw(out_fname, 'wb') as fobj:
+    with open_rw(out_fname, "wb") as fobj:
         fobj.write(contents)
     os.chmod(out_fname, perms)
 
 
-def fuse_trees(to_tree, from_tree, lib_exts=('.so', '.dylib', '.a')):
-    """ Fuse path `from_tree` into path `to_tree`
+def fuse_trees(to_tree, from_tree, lib_exts=(".so", ".dylib", ".a")):
+    """Fuse path `from_tree` into path `to_tree`
 
     For each file in `from_tree` - check for library file extension (in
     `lib_exts` - if present, check if there is a file with matching relative
@@ -78,7 +84,7 @@ def fuse_trees(to_tree, from_tree, lib_exts=('.so', '.dylib', '.a')):
 
 
 def fuse_wheels(to_wheel, from_wheel, out_wheel):
-    """ Fuse `from_wheel` into `to_wheel`, write to `out_wheel`
+    """Fuse `from_wheel` into `to_wheel`, write to `out_wheel`
 
     Parameters
     ---------
@@ -90,10 +96,11 @@ def fuse_wheels(to_wheel, from_wheel, out_wheel):
         filename of new wheel from fusion of `to_wheel` and `from_wheel`
     """
     to_wheel, from_wheel, out_wheel = [
-        abspath(w) for w in (to_wheel, from_wheel, out_wheel)]
+        abspath(w) for w in (to_wheel, from_wheel, out_wheel)
+    ]
     with InTemporaryDirectory():
-        zip2dir(to_wheel, 'to_wheel')
-        zip2dir(from_wheel, 'from_wheel')
-        fuse_trees('to_wheel', 'from_wheel')
-        rewrite_record('to_wheel')
-        dir2zip('to_wheel', out_wheel)
+        zip2dir(to_wheel, "to_wheel")
+        zip2dir(from_wheel, "from_wheel")
+        fuse_trees("to_wheel", "from_wheel")
+        rewrite_record("to_wheel")
+        dir2zip("to_wheel", out_wheel)

@@ -18,16 +18,26 @@ from delocate import patch_wheel, __version__
 def main():
     parser = OptionParser(
         usage="%s WHEEL_FILENAME PATCH_FNAME\n\n" % sys.argv[0] + __doc__,
-        version="%prog " + __version__)
+        version="%prog " + __version__,
+    )
     parser.add_option(
-        Option("-w", "--wheel-dir",
-               action="store", type='string',
-               help="Directory to store patched wheel (default is to "
-               "overwrite input)"))
+        Option(
+            "-w",
+            "--wheel-dir",
+            action="store",
+            type="string",
+            help="Directory to store patched wheel (default is to "
+            "overwrite input)",
+        )
+    )
     parser.add_option(
-        Option("-v", "--verbose",
-               action="store_true",
-               help="Print input and output wheels"))
+        Option(
+            "-v",
+            "--verbose",
+            action="store_true",
+            help="Print input and output wheels",
+        )
+    )
     (opts, args) = parser.parse_args()
     if len(args) != 2:
         parser.print_help()
@@ -40,16 +50,15 @@ def main():
     else:
         wheel_dir = None
     if opts.verbose:
-        print('Patching: {0} with {1}'.format(wheel, patch_fname))
+        print("Patching: {0} with {1}".format(wheel, patch_fname))
     if wheel_dir:
         out_wheel = pjoin(wheel_dir, basename(wheel))
     else:
         out_wheel = wheel
     patch_wheel(wheel, patch_fname, out_wheel)
     if opts.verbose:
-        print("Patched wheel {0} to {1}:".format(
-            wheel, out_wheel))
+        print("Patched wheel {0} to {1}:".format(wheel, out_wheel))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

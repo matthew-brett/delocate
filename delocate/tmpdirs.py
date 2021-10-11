@@ -32,6 +32,7 @@ class TemporaryDirectory(object):
     >>> os.path.exists(tmpdir)
     False
     """
+
     def __init__(self, suffix="", prefix=template, dir=None):
         self.name = mkdtemp(suffix, prefix, dir)
         self._closed = False
@@ -50,7 +51,7 @@ class TemporaryDirectory(object):
 
 
 class InTemporaryDirectory(TemporaryDirectory):
-    ''' Create, return, and change directory to a temporary directory
+    """Create, return, and change directory to a temporary directory
 
     Examples
     --------
@@ -64,7 +65,8 @@ class InTemporaryDirectory(TemporaryDirectory):
     False
     >>> os.getcwd() == my_cwd
     True
-    '''
+    """
+
     def __enter__(self):
         self._pwd = os.getcwd()
         os.chdir(self.name)
@@ -76,7 +78,7 @@ class InTemporaryDirectory(TemporaryDirectory):
 
 
 class InGivenDirectory(object):
-    """ Change directory to given directory for duration of ``with`` block
+    """Change directory to given directory for duration of ``with`` block
 
     Useful when you want to use `InTemporaryDirectory` for the final test, but
     you are still debugging.  For example, you may want to do this in the end:
@@ -98,8 +100,9 @@ class InGivenDirectory(object):
     fix, and finally replace ``InGivenDirectory`` with ``InTemporaryDirectory``
     again.
     """
+
     def __init__(self, path=None):
-        """ Initialize directory context manager
+        """Initialize directory context manager
 
         Parameters
         ----------

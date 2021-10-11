@@ -14,33 +14,47 @@ from delocate import delocate_path, __version__
 def main():
     parser = OptionParser(
         usage="%s PATH_TO_ANALYZE\n\n" % sys.argv[0] + __doc__,
-        version="%prog " + __version__)
-    parser.add_options([
-        Option("-L", "--lib-path",
-               action="store", type='string',
-               help="Output subdirectory path to copy library dependencies"),
-        Option("-d", "--dylibs-only",
-               action="store_true",
-               help="Only analyze files with known dynamic library "
-               "extensions"),
-        Option("--executable-path",
-               action="store", type='string',
-               default=os.path.dirname(sys.executable),
-               help="The path used to resolve @executable_path in dependencies"
-               ),
-        Option("--ignore-missing-dependencies",
-               action="store_true",
-               help="Skip dependencies which couldn't be found and delocate "
-               "as much as possible"),
-    ])
+        version="%prog " + __version__,
+    )
+    parser.add_options(
+        [
+            Option(
+                "-L",
+                "--lib-path",
+                action="store",
+                type="string",
+                help="Output subdirectory path to copy library dependencies",
+            ),
+            Option(
+                "-d",
+                "--dylibs-only",
+                action="store_true",
+                help="Only analyze files with known dynamic library "
+                "extensions",
+            ),
+            Option(
+                "--executable-path",
+                action="store",
+                type="string",
+                default=os.path.dirname(sys.executable),
+                help="The path used to resolve @executable_path in dependencies",
+            ),
+            Option(
+                "--ignore-missing-dependencies",
+                action="store_true",
+                help="Skip dependencies which couldn't be found and delocate "
+                "as much as possible",
+            ),
+        ]
+    )
     (opts, paths) = parser.parse_args()
     if len(paths) < 1:
         parser.print_help()
         sys.exit(1)
 
     if opts.lib_path is None:
-        opts.lib_path = '.dylibs'
-    lib_filt_func = 'dylibs-only' if opts.dylibs_only else None
+        opts.lib_path = ".dylibs"
+    lib_filt_func = "dylibs-only" if opts.dylibs_only else None
     multi = len(paths) > 1
     for path in paths:
         if multi:
@@ -56,5 +70,5 @@ def main():
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

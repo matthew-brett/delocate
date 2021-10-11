@@ -6,7 +6,7 @@ then test we can delocate it.
 from setuptools import setup
 
 setup(
-    name='fakepkg2',
+    name="fakepkg2",
     version="1.0",
-    packages=['fakepkg2', 'fakepkg2.subpkg', 'fakepkg2.tests'],
+    packages=["fakepkg2", "fakepkg2.subpkg", "fakepkg2.tests"],
 )

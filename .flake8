@@ -3,5 +3,5 @@ max-line-length = 80
 per-file-ignores =
     delocate/tmpdirs.py: E266
 select = E,F,W
-ignore = W503,W504
+ignore = W503,W504,E203
 exclude = versioneer.py delocate/_version.py

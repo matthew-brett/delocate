@@ -83,6 +83,8 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: "3.x"
+      - name: Check otool version
+        run: otool --version
       - name: Download wheel
         uses: actions/download-artifact@v2
         with:

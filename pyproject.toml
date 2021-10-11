@@ -1,0 +1,12 @@
+[tool.black]
+line-length = 80
+target-version = ['py36']
+extend-exclude = '''versioneer.py|delocate/_version.py'''
+experimental-string-processing = true
+
+[tool.isort]
+profile = "black"
+py_version = 36
+src_paths = ["isort", "test"]
+line_length = 80
+extend_skip = ["versioneer.py", "delocate/_version.py"]

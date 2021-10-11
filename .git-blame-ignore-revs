@@ -1,0 +1,8 @@
+# File that should be passed as an argument to `git blame --ignore-revs-file`
+# See: https://www.git-scm.com/docs/git-blame
+# Name `.git-blame-ignore-revs` is a common convention, not an official Git standard.
+# To ignore anything new add the commit hash and the first line of the commit
+# message.
+
+# Format all sources with Black.
+4c3d0dcf5256a34828252e0b78b097a10ae9eff6

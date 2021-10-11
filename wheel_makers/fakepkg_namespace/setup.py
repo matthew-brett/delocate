@@ -37,7 +37,7 @@ setup(
     name="fakepkg_namespace",
     version="1.0",
     packages=[
-        'namespace.subpkg',
-        'namespace.subpkg.tests',
+        "namespace.subpkg",
+        "namespace.subpkg.tests",
     ],
 )

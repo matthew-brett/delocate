@@ -3,23 +3,28 @@
 Tools that aren't specific to delocation
 """
 
-import sys
-import os
-from os.path import (join as pjoin, abspath, relpath, exists, sep as psep,
-                     splitext, basename, dirname)
+import csv
 import glob
 import hashlib
-import csv
+import os
+import sys
 from itertools import product
+from os.path import abspath, basename, dirname, exists
+from os.path import join as pjoin
+from os.path import relpath
+from os.path import sep as psep
+from os.path import splitext
 
-from wheel.util import urlsafe_b64encode, native
 from wheel.pkginfo import read_pkg_info, write_pkg_info
+from wheel.util import native, urlsafe_b64encode
+
 try:
     from wheel.install import WheelFile
 except ImportError:  # As of Wheel 0.32.0
     from wheel.wheelfile import WheelFile
+
 from .tmpdirs import InTemporaryDirectory
-from .tools import unique_by_index, zip2dir, dir2zip, open_rw
+from .tools import dir2zip, open_rw, unique_by_index, zip2dir
 
 
 class WheelToolsError(Exception):
@@ -27,14 +32,14 @@ class WheelToolsError(Exception):
 
 
 def _open_for_csv(name, mode):
-    """ Deal with Python 2/3 open API differences """
+    """Deal with Python 2/3 open API differences"""
     if sys.version_info[0] < 3:
-        return open_rw(name, mode + 'b')
-    return open_rw(name, mode, newline='', encoding='utf-8')
+        return open_rw(name, mode + "b")
+    return open_rw(name, mode, newline="", encoding="utf-8")
 
 
 def rewrite_record(bdist_dir):
-    """ Rewrite RECORD file with hashes for all files in `wheel_sdir`
+    """Rewrite RECORD file with hashes for all files in `wheel_sdir`
 
     Copied from :method:`wheel.bdist_wheel.bdist_wheel.write_record`
 
@@ -45,13 +50,13 @@ def rewrite_record(bdist_dir):
     bdist_dir : str
         Path of unpacked wheel file
     """
-    info_dirs = glob.glob(pjoin(bdist_dir, '*.dist-info'))
+    info_dirs = glob.glob(pjoin(bdist_dir, "*.dist-info"))
     if len(info_dirs) != 1:
         raise WheelToolsError("Should be exactly one `*.dist_info` directory")
-    record_path = pjoin(info_dirs[0], 'RECORD')
+    record_path = pjoin(info_dirs[0], "RECORD")
     record_relpath = relpath(record_path, bdist_dir)
     # Unsign wheel - because we're invalidating the record hash
-    sig_path = pjoin(info_dirs[0], 'RECORD.jws')
+    sig_path = pjoin(info_dirs[0], "RECORD.jws")
     if exists(sig_path):
         os.unlink(sig_path)
 
@@ -62,35 +67,35 @@ def rewrite_record(bdist_dir):
 
     def skip(path):
         """Wheel hashes every possible file."""
-        return (path == record_relpath)
+        return path == record_relpath
 
-    with _open_for_csv(record_path, 'w+') as record_file:
+    with _open_for_csv(record_path, "w+") as record_file:
         writer = csv.writer(record_file)
         for path in walk():
             relative_path = relpath(path, bdist_dir)
             if skip(relative_path):
-                hash = ''
-                size = ''
+                hash = ""
+                size = ""
             else:
-                with open(path, 'rb') as f:
+                with open(path, "rb") as f:
                     data = f.read()
                 digest = hashlib.sha256(data).digest()
-                hash = 'sha256=' + native(urlsafe_b64encode(digest))
+                hash = "sha256=" + native(urlsafe_b64encode(digest))
                 size = len(data)
-            path_for_record = relpath(
-                path, bdist_dir).replace(psep, '/')
+            path_for_record = relpath(path, bdist_dir).replace(psep, "/")
             writer.writerow((path_for_record, hash, size))
 
 
 class InWheel(InTemporaryDirectory):
-    """ Context manager for doing things inside wheels
+    """Context manager for doing things inside wheels
 
     On entering, you'll find yourself in the root tree of the wheel.  If you've
     asked for an output wheel, then on exit we'll rewrite the wheel record and
     pack stuff up for you.
     """
+
     def __init__(self, in_wheel, out_wheel=None, ret_self=False):
-        """ Initialize in-wheel context manager
+        """Initialize in-wheel context manager
 
         Parameters
         ----------
@@ -119,7 +124,7 @@ class InWheel(InTemporaryDirectory):
 
 
 class InWheelCtx(InWheel):
-    """ Context manager for doing things inside wheels
+    """Context manager for doing things inside wheels
 
     On entering, you'll find yourself in the root tree of the wheel.  If you've
     asked for an output wheel, then on exit we'll rewrite the wheel record and
@@ -133,8 +138,9 @@ class InWheelCtx(InWheel):
     The current path of the wheel contents is set in the attribute
     ``wheel_path``.
     """
+
     def __init__(self, in_wheel, out_wheel=None):
-        """ Init in-wheel context manager returning self from enter
+        """Init in-wheel context manager returning self from enter
 
         Parameters
         ----------
@@ -157,11 +163,11 @@ def _get_wheelinfo_name(wheelfile):
     try:
         return wheelfile.wheelinfo_name
     except AttributeError:
-        return wheelfile.dist_info_path + '/WHEEL'
+        return wheelfile.dist_info_path + "/WHEEL"
 
 
 def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
-    """ Add platform tags `platforms` to `in_wheel` filename and WHEEL tags
+    """Add platform tags `platforms` to `in_wheel` filename and WHEEL tags
 
     Add any platform tags in `platforms` that are missing from `in_wheel`
     filename.
@@ -192,31 +198,34 @@ def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
     wf = WheelFile(in_wheel)
     info_fname = _get_wheelinfo_name(wf)
     # Check what tags we have
-    in_fname_tags = wf.parsed_filename.groupdict()['plat'].split('.')
+    in_fname_tags = wf.parsed_filename.groupdict()["plat"].split(".")
     extra_fname_tags = [tag for tag in platforms if tag not in in_fname_tags]
     in_wheel_base, ext = splitext(basename(in_wheel))
-    out_wheel_base = '.'.join([in_wheel_base] + list(extra_fname_tags))
+    out_wheel_base = ".".join([in_wheel_base] + list(extra_fname_tags))
     out_wheel = pjoin(out_path, out_wheel_base + ext)
     if exists(out_wheel) and not clobber:
-        raise WheelToolsError('Not overwriting {0}; set clobber=True '
-                              'to overwrite'.format(out_wheel))
+        raise WheelToolsError(
+            "Not overwriting {0}; set clobber=True to overwrite".format(
+                out_wheel
+            )
+        )
     with InWheelCtx(in_wheel) as ctx:
         info = read_pkg_info(info_fname)
-        if info['Root-Is-Purelib'] == 'true':
-            raise WheelToolsError('Cannot add platforms to pure wheel')
-        in_info_tags = [tag for name, tag in info.items() if name == 'Tag']
+        if info["Root-Is-Purelib"] == "true":
+            raise WheelToolsError("Cannot add platforms to pure wheel")
+        in_info_tags = [tag for name, tag in info.items() if name == "Tag"]
         # Python version, C-API version combinations
-        pyc_apis = ['-'.join(tag.split('-')[:2]) for tag in in_info_tags]
+        pyc_apis = ["-".join(tag.split("-")[:2]) for tag in in_info_tags]
         # unique Python version, C-API version combinations
         pyc_apis = unique_by_index(pyc_apis)
         # Add new platform tags for each Python version, C-API combination
-        required_tags = ['-'.join(tup) for tup in product(pyc_apis, platforms)]
+        required_tags = ["-".join(tup) for tup in product(pyc_apis, platforms)]
         needs_write = False
         for req_tag in required_tags:
             if req_tag in in_info_tags:
                 continue
             needs_write = True
-            info.add_header('Tag', req_tag)
+            info.add_header("Tag", req_tag)
         if needs_write:
             write_pkg_info(info_fname, info)
             # Tell context manager to write wheel on exit by setting filename

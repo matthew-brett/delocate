@@ -12,19 +12,19 @@ Then, in the tests, something like::
     assert_equal(code, 0)
     assert_equal(stdout, b'This script ran OK')
 """
-import sys
 import os
-from os.path import (dirname, join as pjoin, isfile, isdir, realpath, pathsep)
-
-from subprocess import Popen, PIPE
+import sys
+from os.path import dirname, isdir, isfile
+from os.path import join as pjoin
+from os.path import pathsep, realpath
+from subprocess import PIPE, Popen
 
 
 def _get_package():
-    """ Workaround for missing ``__package__`` in Python 3.2
-    """
-    if '__package__' in globals() and __package__ is not None:
+    """Workaround for missing ``__package__`` in Python 3.2"""
+    if "__package__" in globals() and __package__ is not None:
         return __package__
-    return __name__.split('.', 1)[0]
+    return __name__.split(".", 1)[0]
 
 
 # Same as __package__ for Python 2.6, 2.7 and >= 3.3
@@ -32,22 +32,20 @@ MY_PACKAGE = _get_package()
 
 
 def local_script_dir(script_sdir):
-    """ Get local script directory if running in development dir, else None
-    """
+    """Get local script directory if running in development dir, else None"""
     # Check for presence of scripts in development directory.  ``realpath``
     # allows for the situation where the development directory has been linked
     # into the path.
     package_path = dirname(__import__(MY_PACKAGE).__file__)
-    above_us = realpath(pjoin(package_path, '..'))
+    above_us = realpath(pjoin(package_path, ".."))
     devel_script_dir = pjoin(above_us, script_sdir)
-    if isfile(pjoin(above_us, 'setup.py')) and isdir(devel_script_dir):
+    if isfile(pjoin(above_us, "setup.py")) and isdir(devel_script_dir):
         return devel_script_dir
     return None
 
 
 def local_module_dir(module_name):
-    """ Get local module directory if running in development dir, else None
-    """
+    """Get local module directory if running in development dir, else None"""
     mod = __import__(module_name)
     containing_path = dirname(dirname(realpath(mod.__file__)))
     if containing_path == realpath(os.getcwd()):
@@ -56,18 +54,20 @@ def local_module_dir(module_name):
 
 
 class ScriptRunner(object):
-    """ Class to run scripts and return output
+    """Class to run scripts and return output
 
     Finds local scripts and local modules if running in the development
     directory, otherwise finds system scripts and modules.
     """
-    def __init__(self,
-                 script_sdir='scripts',
-                 module_sdir=MY_PACKAGE,
-                 debug_print_var=None,
-                 output_processor=lambda x: x
-                 ):
-        """ Init ScriptRunner instance
+
+    def __init__(
+        self,
+        script_sdir="scripts",
+        module_sdir=MY_PACKAGE,
+        debug_print_var=None,
+        output_processor=lambda x: x,
+    ):
+        """Init ScriptRunner instance
 
         Parameters
         ----------
@@ -88,12 +88,12 @@ class ScriptRunner(object):
         self.local_script_dir = local_script_dir(script_sdir)
         self.local_module_dir = local_module_dir(module_sdir)
         if debug_print_var is None:
-            debug_print_var = '{0}_DEBUG_PRINT'.format(module_sdir.upper())
+            debug_print_var = "{0}_DEBUG_PRINT".format(module_sdir.upper())
         self.debug_print = os.environ.get(debug_print_var, False)
         self.output_processor = output_processor
 
     def run_command(self, cmd, check_code=True):
-        """ Run command sequence `cmd` returning exit code, stdout, stderr
+        """Run command sequence `cmd` returning exit code, stdout, stderr
 
         Parameters
         ----------
@@ -122,16 +122,17 @@ class ScriptRunner(object):
             # for the Python interpreter in the hash bang first line in the
             # source file.  So, either way, run the script through the
             # Python interpreter
-            cmd = [sys.executable,
-                   pjoin(self.local_script_dir, cmd[0])] + cmd[1:]
-        elif os.name == 'nt':
+            cmd = [sys.executable, pjoin(self.local_script_dir, cmd[0])] + cmd[
+                1:
+            ]
+        elif os.name == "nt":
             # Need .bat file extension for windows
-            cmd[0] += '.bat'
-        if os.name == 'nt':
+            cmd[0] += ".bat"
+        if os.name == "nt":
             # Quote any arguments with spaces. The quotes delimit the arguments
             # on Windows, and the arguments might be files paths with spaces.
             # On Unix the list elements are each separate arguments.
-            cmd = ['"{0}"'.format(c) if ' ' in c else c for c in cmd]
+            cmd = ['"{0}"'.format(c) if " " in c else c for c in cmd]
         if self.debug_print:
             print("Running command '%s'" % cmd)
         env = os.environ
@@ -140,11 +141,11 @@ class ScriptRunner(object):
             # We might need that directory on the path if we're running
             # the scripts from a temporary directory
             env = env.copy()
-            pypath = env.get('PYTHONPATH', None)
+            pypath = env.get("PYTHONPATH", None)
             if pypath is None:
-                env['PYTHONPATH'] = self.local_module_dir
+                env["PYTHONPATH"] = self.local_module_dir
             else:
-                env['PYTHONPATH'] = self.local_module_dir + pathsep + pypath
+                env["PYTHONPATH"] = self.local_module_dir + pathsep + pypath
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=env)
         stdout, stderr = proc.communicate()
         if proc.poll() is None:
@@ -158,6 +159,9 @@ class ScriptRunner(object):
                 stderr
                 ------
                 {2}
-                """.format(cmd, stdout, stderr))
+                """.format(
+                    cmd, stdout, stderr
+                )
+            )
         opp = self.output_processor
         return proc.returncode, opp(stdout), opp(stderr)

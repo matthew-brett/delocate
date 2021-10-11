@@ -3,11 +3,13 @@
 Analyze library dependencies in paths and wheel files
 """
 
-import os
-from os.path import basename, dirname, join as pjoin, realpath
-import sys
-
 import logging
+import os
+import sys
+import warnings
+from os.path import basename, dirname
+from os.path import join as pjoin
+from os.path import realpath
 from typing import (
     Callable,
     Dict,
@@ -19,13 +21,16 @@ from typing import (
     Text,
     Tuple,
 )
-import warnings
 
 import delocate.delocating
-from .tools import (get_install_names, zip2dir, get_rpaths,
-                    get_environment_variable_paths)
-from .tmpdirs import TemporaryDirectory
 
+from .tmpdirs import TemporaryDirectory
+from .tools import (
+    get_environment_variable_paths,
+    get_install_names,
+    get_rpaths,
+    zip2dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +43,7 @@ class DependencyNotFound(Exception):
 
 def _filter_system_libs(libname):
     # type: (Text) -> bool
-    return not (libname.startswith('/usr/lib') or libname.startswith('/System'))
+    return not (libname.startswith("/usr/lib") or libname.startswith("/System"))
 
 
 def get_dependencies(
@@ -92,7 +97,7 @@ def get_dependencies(
         if not _filter_system_libs(lib_fname):
             logger.debug(
                 "Ignoring missing library %s because it is a system library.",
-                lib_fname
+                lib_fname,
             )
             return
         raise DependencyNotFound(lib_fname)
@@ -113,7 +118,7 @@ def get_dependencies(
                     logger.debug(
                         "Skipped missing dependency %s"
                         " because it is a system library.",
-                        dependency_path
+                        dependency_path,
                     )
                 else:
                     raise DependencyNotFound(dependency_path)
@@ -123,8 +128,10 @@ def get_dependencies(
                 )
             yield dependency_path, install_name
         except DependencyNotFound:
-            message = "\n%s not found:\n  Needed by: %s" % (install_name,
-                                                            lib_fname)
+            message = "\n%s not found:\n  Needed by: %s" % (
+                install_name,
+                lib_fname,
+            )
             if install_name.startswith("@rpath"):
                 message += "\n  Search path:\n    " + "\n    ".join(rpaths)
             logger.error(message)
@@ -185,7 +192,9 @@ def walk_library(
     ):
         if dependency_fname is None:
             logger.error(
-                "%s not found, requested by %s", install_name, lib_fname,
+                "%s not found, requested by %s",
+                install_name,
+                lib_fname,
             )
             continue
         for sub_dependency in walk_library(
@@ -239,7 +248,7 @@ def walk_directory(
                 depending_path,
                 filt_func=filt_func,
                 visited=visited_paths,
-                executable_path=executable_path
+                executable_path=executable_path,
             ):
                 yield library_path
 
@@ -252,7 +261,7 @@ def _tree_libs_from_libraries(
     executable_path: Optional[str] = None,
     ignore_missing: bool = False,
 ) -> Dict[str, Dict[str, str]]:
-    """ Return an analysis of the dependencies of `libraries`.
+    """Return an analysis of the dependencies of `libraries`.
 
     Parameters
     ----------
@@ -328,7 +337,7 @@ def tree_libs_from_directory(
     executable_path: Optional[str] = None,
     ignore_missing: bool = False,
 ) -> Dict[Text, Dict[Text, Text]]:
-    """ Return an analysis of the libraries in the directory of `start_path`.
+    """Return an analysis of the libraries in the directory of `start_path`.
 
     Parameters
     ----------
@@ -382,12 +391,17 @@ def tree_libs_from_directory(
     )
 
 
+def _allow_all(path: str) -> bool:
+    """A filter which returns True for all files."""
+    return True
+
+
 def tree_libs(
     start_path,  # type: Text
     filt_func=None,  # type: Optional[Callable[[Text], bool]]
 ):
     # type: (...) -> Dict[Text, Dict[Text, Text]]
-    """ Return analysis of library dependencies within `start_path`
+    """Return analysis of library dependencies within `start_path`
 
     Parameters
     ----------
@@ -433,13 +447,14 @@ def tree_libs(
         stacklevel=2,
     )
     if filt_func is None:
-        filt_func = (lambda _: True)
+        filt_func = _allow_all
     lib_dict = {}  # type: Dict[Text, Dict[Text, Text]]
     for dirpath, dirnames, basenames in os.walk(start_path):
         for base in basenames:
             depending_path = realpath(pjoin(dirpath, base))
             for dependency_path, install_name in get_dependencies(
-                depending_path, filt_func=filt_func,
+                depending_path,
+                filt_func=filt_func,
             ):
                 if dependency_path is None:
                     # Mimic deprecated behavior.
@@ -450,7 +465,7 @@ def tree_libs(
                     # Support for `@loader_path` would break existing callers.
                     logger.debug(
                         "Excluding %s because it has '@loader_path'.",
-                        install_name
+                        install_name,
                     )
                     continue
                 lib_dict.setdefault(dependency_path, {})
@@ -460,7 +475,7 @@ def tree_libs(
 
 def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
     # type: (Text, Iterable[Text], Text, Optional[Text]) -> Text
-    """ Return `lib_path` with any special runtime linking names resolved.
+    """Return `lib_path` with any special runtime linking names resolved.
 
     If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
     combination found.  If the library can't be found in `rpaths` then
@@ -496,14 +511,14 @@ def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
     """
     if executable_path is None:
         executable_path = dirname(sys.executable)
-    if lib_path.startswith('@loader_path/'):
-        return realpath(pjoin(loader_path, lib_path.split('/', 1)[1]))
-    if lib_path.startswith('@executable_path/'):
-        return realpath(pjoin(executable_path, lib_path.split('/', 1)[1]))
-    if not lib_path.startswith('@rpath/'):
+    if lib_path.startswith("@loader_path/"):
+        return realpath(pjoin(loader_path, lib_path.split("/", 1)[1]))
+    if lib_path.startswith("@executable_path/"):
+        return realpath(pjoin(executable_path, lib_path.split("/", 1)[1]))
+    if not lib_path.startswith("@rpath/"):
         return realpath(lib_path)
 
-    lib_rpath = lib_path.split('/', 1)[1]
+    lib_rpath = lib_path.split("/", 1)[1]
     for rpath in rpaths:
         rpath_lib = resolve_dynamic_paths(
             pjoin(rpath, lib_rpath), (), loader_path, executable_path
@@ -516,7 +531,7 @@ def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
 
 def resolve_rpath(lib_path, rpaths):
     # type: (Text, Iterable[Text]) -> Text
-    """ Return `lib_path` with its `@rpath` resolved
+    """Return `lib_path` with its `@rpath` resolved
     If the `lib_path` doesn't have `@rpath` then it's returned as is.
     If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
     combination found.  If the library can't be found in `rpaths` then a
@@ -542,10 +557,10 @@ def resolve_rpath(lib_path, rpaths):
         DeprecationWarning,
         stacklevel=2,
     )
-    if not lib_path.startswith('@rpath/'):
+    if not lib_path.startswith("@rpath/"):
         return lib_path
 
-    lib_rpath = lib_path.split('/', 1)[1]
+    lib_rpath = lib_path.split("/", 1)[1]
     for rpath in rpaths:
         rpath_lib = realpath(pjoin(rpath, lib_rpath))
         if os.path.exists(rpath_lib):
@@ -554,7 +569,7 @@ def resolve_rpath(lib_path, rpaths):
     warnings.warn(
         "Couldn't find {0} on paths:\n\t{1}".format(
             lib_path,
-            '\n\t'.join(realpath(path) for path in rpaths),
+            "\n\t".join(realpath(path) for path in rpaths),
         )
     )
     return lib_path
@@ -562,7 +577,7 @@ def resolve_rpath(lib_path, rpaths):
 
 def search_environment_for_lib(lib_path):
     # type: (Text) -> Text
-    """ Search common environment variables for `lib_path`
+    """Search common environment variables for `lib_path`
 
     We'll use a single approach here:
 
@@ -596,15 +611,17 @@ def search_environment_for_lib(lib_path):
     potential_library_locations = []
 
     # 1. Search on DYLD_LIBRARY_PATH
-    potential_library_locations += _paths_from_var('DYLD_LIBRARY_PATH',
-                                                   lib_basename)
+    potential_library_locations += _paths_from_var(
+        "DYLD_LIBRARY_PATH", lib_basename
+    )
 
     # 2. Search for realpath(lib_path)
     potential_library_locations.append(realpath(lib_path))
 
     # 3. Search on DYLD_FALLBACK_LIBRARY_PATH
-    potential_library_locations += \
-        _paths_from_var('DYLD_FALLBACK_LIBRARY_PATH', lib_basename)
+    potential_library_locations += _paths_from_var(
+        "DYLD_FALLBACK_LIBRARY_PATH", lib_basename
+    )
 
     for location in potential_library_locations:
         if os.path.exists(location):
@@ -614,7 +631,7 @@ def search_environment_for_lib(lib_path):
 
 def get_prefix_stripper(strip_prefix):
     # type: (Text) -> Callable[[Text], Text]
-    """ Return function to strip `strip_prefix` prefix from string if present
+    """Return function to strip `strip_prefix` prefix from string if present
 
     Parameters
     ----------
@@ -632,12 +649,13 @@ def get_prefix_stripper(strip_prefix):
     def stripper(path):
         # type: (Text) -> Text
         return path if not path.startswith(strip_prefix) else path[n:]
+
     return stripper
 
 
 def get_rp_stripper(strip_path):
     # type: (Text) -> Callable[[Text], Text]
-    """ Return function to strip ``realpath`` of `strip_path` from string
+    """Return function to strip ``realpath`` of `strip_path` from string
 
     Parameters
     ----------
@@ -656,7 +674,7 @@ def get_rp_stripper(strip_path):
 
 def stripped_lib_dict(lib_dict, strip_prefix):
     # type: (Dict[Text, Dict[Text, Text]], Text) -> Dict[Text, Dict[Text, Text]]
-    """ Return `lib_dict` with `strip_prefix` removed from start of paths
+    """Return `lib_dict` with `strip_prefix` removed from start of paths
 
     Use to give form of `lib_dict` that appears relative to some base path
     given by `strip_prefix`.  Particularly useful for analyzing wheels where we
@@ -694,7 +712,7 @@ def wheel_libs(
     *,
     ignore_missing: bool = False,
 ) -> Dict[Text, Dict[Text, Text]]:
-    """ Return analysis of library dependencies with a Python wheel
+    """Return analysis of library dependencies with a Python wheel
 
     Use this routine for a dump of the dependency tree.
 
@@ -738,4 +756,4 @@ def _paths_from_var(varname: str, lib_basename: str) -> List[str]:
     var = os.environ.get(varname)
     if var is None:
         return []
-    return [pjoin(path, lib_basename) for path in var.split(':')]
+    return [pjoin(path, lib_basename) for path in var.split(":")]

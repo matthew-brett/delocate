@@ -1,12 +1,11 @@
 """ Test tmpdirs module """
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
 
 from os import getcwd
-from os.path import realpath, abspath, dirname, isfile
+from os.path import abspath, dirname, isfile, realpath
 
 from ..tmpdirs import InGivenDirectory
-
-from .pytest_tools import assert_true, assert_equal
+from .pytest_tools import assert_equal, assert_true
 
 MY_PATH = abspath(__file__)
 MY_DIR = dirname(MY_PATH)

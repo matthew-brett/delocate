@@ -1,6 +1,5 @@
 from delocate.tests.pytest_tools import assert_equal
 
-
 from ..module1 import func1
 from ..subpkg.module2 import func2, func3
 

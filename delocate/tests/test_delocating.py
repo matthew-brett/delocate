@@ -424,6 +424,9 @@ def test_delocate_path() -> None:
         )
         assert delocate_path("subtree5", "deplibs5") == {}
         assert len(os.listdir("deplibs5")) == 0
+        # Check invalid string
+        with pytest.raises(TypeError):
+            delocate_path("subtree5", "deplibs5", lib_filt_func="invalid-str")
 
 
 def _make_bare_depends():

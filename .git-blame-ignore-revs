@@ -1,4 +1,6 @@
-# A common convention for ignoring commits with automated formatting.
+# File that should be passed as an argument to `git blame --ignore-revs-file`
+# See: https://www.git-scm.com/docs/git-blame
+# Name `.git-blame-ignore-revs` is a common convention, not an official Git standard.
 # To ignore anything new add the commit hash and the first line of the commit
 # message.
 

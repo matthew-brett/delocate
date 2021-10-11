@@ -29,21 +29,24 @@ def main():
                 "-d",
                 "--dylibs-only",
                 action="store_true",
-                help="Only analyze files with known dynamic library "
-                "extensions",
+                help="Only analyze files with known dynamic library extensions",
             ),
             Option(
                 "--executable-path",
                 action="store",
                 type="string",
                 default=os.path.dirname(sys.executable),
-                help="The path used to resolve @executable_path in dependencies",
+                help=(
+                    "The path used to resolve @executable_path in dependencies"
+                ),
             ),
             Option(
                 "--ignore-missing-dependencies",
                 action="store_true",
-                help="Skip dependencies which couldn't be found and delocate "
-                "as much as possible",
+                help=(
+                    "Skip dependencies which couldn't be found and delocate "
+                    "as much as possible"
+                ),
             ),
         ]
     )

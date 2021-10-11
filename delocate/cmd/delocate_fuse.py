@@ -26,8 +26,10 @@ def main():
             "--wheel-dir",
             action="store",
             type="string",
-            help="Directory to store delocated wheels (default is to "
-            "overwrite WHEEL1 input)",
+            help=(
+                "Directory to store delocated wheels (default is to "
+                "overwrite WHEEL1 input)"
+            ),
         )
     )
     parser.add_option(

@@ -141,8 +141,8 @@ def _analyze_tree_libs(
             # Not local, plan to copy
             if r_ed_base in copied_basenames:
                 raise DelocationError(
-                    "Already planning to copy library with "
-                    "same basename as: " + r_ed_base
+                    "Already planning to copy library with same basename as: "
+                    + r_ed_base
                 )
             if not exists(required):
                 raise DelocationError(

@@ -38,8 +38,10 @@ def main():
             "--plat-tag",
             action="append",
             type="string",
-            help="Platform tag to add (e.g. macosx_10_9_intel) (can be "
-            "specified multiple times)",
+            help=(
+                "Platform tag to add (e.g. macosx_10_9_intel) (can be "
+                "specified multiple times)"
+            ),
         )
     )
     parser.add_option(
@@ -48,10 +50,12 @@ def main():
             "--osx-ver",
             action="append",
             type="string",
-            help="Alternative method to specify platform tags, by giving "
-            'OSX version numbers - e.g. "10_10" results in adding platform '
-            'tags "macosx_10_10_intel, "macosx_10_10_x86_64") (can be '
-            "specified multiple times)",
+            help=(
+                "Alternative method to specify platform tags, by giving "
+                'OSX version numbers - e.g. "10_10" results in adding platform '
+                'tags "macosx_10_10_intel, "macosx_10_10_x86_64") (can be '
+                "specified multiple times)"
+            ),
         )
     )
     parser.add_option(
@@ -60,8 +64,10 @@ def main():
             "--wheel-dir",
             action="store",
             type="string",
-            help="Directory to store delocated wheels (default is to "
-            "overwrite input)",
+            help=(
+                "Directory to store delocated wheels (default is to "
+                "overwrite input)"
+            ),
         )
     )
     parser.add_option(

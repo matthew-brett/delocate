@@ -60,7 +60,7 @@ setup(
         "Programming Language :: Python",
         "Operating System :: MacOS :: MacOS X",
         "Development Status :: 5 - Production/Stable",
-        "Topic :: Software Development :: Libraries :: " "Python Modules",
+        "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Software Development :: Build Tools",
     ],
     long_description=codecs.open("README.rst", "r", encoding="utf-8").read(),

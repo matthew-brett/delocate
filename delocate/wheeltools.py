@@ -205,8 +205,9 @@ def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
     out_wheel = pjoin(out_path, out_wheel_base + ext)
     if exists(out_wheel) and not clobber:
         raise WheelToolsError(
-            "Not overwriting {0}; set clobber=True "
-            "to overwrite".format(out_wheel)
+            "Not overwriting {0}; set clobber=True to overwrite".format(
+                out_wheel
+            )
         )
     with InWheelCtx(in_wheel) as ctx:
         info = read_pkg_info(info_fname)

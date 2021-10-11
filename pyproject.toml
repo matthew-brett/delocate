@@ -2,6 +2,7 @@
 line-length = 80
 target-version = ['py36']
 extend-exclude = '''versioneer.py|delocate/_version.py'''
+experimental-string-processing = true
 
 [tool.isort]
 profile = "black"

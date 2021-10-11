@@ -38,15 +38,19 @@ def main():
                 "--wheel-dir",
                 action="store",
                 type="string",
-                help="Directory to store delocated wheels (default is to "
-                "overwrite input)",
+                help=(
+                    "Directory to store delocated wheels (default is to "
+                    "overwrite input)"
+                ),
             ),
             Option(
                 "-v",
                 "--verbose",
                 action="count",
-                help="Show a more verbose report of progress and failure."
-                "  Additional flags show even more info, up to -vv.",
+                help=(
+                    "Show a more verbose report of progress and failure."
+                    "  Additional flags show even more info, up to -vv."
+                ),
                 default=0,
             ),
             Option(
@@ -59,29 +63,34 @@ def main():
                 "-d",
                 "--dylibs-only",
                 action="store_true",
-                help="Only analyze files with known dynamic library "
-                "extensions",
+                help="Only analyze files with known dynamic library extensions",
             ),
             Option(
                 "--require-archs",
                 action="store",
                 type="string",
-                help="Architectures that all wheel libraries should "
-                "have (from 'intel', 'i386', 'x86_64', 'i386,x86_64'"
-                "'universal2', 'x86_64,arm64')",
+                help=(
+                    "Architectures that all wheel libraries should "
+                    "have (from 'intel', 'i386', 'x86_64', 'i386,x86_64'"
+                    "'universal2', 'x86_64,arm64')"
+                ),
             ),
             Option(
                 "--executable-path",
                 action="store",
                 type="string",
                 default=os.path.dirname(sys.executable),
-                help="The path used to resolve @executable_path in dependencies",
+                help=(
+                    "The path used to resolve @executable_path in dependencies"
+                ),
             ),
             Option(
                 "--ignore-missing-dependencies",
                 action="store_true",
-                help="Skip dependencies which couldn't be found and delocate "
-                "as much as possible",
+                help=(
+                    "Skip dependencies which couldn't be found and delocate "
+                    "as much as possible"
+                ),
             ),
         ]
     )

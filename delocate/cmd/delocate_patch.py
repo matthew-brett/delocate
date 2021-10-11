@@ -26,8 +26,10 @@ def main():
             "--wheel-dir",
             action="store",
             type="string",
-            help="Directory to store patched wheel (default is to "
-            "overwrite input)",
+            help=(
+                "Directory to store patched wheel (default is to "
+                "overwrite input)"
+            ),
         )
     )
     parser.add_option(

@@ -80,10 +80,6 @@ jobs:
       - uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: ${{ matrix.xcode }}
-      - name: Workaround ARM64 issues
-        # https://github.com/actions/virtual-environments/issues/2557
-        run: |
-          sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*
       - uses: actions/setup-python@v2
         with:
           python-version: "3.x"

@@ -9,7 +9,7 @@ import zipfile
 from os.path import exists, isdir
 from os.path import join as pjoin
 from os.path import relpath
-from typing import Any, FrozenSet, List, Optional, Sequence, Set, Union
+from typing import Any, FrozenSet, List, Optional, Sequence, Set, Tuple, Union
 
 
 class InstallNameError(Exception):
@@ -147,7 +147,7 @@ IN_RE = re.compile(
 )
 
 
-def parse_install_name(line):
+def parse_install_name(line: str) -> Tuple[str, str, str]:
     """Parse a line of install name output
 
     Parameters
@@ -165,7 +165,11 @@ def parse_install_name(line):
         current version
     """
     line = line.strip()
-    return IN_RE.match(line).groups()
+    match = IN_RE.match(line)
+    if not match:
+        raise ValueError(f"Could not parse {line!r}")
+    libname, compat_version, current_version = match.groups()
+    return libname, compat_version, current_version
 
 
 # otool -L strings indicating this is not an object file. The string changes
@@ -229,7 +233,7 @@ def _line0_says_object(line0, filename):
     )
 
 
-def get_install_names(filename):
+def get_install_names(filename: str) -> Tuple[str, ...]:
     """Return install names from library named in `filename`
 
     Returns tuple of install names

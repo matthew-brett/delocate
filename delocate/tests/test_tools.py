@@ -140,7 +140,7 @@ def test_ensure_writable():
         assert_equal(os.stat("test.bin"), st)
 
 
-def test_parse_install_name():
+def test_parse_install_name() -> None:
     # otool on versions previous to Catalina
     line0 = (
         "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore "
@@ -158,6 +158,10 @@ def test_parse_install_name():
         "(compatibility version 1.2.0, current version 1.11.0, weak)"
     )
     assert parse_install_name(line1) == (name, cpver, cuver)
+
+    # Test bad input.
+    with pytest.raises(ValueError, match="Could not parse.*bad-str"):
+        parse_install_name("bad-str")
 
 
 def _write_file(filename, contents):

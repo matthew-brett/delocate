@@ -38,36 +38,33 @@ PY_FILE = pjoin(DATA_PATH, "some_code.py")
 BIN_FILE = pjoin(DATA_PATH, "binary_example.bin")
 
 
-def test_get_install_names():
+def test_get_install_names() -> None:
     # Test install name listing
-    assert_equal(set(get_install_names(LIBA)), set(EXT_LIBS))
-    assert_equal(set(get_install_names(LIBB)), set(("liba.dylib",) + EXT_LIBS))
-    assert_equal(
-        set(get_install_names(LIBC)),
-        set(("liba.dylib", "libb.dylib") + EXT_LIBS),
+    assert set(get_install_names(LIBA)) == set(EXT_LIBS)
+    assert set(get_install_names(LIBB)) == set(("liba.dylib",) + EXT_LIBS)
+    assert set(get_install_names(LIBC)) == set(
+        ("liba.dylib", "libb.dylib") + EXT_LIBS
     )
-    assert_equal(
-        set(get_install_names(TEST_LIB)), set(("libc.dylib",) + EXT_LIBS)
-    )
-    assert_equal(set(get_install_names(LIBAM1_ARCH)), set(EXT_LIBS))
+    assert set(get_install_names(TEST_LIB)) == set(("libc.dylib",) + EXT_LIBS)
+    assert set(get_install_names(LIBAM1_ARCH)) == set(EXT_LIBS)
     # Non-object file returns empty tuple
-    assert_equal(get_install_names(__file__), ())
+    assert get_install_names(__file__) == ()
     # Static archive and object files returns empty tuple
-    assert_equal(get_install_names(A_OBJECT), ())
-    assert_equal(get_install_names(LIBA_STATIC), ())
+    assert get_install_names(A_OBJECT) == ()
+    assert get_install_names(LIBA_STATIC) == ()
     # ico file triggers another error message and should also return an empty tuple  # noqa: E501
-    assert_equal(get_install_names(ICO_FILE), ())
+    assert get_install_names(ICO_FILE) == ()
     # Python file (__file__ above may be a pyc file)
-    assert_equal(get_install_names(PY_FILE), ())
+    assert get_install_names(PY_FILE) == ()
     # Binary file (in fact a truncated SAS file)
-    assert_equal(get_install_names(BIN_FILE), ())
+    assert get_install_names(BIN_FILE) == ()
     # Test when no read permission
     with InTemporaryDirectory():
         shutil.copyfile(LIBA, "test.dylib")
-        assert_equal(set(get_install_names("test.dylib")), set(EXT_LIBS))
+        assert set(get_install_names("test.dylib")) == set(EXT_LIBS)
         # No permissions, no found libs
         os.chmod("test.dylib", 0)
-        assert_equal(get_install_names("test.dylib"), ())
+        assert get_install_names("test.dylib") == ()
 
 
 def test_parse_install_name():

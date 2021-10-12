@@ -9,7 +9,17 @@ import zipfile
 from os.path import exists, isdir
 from os.path import join as pjoin
 from os.path import relpath
-from typing import Any, FrozenSet, List, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    FrozenSet,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 
 class InstallNameError(Exception):
@@ -163,13 +173,86 @@ def parse_install_name(line: str) -> Tuple[str, str, str]:
         compatibility version
     current_version : str
         current version
-    """
+
+    Examples
+    --------
+    >>> parse_install_name("/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)")
+    ('/usr/lib/libc++.1.dylib', '1.0.0', '905.6.0')
+    """  # noqa: E501
     line = line.strip()
     match = IN_RE.match(line)
     if not match:
         raise ValueError(f"Could not parse {line!r}")
     libname, compat_version, current_version = match.groups()
     return libname, compat_version, current_version
+
+
+_OTOOL_ARCHITECTURE_RE = re.compile(
+    r"^.*?(?:\(architecture (?P<architecture>\w+)\))?:$"
+)
+"""Matches the architecture line near the beginning of 'otool -L' output.
+
+Must match the following examples:
+'example.so (architecture x86_64):' and capture 'x86_64'
+'example.so:'
+"""
+
+
+def _parse_otool_install_names(
+    otool_stdout: str,
+) -> Dict[str, List[Tuple[str, str, str]]]:
+    '''Parse the stdout of 'otool -L' and return
+
+    Parameters
+    ----------
+    otool_stdout : str
+        A decoded stdout of 'otool -L' to be parsed.
+
+    Returns
+    -------
+    install_name_info : dict of list of (libname, compat_v, current_v) tuples
+        The dictionary key is the architecture, e.g. 'x86_64'.
+        If no architecture is parsed then the key is ''.
+        See :func:`parse_install_name` for more info on the tuple values.
+
+    Examples
+    --------
+    >>> _parse_otool_install_names("""
+    ... example.so (architecture x86_64):
+    ... \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
+    ... \t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
+    ... example.so (architecture arm64):
+    ... \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
+    ... \t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
+    ... """)
+    {'x86_64': [('/usr/lib/libc++.1.dylib', '1.0.0', '905.6.0'), ('/usr/lib/libSystem.B.dylib', '1.0.0', '1292.100.5')], 'arm64': [('/usr/lib/libc++.1.dylib', '1.0.0', '905.6.0'), ('/usr/lib/libSystem.B.dylib', '1.0.0', '1292.100.5')]}
+    >>> _parse_otool_install_names("""
+    ... example.so:
+    ... \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
+    ... \t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
+    ... """)
+    {'': [('/usr/lib/libc++.1.dylib', '1.0.0', '905.6.0'), ('/usr/lib/libSystem.B.dylib', '1.0.0', '1292.100.5')]}
+    '''  # noqa: E501
+    otool_stdout = otool_stdout.strip()
+    out: Dict[str, List[Tuple[str, str, str]]] = {}
+    current_arch: Optional[str] = None  # Current architecture being parsed.
+    for line in otool_stdout.split("\n"):
+        match_arch = _OTOOL_ARCHITECTURE_RE.match(line)
+        if match_arch:
+            current_arch = match_arch["architecture"]
+            if current_arch is None:
+                current_arch = ""
+            assert current_arch not in out, (
+                f"Input has duplicate architectures for {current_arch!r}:"
+                f"\n{otool_stdout}"
+            )
+            out[current_arch] = []
+            continue
+        assert (
+            current_arch is not None
+        ), f"Missing starting architecture:\n{otool_stdout}"
+        out[current_arch].append(parse_install_name(line))
+    return out
 
 
 # otool -L strings indicating this is not an object file. The string changes
@@ -212,8 +295,8 @@ def _cmd_out_err(cmd: Sequence[str]) -> List[str]:
 _LINE0_RE = re.compile(r"^(?: \(architecture .*\))?:(?P<further_report>.*)")
 
 
-def _line0_says_object(line0, filename):
-    line0 = line0.strip()
+def _line0_says_object(stdout_stderr: str, filename: str) -> bool:
+    line0 = stdout_stderr.strip().split("\n", 1)[0]
     for test in BAD_OBJECT_TESTS:
         if test(line0):
             return False
@@ -250,18 +333,30 @@ def get_install_names(filename: str) -> Tuple[str, ...]:
     install_names : tuple
         tuple of install names for library `filename`
     """
-    lines = _cmd_out_err(["otool", "-L", filename])
-    if not _line0_says_object(lines[0], filename):
+    otool = subprocess.run(
+        ["otool", "-L", filename],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
-    names = tuple(parse_install_name(line)[0] for line in lines[1:])
     install_id = get_install_id(filename)
-    if install_id is not None:
-        assert names[0] == install_id
-        return names[1:]
-    return names
+    all_names = []
+    for libraries in _parse_otool_install_names(otool.stdout).values():
+        names_for_arch = [name for name, _, _ in libraries]
+        if install_id is not None:
+            # Remove redundant install id from the install names.
+            assert names_for_arch[0] == install_id
+            names_for_arch = names_for_arch[1:]
+        for name in names_for_arch:
+            if name not in all_names:  # Avoid duplicates and preserve order.
+                all_names.append(name)
+
+    return tuple(all_names)
 
 
-def get_install_id(filename):
+def get_install_id(filename: str) -> Optional[str]:
     """Return install id from library named in `filename`
 
     Returns None if no install id, or if this is not an object file.

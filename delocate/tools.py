@@ -188,24 +188,83 @@ def parse_install_name(line: str) -> Tuple[str, str, str]:
 
 
 _OTOOL_ARCHITECTURE_RE = re.compile(
-    r"^.*?(?:\(architecture (?P<architecture>\w+)\))?:$"
+    r"^(?P<name>.*?)(?: \(architecture (?P<architecture>\w+)\))?:$"
 )
-"""Matches the architecture line near the beginning of 'otool -L' output.
+"""Matches the library separater line in 'otool -L'-like outputs.
 
 Must match the following examples:
-'example.so (architecture x86_64):' and capture 'x86_64'
+'example.so (architecture x86_64):'
 'example.so:'
 """
 
 
+def _parse_otool_listing(stdout: str) -> Dict[str, List[str]]:
+    '''Parse the output of otool lists.
+
+    Parameters
+    ----------
+    stdout : str
+        A decoded stdout of commands like 'otool -L' or 'otool -D' to be parsed.
+
+    Returns
+    -------
+    otool_out : dict of list of str
+        The dictionary key is the architecture, e.g. 'x86_64'.
+        If no architecture is parsed then the key is ''.
+        The values are a list of strings associated with the key.
+
+    Examples
+    --------
+    >>> _parse_otool_listing("""
+    ... example.so (architecture x86_64):
+    ... \titem_1
+    ... \titem_2
+    ... example.so (architecture arm64):
+    ... \titem_3
+    ... \titem_4
+    ... """)
+    {'x86_64': ['item_1', 'item_2'], 'arm64': ['item_3', 'item_4']}
+    >>> _parse_otool_listing("""
+    ... example.so:
+    ... \titem_1
+    ... """)
+    {'': ['item_1']}
+    >>> _parse_otool_listing("""
+    ... example.so (architecture x86_64):
+    ... example.so (architecture arm64):
+    ... """)
+    {'x86_64': [], 'arm64': []}
+    '''
+    stdout = stdout.strip()
+    out: Dict[str, List[str]] = {}
+    current_arch: Optional[str] = None  # Current architecture being parsed.
+    for line in stdout.split("\n"):
+        match_arch = _OTOOL_ARCHITECTURE_RE.match(line)
+        if match_arch:
+            current_arch = match_arch["architecture"]
+            if current_arch is None:
+                current_arch = ""
+            assert current_arch not in out, (
+                f"Input has duplicate architectures for {current_arch!r}:"
+                f"\n{stdout}"
+            )
+            out[current_arch] = []
+            continue
+        assert (
+            current_arch is not None
+        ), f"Missing starting architecture:\n{stdout}"
+        out[current_arch].append(line.strip())
+    return out
+
+
 def _parse_otool_install_names(
-    otool_stdout: str,
+    stdout: str,
 ) -> Dict[str, List[Tuple[str, str, str]]]:
     '''Parse the stdout of 'otool -L' and return
 
     Parameters
     ----------
-    otool_stdout : str
+    stdout : str
         A decoded stdout of 'otool -L' to be parsed.
 
     Returns
@@ -233,25 +292,9 @@ def _parse_otool_install_names(
     ... """)
     {'': [('/usr/lib/libc++.1.dylib', '1.0.0', '905.6.0'), ('/usr/lib/libSystem.B.dylib', '1.0.0', '1292.100.5')]}
     '''  # noqa: E501
-    otool_stdout = otool_stdout.strip()
     out: Dict[str, List[Tuple[str, str, str]]] = {}
-    current_arch: Optional[str] = None  # Current architecture being parsed.
-    for line in otool_stdout.split("\n"):
-        match_arch = _OTOOL_ARCHITECTURE_RE.match(line)
-        if match_arch:
-            current_arch = match_arch["architecture"]
-            if current_arch is None:
-                current_arch = ""
-            assert current_arch not in out, (
-                f"Input has duplicate architectures for {current_arch!r}:"
-                f"\n{otool_stdout}"
-            )
-            out[current_arch] = []
-            continue
-        assert (
-            current_arch is not None
-        ), f"Missing starting architecture:\n{otool_stdout}"
-        out[current_arch].append(parse_install_name(line))
+    for arch, install_names in _parse_otool_listing(stdout).items():
+        out[arch] = [parse_install_name(name) for name in install_names]
     return out
 
 
@@ -341,13 +384,13 @@ def get_install_names(filename: str) -> Tuple[str, ...]:
     )
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
-    install_id = get_install_id(filename)
+    install_ids = _get_install_ids(filename)
     all_names = []
-    for libraries in _parse_otool_install_names(otool.stdout).values():
+    for arch, libraries in _parse_otool_install_names(otool.stdout).items():
         names_for_arch = [name for name, _, _ in libraries]
-        if install_id is not None:
+        if arch in install_ids:
             # Remove redundant install id from the install names.
-            assert names_for_arch[0] == install_id
+            assert names_for_arch[0] == install_ids[arch]
             names_for_arch = names_for_arch[1:]
         for name in names_for_arch:
             if name not in all_names:  # Avoid duplicates and preserve order.
@@ -371,14 +414,48 @@ def get_install_id(filename: str) -> Optional[str]:
     install_id : str
         install id of library `filename`, or None if no install id
     """
-    lines = _cmd_out_err(["otool", "-D", filename])
-    if not _line0_says_object(lines[0], filename):
-        return None
-    if len(lines) == 1:
-        return None
-    if len(lines) != 2:
-        raise InstallNameError("Unexpected otool output " + "\n".join(lines))
-    return lines[1].strip()
+    install_ids = _get_install_ids(filename)
+    if all(not install_id for install_id in install_ids.values()):
+        return None  # No install ids or nothing returned.
+    my_id = list(install_ids.values())[0]
+    if any(install_id != my_id for install_id in install_ids.values()):
+        raise InstallNameError(
+            "This function does not support separate install ids"
+            f" per-architecture: {install_ids}"
+        )
+    return my_id  # Only one install name.
+
+
+def _get_install_ids(filename: str) -> Dict[str, str]:
+    """Return the install ids of a library.
+
+    Parameters
+    ----------
+    filename : str
+        filename of library
+
+    Returns
+    -------
+    install_ids : dict
+        install ids of library `filename`.
+        The key is the architecture which is '' if none is provided by otool.
+        The value is the install id for that architecture.
+        If the library has no install ids then an empty dict is returned.
+    """
+    otool = subprocess.run(
+        ["otool", "-D", filename],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    if not _line0_says_object(otool.stdout or otool.stderr, filename):
+        return {}
+    out = {}
+    for arch, my_id_list in _parse_otool_listing(otool.stdout).items():
+        if not my_id_list:
+            continue
+        (out[arch],) = my_id_list  # List should always have 0 or 1 items.
+    return out
 
 
 @ensure_writable

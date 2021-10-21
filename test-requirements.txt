@@ -1,3 +1,4 @@
 # Requirements for tests
 wheel
 pytest
+pytest-cov

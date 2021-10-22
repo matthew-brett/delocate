@@ -237,23 +237,21 @@ def _parse_otool_listing(stdout: str) -> Dict[str, List[str]]:
     '''
     stdout = stdout.strip()
     out: Dict[str, List[str]] = {}
-    current_arch: Optional[str] = None  # Current architecture being parsed.
-    for line in stdout.split("\n"):
-        match_arch = _OTOOL_ARCHITECTURE_RE.match(line)
-        if match_arch:
-            current_arch = match_arch["architecture"]
-            if current_arch is None:
-                current_arch = ""
-            assert current_arch not in out, (
-                f"Input has duplicate architectures for {current_arch!r}:"
-                f"\n{stdout}"
-            )
-            out[current_arch] = []
-            continue
+    lines = stdout.split("\n")
+    while lines:
+        # Detect and parse the name/arch header line.
+        match_arch = _OTOOL_ARCHITECTURE_RE.match(lines.pop(0))
+        assert match_arch, f"Missing file/architecture header:\n{stdout}"
+        current_arch: Optional[str] = match_arch["architecture"]
+        if current_arch is None:
+            current_arch = ""
         assert (
-            current_arch is not None
-        ), f"Missing starting architecture:\n{stdout}"
-        out[current_arch].append(line.strip())
+            current_arch not in out
+        ), f"Input has duplicate architectures for {current_arch!r}:\n{stdout}"
+        out[current_arch] = []
+        # Collect lines until the next header or the end.
+        while lines and not lines[0].endswith(":"):
+            out[current_arch].append(lines.pop(0).strip())
     return out
 
 

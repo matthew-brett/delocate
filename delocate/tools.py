@@ -192,9 +192,18 @@ _OTOOL_ARCHITECTURE_RE = re.compile(
 )
 """Matches the library separater line in 'otool -L'-like outputs.
 
-Must match the following examples:
-'example.so (architecture x86_64):'
-'example.so:'
+Examples
+--------
+>>> match = _OTOOL_ARCHITECTURE_RE.match("example.so (architecture x86_64):")
+>>> match["name"]
+'example.so'
+>>> match["architecture"]
+'x86_64'
+>>> match = _OTOOL_ARCHITECTURE_RE.match("example.so:")
+>>> match["name"]
+'example.so'
+>>> match["architecture"] is None
+True
 """
 
 

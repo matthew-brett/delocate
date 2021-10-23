@@ -326,20 +326,6 @@ BAD_OBJECT_TESTS = [
 ]
 
 
-def _cmd_out_err(cmd: Sequence[str]) -> List[str]:
-    """Run command, return stdout or stderr if stdout is empty."""
-    proc = subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
-    )
-    out = proc.stdout.strip()
-    if not out:
-        out = proc.stderr.strip()
-    return out.split("\n")
-
-
 # Sometimes the line starts with (architecture arm64) and sometimes not
 # The regex is used for matching both
 _LINE0_RE = re.compile(r"^(?: \(architecture .*\))?:(?P<further_report>.*)")
@@ -528,10 +514,68 @@ def set_install_id(filename: str, install_id: str, ad_hoc_sign: bool = True):
         replace_signature(filename, "-")
 
 
-RPATH_RE = re.compile(r"path (.*) \(offset \d+\)")
+RPATH_RE = re.compile(r"path (?P<rpath>.*) \(offset \d+\)")
 
 
-def get_rpaths(filename):
+def _parse_otool_rpaths(stdout: str) -> Dict[str, List[str]]:
+    '''Return the rpaths of the library `filename`.
+
+    Parameters
+    ----------
+    stdout : str
+        The decoded stdout of an 'otool -l' command.
+
+    Returns
+    -------
+    rpaths : dict of list of str
+        Where the key is the architecture and the value is the list of paths.
+        If the library has no rpaths then the values will be an empty list.
+
+    Examples
+    --------
+    >>> _parse_otool_rpaths("""
+    ... example.so:
+    ...     cmd LC_RPATH
+    ... cmdsize 0
+    ...    path /example/path (offset 0)
+    ...     cmd LC_RPATH
+    ... cmdsize 0
+    ...    path @loader_path (offset 0)
+    ... """)
+    {'': ['/example/path', '@loader_path']}
+    >>> _parse_otool_rpaths("""example.so:""")  # No rpaths.
+    {'': []}
+    >>> _parse_otool_rpaths("""
+    ... example.so (architecture x86_64):
+    ...     cmd LC_RPATH
+    ... cmdsize 0
+    ...    path path/x86_64 (offset 0)
+    ... example.so (architecture arm64):
+    ...     cmd LC_RPATH
+    ... cmdsize 0
+    ...    path path/arm64 (offset 0)
+    ... """)
+    {'x86_64': ['path/x86_64'], 'arm64': ['path/arm64']}
+    '''
+    rpaths: Dict[str, List[str]] = {}
+    for arch, lines in _parse_otool_listing(stdout).items():
+        rpaths[arch] = []
+        line_no = 0
+        while line_no < len(lines):
+            line = lines[line_no]
+            line_no += 1
+            if line != "cmd LC_RPATH":
+                continue
+            cmdsize, path = lines[line_no : line_no + 2]
+            assert cmdsize.startswith("cmdsize "), "Could not parse:\n{stdout}"
+            match_rpath = RPATH_RE.match(path)
+            assert match_rpath, "Could not parse:\n{stdout}"
+            rpaths[arch].append(match_rpath["rpath"])
+            line_no += 2
+    return rpaths
+
+
+def get_rpaths(filename: str) -> Tuple[str, ...]:
     """Return a tuple of rpaths from the library `filename`.
 
     If `filename` is not a library then the returned tuple will be empty.
@@ -546,25 +590,22 @@ def get_rpaths(filename):
     rpath : tuple
         rpath paths in `filename`
     """
-    try:
-        lines = _cmd_out_err(["otool", "-l", filename])
-    except RuntimeError:
+    otool = subprocess.run(
+        ["otool", "-l", filename],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
-    if not _line0_says_object(lines[0], filename):
-        return ()
-    lines = [line.strip() for line in lines]
-    paths = []
-    line_no = 1
-    while line_no < len(lines):
-        line = lines[line_no]
-        line_no += 1
-        if line != "cmd LC_RPATH":
-            continue
-        cmdsize, path = lines[line_no : line_no + 2]
-        assert cmdsize.startswith("cmdsize ")
-        paths.append(RPATH_RE.match(path).groups()[0])
-        line_no += 2
-    return tuple(paths)
+    all_rpaths = _parse_otool_rpaths(otool.stdout)
+    first = list(all_rpaths.values())[0]
+    if any(first != rpaths for rpaths in all_rpaths.values()):
+        raise InstallNameError(
+            "This function does not support separate rpaths per-architecture:"
+            f" {all_rpaths}"
+        )
+    return tuple(first)
 
 
 def get_environment_variable_paths():

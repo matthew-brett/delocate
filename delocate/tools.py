@@ -243,6 +243,17 @@ def _parse_otool_listing(stdout: str) -> Dict[str, List[str]]:
     ... example.so (architecture arm64):
     ... """)
     {'x86_64': [], 'arm64': []}
+    >>> _parse_otool_listing("")
+    Traceback (most recent call last):
+        ...
+    RuntimeError: Missing file/architecture header:...
+    >>> _parse_otool_listing("""
+    ... example.so (architecture arm64):
+    ... example.so (architecture arm64):
+    ... """)
+    Traceback (most recent call last):
+        ...
+    RuntimeError: Input has duplicate architectures for ...
     '''
     stdout = stdout.strip()
     out: Dict[str, List[str]] = {}
@@ -250,13 +261,16 @@ def _parse_otool_listing(stdout: str) -> Dict[str, List[str]]:
     while lines:
         # Detect and parse the name/arch header line.
         match_arch = _OTOOL_ARCHITECTURE_RE.match(lines.pop(0))
-        assert match_arch, f"Missing file/architecture header:\n{stdout}"
+        if not match_arch:
+            raise RuntimeError(f"Missing file/architecture header:\n{stdout}")
         current_arch: Optional[str] = match_arch["architecture"]
         if current_arch is None:
             current_arch = ""
-        assert (
-            current_arch not in out
-        ), f"Input has duplicate architectures for {current_arch!r}:\n{stdout}"
+        if current_arch in out:
+            raise RuntimeError(
+                "Input has duplicate architectures for"
+                f" {current_arch!r}:\n{stdout}"
+            )
         out[current_arch] = []
         # Collect lines until the next header or the end.
         while lines and not lines[0].endswith(":"):

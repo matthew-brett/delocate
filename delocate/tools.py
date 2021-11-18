@@ -408,15 +408,15 @@ def get_install_id(filename: str) -> Optional[str]:
         install id of library `filename`, or None if no install id
     """
     install_ids = _get_install_ids(filename)
-    if all(not install_id for install_id in install_ids.values()):
+    unique_ids = set(install_ids.values())
+    if not unique_ids:
         return None  # No install ids or nothing returned.
-    my_id = list(install_ids.values())[0]
-    if any(install_id != my_id for install_id in install_ids.values()):
+    if len(unique_ids) > 1:
         raise InstallNameError(
             "This function does not support separate install ids"
             f" per-architecture: {install_ids}"
         )
-    return my_id  # Only one install name.
+    return unique_ids.pop()
 
 
 def _get_install_ids(filename: str) -> Dict[str, str]:

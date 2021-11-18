@@ -18,8 +18,11 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    TypeVar,
     Union,
 )
+
+T = TypeVar("T")
 
 
 class InstallNameError(Exception):
@@ -278,6 +281,53 @@ def _parse_otool_listing(stdout: str) -> Dict[str, List[str]]:
     return out
 
 
+def _ignore_architectures(input: Dict[str, T]) -> T:
+    """Merge architecture outputs for functions which don't support multiple.
+
+    This is used to maintain backward compatibility inside of functions which
+    never supported multiple architectures.  You should not call this function
+    from new functions.
+
+    Parameters
+    ----------
+    input : dict of T
+        A dict similar to the return value of :func:`_parse_otool_listing`.
+        Must be non-empty.
+
+    Returns
+    -------
+    out : T
+        One of the values from ``input``.
+        Multiple architectures combined into a single output where possible.
+
+    Raises
+    ------
+    InstallNameError
+        If ``input`` has different values per-architecture.
+
+    Examples
+    --------
+    >>> values = {"a": 10, "b": 10}
+    >>> _ignore_architectures(values)
+    10
+    >>> values
+    {'a': 10, 'b': 10}
+    >>> _ignore_architectures({"": ["1", "2", "2"]})
+    ['1', '2', '2']
+    >>> _ignore_architectures({"a": "1", "b": "not 1"})
+    Traceback (most recent call last):
+        ...
+    delocate.tools.InstallNameError: ...
+    """
+    first = next(iter(input.values()))  # Get any one value non-destructively.
+    if any(first != others for others in input.values()):
+        raise InstallNameError(
+            "This function does not support separate values per-architecture:"
+            f" {input}"
+        )
+    return first
+
+
 def _parse_otool_install_names(
     stdout: str,
 ) -> Dict[str, List[Tuple[str, str, str]]]:
@@ -391,19 +441,13 @@ def get_install_names(filename: str) -> Tuple[str, ...]:
     )
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
-    install_ids = _get_install_ids(filename)
-    all_names = []
-    for arch, libraries in _parse_otool_install_names(otool.stdout).items():
-        names_for_arch = [name for name, _, _ in libraries]
-        if arch in install_ids:
-            # Remove redundant install id from the install names.
-            assert names_for_arch[0] == install_ids[arch]
-            names_for_arch = names_for_arch[1:]
-        for name in names_for_arch:
-            if name not in all_names:  # Avoid duplicates and preserve order.
-                all_names.append(name)
-
-    return tuple(all_names)
+    install_id = get_install_id(filename)
+    names_data = _ignore_architectures(_parse_otool_install_names(otool.stdout))
+    names = [name for name, _, _ in names_data]
+    if install_id:  # Remove redundant install id from the install names.
+        assert names[0] == install_id
+        names = names[1:]
+    return tuple(names)
 
 
 def get_install_id(filename: str) -> Optional[str]:
@@ -422,15 +466,9 @@ def get_install_id(filename: str) -> Optional[str]:
         install id of library `filename`, or None if no install id
     """
     install_ids = _get_install_ids(filename)
-    unique_ids = set(install_ids.values())
-    if not unique_ids:
+    if not install_ids:
         return None  # No install ids or nothing returned.
-    if len(unique_ids) > 1:
-        raise InstallNameError(
-            "This function does not support separate install ids"
-            f" per-architecture: {install_ids}"
-        )
-    return unique_ids.pop()
+    return _ignore_architectures(install_ids)
 
 
 def _get_install_ids(filename: str) -> Dict[str, str]:
@@ -612,14 +650,8 @@ def get_rpaths(filename: str) -> Tuple[str, ...]:
     )
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
-    all_rpaths = _parse_otool_rpaths(otool.stdout)
-    first = list(all_rpaths.values())[0]
-    if any(first != rpaths for rpaths in all_rpaths.values()):
-        raise InstallNameError(
-            "This function does not support separate rpaths per-architecture:"
-            f" {all_rpaths}"
-        )
-    return tuple(first)
+    rpaths = _ignore_architectures(_parse_otool_rpaths(otool.stdout))
+    return tuple(rpaths)
 
 
 def get_environment_variable_paths():

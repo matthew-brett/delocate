@@ -501,8 +501,13 @@ def _get_install_ids(filename: str) -> Dict[str, str]:
     out = {}
     for arch, my_id_list in _parse_otool_listing(otool.stdout).items():
         if not my_id_list:
-            continue
-        (out[arch],) = my_id_list  # List should always have 0 or 1 items.
+            continue  # No install ID.
+        if len(my_id_list) != 1:
+            raise RuntimeError(
+                "Expected at most 1 value for a libraries install ID,"
+                f" got {my_id_list}"
+            )
+        out[arch] = my_id_list[0]
     return out
 
 

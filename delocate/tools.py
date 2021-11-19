@@ -445,7 +445,10 @@ def get_install_names(filename: str) -> Tuple[str, ...]:
     names_data = _ignore_architectures(_parse_otool_install_names(otool.stdout))
     names = [name for name, _, _ in names_data]
     if install_id:  # Remove redundant install id from the install names.
-        assert names[0] == install_id
+        if names[0] != install_id:
+            raise RuntimeError(
+                f"Expected {install_id!r} to be first in {names}"
+            )
         names = names[1:]
     return tuple(names)
 

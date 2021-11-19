@@ -319,8 +319,8 @@ def _ignore_architectures(input: Dict[str, T]) -> T:
         ...
     delocate.tools.InstallNameError: ...
     """
-    first = next(iter(input.values()))  # Get any one value non-destructively.
-    if any(first != others for others in input.values()):
+    first, *rest = input.values()
+    if any(first != others for others in rest):
         raise InstallNameError(
             "This function does not support separate values per-architecture:"
             f" {input}"

@@ -682,7 +682,7 @@ def test_dyld_library_path_beats_basename():
         # Updating shows us the new lib
         os.environ["DYLD_LIBRARY_PATH"] = subdir
         predicted_lib_location = search_environment_for_lib(libb)
-        assert_equal(predicted_lib_location, new_libb)
+        assert_equal(predicted_lib_location, realpath(new_libb))
 
 
 def test_dyld_fallback_library_path_loses_to_basename():

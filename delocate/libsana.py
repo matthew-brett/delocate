@@ -625,7 +625,7 @@ def search_environment_for_lib(lib_path):
 
     for location in potential_library_locations:
         if os.path.exists(location):
-            return location
+            return realpath(location)
     return realpath(lib_path)
 
 

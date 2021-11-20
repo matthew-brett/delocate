@@ -5,6 +5,7 @@ Utilities for analyzing library dependencies in trees and wheels
 
 import os
 import shutil
+import subprocess
 from os.path import dirname
 from os.path import join as pjoin
 from os.path import realpath, relpath, split
@@ -249,6 +250,105 @@ def test_tree_libs_from_directory() -> None:
             )
             == sl_exp_dict
         )
+
+
+def test_tree_libs_from_directory_with_links() -> None:
+    # Test ability to walk through tree, where the same library may have
+    # soft links under different subdirectories. See also GH#133, where
+    #
+    # we have:
+    #
+    #   liba.dylib
+    #   links/liba.dylib, a soft link to liba.dylib
+    #
+    # and
+    #
+    #   libb.dylib, depends on liba.dylib via `@rpath/liba.dylib`
+    #   links/libb.dylib, depends on links/liba.dylib and been found via
+    #                     `DYLD_LIBRARY_PATH`
+    #
+    # in the final target we should keep the `liba.dylib` for only once, rather
+    # than throwing a DelocationError.
+    to_copy = [
+        LIBA,
+        LIBB,
+    ]
+    with InTemporaryDirectory() as tmpdir:
+        local_libs = _copy_libs(to_copy, tmpdir)
+        rp_local_libs = [realpath(L) for L in local_libs]
+        (
+            liba,
+            libb,
+        ) = local_libs
+        (
+            rp_liba,
+            rp_libb,
+        ) = rp_local_libs
+
+        # copy files
+        os.makedirs(pjoin(tmpdir, "links"))
+        liba_link = pjoin(tmpdir, "links", "liba.dylib")
+        libb_use_link = pjoin(tmpdir, "links", "libb.dylib")
+        rp_libb_use_link = realpath(libb_use_link)
+        os.symlink(liba, liba_link)
+        shutil.copy2(libb, libb_use_link)
+
+        # hack links/libb.dylib to depends on the softlink of liba.dylib
+        subprocess.check_call(
+            [
+                "install_name_tool",
+                "-change",
+                "liba.dylib",
+                liba_link,
+                libb_use_link,
+            ]
+        )
+        # hack libb.dylib to resolving from rpath, bypass searching from env
+        subprocess.check_call(
+            [
+                "install_name_tool",
+                "-change",
+                "liba.dylib",
+                "@rpath/liba.dylib",
+                libb,
+            ]
+        )
+        subprocess.check_call(
+            [
+                "install_name_tool",
+                "-add_rpath",
+                os.path.dirname(liba),
+                libb,
+            ]
+        )
+
+        exp_dict = get_ext_dict(local_libs + [liba_link, libb_use_link])
+        exp_dict.update(
+            {
+                rp_liba: {
+                    rp_libb: "@rpath/liba.dylib",
+                    rp_libb_use_link: liba_link,
+                },
+            }
+        )
+
+        # makes the soft link of `liba.dylib` presents in `DYLD_LIBRARY_PATH`
+        dyld_library_path = os.environ.get("dyld_library_path", None)
+        new_dyld_library_path = os.path.dirname(liba_link)
+        if dyld_library_path is not None:
+            new_dyld_library_path = os.path.pathsep.join(
+                new_dyld_library_path, dyld_library_path
+            )
+        os.environ["DYLD_LIBRARY_PATH"] = new_dyld_library_path
+
+        # check the result
+        assert tree_libs_from_directory(tmpdir) == exp_dict
+
+        # restore os environment
+        if dyld_library_path is not None:
+            os.environ["DYLD_LIBRARY_PATH"] = dyld_library_path
+        else:
+            del os.environ["DYLD_LIBRARY_PATH"]
 
 
 def test_get_prefix_stripper():

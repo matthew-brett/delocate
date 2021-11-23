@@ -332,15 +332,10 @@ def test_tree_libs_from_directory_with_links() -> None:
         )
 
         # Put dir of soft link for `liba.dylib` into `DYLD_LIBRARY_PATH`
-        dyld_library_path = os.environ.get("DYLD_LIBRARY_PATH")
-        os.environ["DYLD_LIBRARY_PATH"] = os.path.dirname(liba_link)
-        try:
+        with TempDirWithoutEnvVars("DYLD_LIBRARY_PATH"):
+            assert tree_libs_from_directory(tmpdir) != exp_dict
+            os.environ["DYLD_LIBRARY_PATH"] = os.path.dirname(liba_link)
             assert tree_libs_from_directory(tmpdir) == exp_dict
-        finally:  # Restore os.environ.
-            if dyld_library_path is not None:
-                os.environ["DYLD_LIBRARY_PATH"] = dyld_library_path
-            else:
-                del os.environ["DYLD_LIBRARY_PATH"]
 
 
 def test_get_prefix_stripper():

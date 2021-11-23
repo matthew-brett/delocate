@@ -337,7 +337,8 @@ def test_tree_libs_from_directory_with_links() -> None:
             # the result should be correct normally
             assert tree_libs_from_directory(tmpdir) == exp_dict
 
-            # the result should be correct even if there are soft links in `$DYLD_LIBRARY_PATH`
+            # the result should be correct even if there are soft links in
+            # `$DYLD_LIBRARY_PATH`
             os.environ["DYLD_LIBRARY_PATH"] = os.path.dirname(liba_link)
             assert tree_libs_from_directory(tmpdir) == exp_dict
 

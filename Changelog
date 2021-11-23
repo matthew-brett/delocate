@@ -21,6 +21,10 @@ Releases
 
 * [Unreleased]
 
+* [0.10.1] - 2021-11-23
+
+  Bugfix release.
+
   * Delocate will no longer fail when libraries use different install names to
     refer to the same library.
     [#134](https://github.com/matthew-brett/delocate/pull/134)

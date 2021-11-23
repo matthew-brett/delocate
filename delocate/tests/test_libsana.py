@@ -255,7 +255,6 @@ def test_tree_libs_from_directory() -> None:
 def test_tree_libs_from_directory_with_links() -> None:
     # Test ability to walk through tree, where the same library may have
     # soft links under different subdirectories. See also GH#133, where
-    #
     # we have:
     #
     #   liba.dylib

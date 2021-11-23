@@ -30,6 +30,7 @@ from ..libsana import (
 )
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import set_install_name
+from .env_tools import TempDirWithoutEnvVars
 from .pytest_tools import assert_equal
 from .test_install_names import (
     DATA_PATH,

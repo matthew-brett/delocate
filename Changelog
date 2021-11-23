@@ -21,6 +21,10 @@ Releases
 
 * [Unreleased]
 
+  * Delocate will no longer fail when libraries use different install names to
+    refer to the same library.
+    [#134](https://github.com/matthew-brett/delocate/pull/134)
+
 * [0.10.0] - 2021-09-22
 
   First release that requires Python 3.

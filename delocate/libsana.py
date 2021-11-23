@@ -604,7 +604,7 @@ def search_environment_for_lib(lib_path):
     Returns
     -------
     lib_path : str
-        Full path of ``basename(lib_path)``'s location, if it can be found, or
+        Real path of the first found location, if it can be found, or
         ``realpath(lib_path)`` if it cannot.
     """
     lib_basename = basename(lib_path)
@@ -625,7 +625,8 @@ def search_environment_for_lib(lib_path):
 
     for location in potential_library_locations:
         if os.path.exists(location):
-            return location
+            # See GH#133 for why we return the realpath here if it can be found
+            return realpath(location)
     return realpath(lib_path)
 
 

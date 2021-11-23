@@ -331,7 +331,7 @@ def test_tree_libs_from_directory_with_links() -> None:
             }
         )
 
-        # makes the soft link of `liba.dylib` presents in `DYLD_LIBRARY_PATH`
+        # Put dir of soft link for `liba.dylib` into `DYLD_LIBRARY_PATH`
         dyld_library_path = os.environ.get("DYLD_LIBRARY_PATH")
         os.environ["DYLD_LIBRARY_PATH"] = os.path.dirname(liba_link)
         try:

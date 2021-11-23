@@ -302,7 +302,7 @@ def test_tree_libs_from_directory_with_links() -> None:
                 libb_use_link,
             ]
         )
-        # hack libb.dylib to resolving from rpath, bypass searching from env
+        # hack libb.dylib to resolve from rpath, bypass searching from env
         subprocess.check_call(
             [
                 "install_name_tool",

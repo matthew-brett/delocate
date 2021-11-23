@@ -292,7 +292,7 @@ def test_tree_libs_from_directory_with_links() -> None:
         os.symlink(liba, liba_link)
         shutil.copy2(libb, libb_use_link)
 
-        # hack links/libb.dylib to depends on the softlink of liba.dylib
+        # hack links/libb.dylib to depend on the softlink of liba.dylib
         subprocess.check_call(
             [
                 "install_name_tool",

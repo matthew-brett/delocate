@@ -193,7 +193,7 @@ def parse_install_name(line: str) -> Tuple[str, str, str]:
 _OTOOL_ARCHITECTURE_RE = re.compile(
     r"^(?P<name>.*?)(?: \(architecture (?P<architecture>\w+)\))?:$"
 )
-"""Matches the library separater line in 'otool -L'-like outputs.
+"""Matches the library separator line in 'otool -L'-like outputs.
 
 Examples
 --------

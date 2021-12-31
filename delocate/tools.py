@@ -281,7 +281,7 @@ def _parse_otool_listing(stdout: str) -> Dict[str, List[str]]:
     return out
 
 
-def _ignore_architectures(input: Dict[str, T]) -> T:
+def _check_ignore_archs(input: Dict[str, T]) -> T:
     """Merge architecture outputs for functions which don't support multiple.
 
     This is used to maintain backward compatibility inside of functions which
@@ -308,13 +308,13 @@ def _ignore_architectures(input: Dict[str, T]) -> T:
     Examples
     --------
     >>> values = {"a": 10, "b": 10}
-    >>> _ignore_architectures(values)
+    >>> _check_ignore_archs(values)
     10
     >>> values
     {'a': 10, 'b': 10}
-    >>> _ignore_architectures({"": ["1", "2", "2"]})
+    >>> _check_ignore_archs({"": ["1", "2", "2"]})
     ['1', '2', '2']
-    >>> _ignore_architectures({"a": "1", "b": "not 1"})
+    >>> _check_ignore_archs({"a": "1", "b": "not 1"})
     Traceback (most recent call last):
         ...
     delocate.tools.InstallNameError: ...
@@ -442,7 +442,7 @@ def get_install_names(filename: str) -> Tuple[str, ...]:
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
     install_id = get_install_id(filename)
-    names_data = _ignore_architectures(_parse_otool_install_names(otool.stdout))
+    names_data = _check_ignore_archs(_parse_otool_install_names(otool.stdout))
     names = [name for name, _, _ in names_data]
     if install_id:  # Remove redundant install id from the install names.
         if names[0] != install_id:
@@ -471,7 +471,7 @@ def get_install_id(filename: str) -> Optional[str]:
     install_ids = _get_install_ids(filename)
     if not install_ids:
         return None  # No install ids or nothing returned.
-    return _ignore_architectures(install_ids)
+    return _check_ignore_archs(install_ids)
 
 
 def _get_install_ids(filename: str) -> Dict[str, str]:
@@ -658,7 +658,7 @@ def get_rpaths(filename: str) -> Tuple[str, ...]:
     )
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
-    rpaths = _ignore_architectures(_parse_otool_rpaths(otool.stdout))
+    rpaths = _check_ignore_archs(_parse_otool_rpaths(otool.stdout))
     return tuple(rpaths)
 
 

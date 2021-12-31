@@ -21,6 +21,10 @@ Releases
 
 * [Unreleased]
 
+  * Ensured support for versions of wheel beyond 0.37.1.  If you are using older
+    versions of Delcoate then you may need to to pin ``wheel==0.37.1``.
+    [#135](https://github.com/matthew-brett/delocate/issues/135)
+
 * [0.10.1] - 2021-11-23
 
   Bugfix release.

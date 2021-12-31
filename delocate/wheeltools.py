@@ -15,13 +15,9 @@ from os.path import relpath
 from os.path import sep as psep
 from os.path import splitext
 
-from wheel.pkginfo import read_pkg_info, write_pkg_info
+from delocate.pkginfo import read_pkg_info, write_pkg_info
 from wheel.util import native, urlsafe_b64encode
-
-try:
-    from wheel.install import WheelFile
-except ImportError:  # As of Wheel 0.32.0
-    from wheel.wheelfile import WheelFile
+from wheel.wheelfile import WheelFile
 
 from .tmpdirs import InTemporaryDirectory
 from .tools import dir2zip, open_rw, unique_by_index, zip2dir
@@ -158,12 +154,8 @@ class InWheelCtx(InWheel):
         return self
 
 
-def _get_wheelinfo_name(wheelfile):
-    # Work round wheel API compatibility
-    try:
-        return wheelfile.wheelinfo_name
-    except AttributeError:
-        return wheelfile.dist_info_path + "/WHEEL"
+def _get_wheelinfo_name(wheelfile: WheelFile):
+    return wheelfile.dist_info_path + "/WHEEL"
 
 
 def add_platforms(in_wheel, platforms, out_path=None, clobber=False):

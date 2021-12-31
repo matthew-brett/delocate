@@ -3,15 +3,14 @@
 
 import os
 import shutil
+from email.message import Message
 from os.path import basename, exists, isfile
 from os.path import join as pjoin
 from os.path import realpath, splitext
 from typing import AnyStr
 
-try:
-    from wheel.install import WheelFile
-except ImportError:  # As of Wheel 0.32.0
-    from wheel.wheelfile import WheelFile
+from delocate.pkginfo import read_pkg_info_bytes
+from wheel.wheelfile import WheelFile
 
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import open_readable, zip2dir
@@ -119,15 +118,7 @@ def _filter_key(items, key):
     return [(k, v) for k, v in items if k != key]
 
 
-def get_info(wheelfile):
-    # Work round wheel API changes
-    try:
-        return wheelfile.parsed_wheel_info
-    except AttributeError:
-        pass
-    # Wheel 0.32.0
-    from wheel.pkginfo import read_pkg_info_bytes
-
+def get_info(wheelfile: WheelFile) -> Message:
     info_name = _get_wheelinfo_name(wheelfile)
     return read_pkg_info_bytes(wheelfile.read(info_name))
 

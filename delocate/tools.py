@@ -302,7 +302,7 @@ def _check_ignore_archs(input: Dict[str, T]) -> T:
 
     Raises
     ------
-    InstallNameError
+    NotImplementedError
         If ``input`` has different values per-architecture.
 
     Examples
@@ -317,11 +317,11 @@ def _check_ignore_archs(input: Dict[str, T]) -> T:
     >>> _check_ignore_archs({"a": "1", "b": "not 1"})
     Traceback (most recent call last):
         ...
-    delocate.tools.InstallNameError: ...
+    NotImplementedError: ...
     """
     first, *rest = input.values()
     if any(first != others for others in rest):
-        raise InstallNameError(
+        raise NotImplementedError(
             "This function does not support separate values per-architecture:"
             f" {input}"
         )
@@ -396,9 +396,30 @@ _LINE0_RE = re.compile(r"^(?: \(architecture .*\))?:(?P<further_report>.*)")
 
 
 def _line0_says_object(stdout_stderr: str, filename: str) -> bool:
+    """Return True if an output is for an object and matches filename.
+
+    Parameters
+    ----------
+    stdout_stderr : str
+        The combined stdout/stderr streams from ``otool``.
+    filename: str
+        The name of the file queried by ``otool``.
+
+    Returns
+    -------
+    is_object : bool
+        True if this is a valid object.
+        False if the output clearly suggests this is some other kind of file.
+
+    Raises
+    ------
+    InstallNameError
+        On any unexpected output which would leave the return value unknown.
+    """
     line0 = stdout_stderr.strip().split("\n", 1)[0]
     for test in BAD_OBJECT_TESTS:
         if test(line0):
+            # Output suggests that this is not a valid object file.
             return False
     if line0.startswith("Archive :"):
         # nothing to do for static libs
@@ -432,6 +453,13 @@ def get_install_names(filename: str) -> Tuple[str, ...]:
     -------
     install_names : tuple
         tuple of install names for library `filename`
+
+    Raises
+    ------
+    NotImplementedError
+        If ``filename`` has different install names per-architecture.
+    InstallNameError
+        On any unexpected output from ``otool``.
     """
     otool = subprocess.run(
         ["otool", "-L", filename],
@@ -446,7 +474,7 @@ def get_install_names(filename: str) -> Tuple[str, ...]:
     names = [name for name, _, _ in names_data]
     if install_id:  # Remove redundant install id from the install names.
         if names[0] != install_id:
-            raise RuntimeError(
+            raise InstallNameError(
                 f"Expected {install_id!r} to be first in {names}"
             )
         names = names[1:]
@@ -467,6 +495,11 @@ def get_install_id(filename: str) -> Optional[str]:
     -------
     install_id : str
         install id of library `filename`, or None if no install id
+
+    Raises
+    ------
+    NotImplementedError
+        If ``filename`` has different install ids per-architecture.
     """
     install_ids = _get_install_ids(filename)
     if not install_ids:
@@ -489,6 +522,11 @@ def _get_install_ids(filename: str) -> Dict[str, str]:
         The key is the architecture which is '' if none is provided by otool.
         The value is the install id for that architecture.
         If the library has no install ids then an empty dict is returned.
+
+    Raises
+    ------
+    InstallNameError
+        On any unexpected output from ``otool``.
     """
     otool = subprocess.run(
         ["otool", "-D", filename],
@@ -503,7 +541,7 @@ def _get_install_ids(filename: str) -> Dict[str, str]:
         if not my_id_list:
             continue  # No install ID.
         if len(my_id_list) != 1:
-            raise RuntimeError(
+            raise InstallNameError(
                 "Expected at most 1 value for a libraries install ID,"
                 f" got {my_id_list}"
             )
@@ -649,6 +687,13 @@ def get_rpaths(filename: str) -> Tuple[str, ...]:
     -------
     rpath : tuple
         rpath paths in `filename`
+
+    Raises
+    ------
+    NotImplementedError
+        If ``filename`` has different rpaths per-architecture.
+    InstallNameError
+        On any unexpected output from ``otool``.
     """
     otool = subprocess.run(
         ["otool", "-l", filename],

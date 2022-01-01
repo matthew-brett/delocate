@@ -177,17 +177,15 @@ def _copy_libs(lib_files, out_path):
 
 
 class RunRet:
-    """ Mock return result from subprocess.run
-    """
+    """Mock return result from subprocess.run"""
 
     def __init__(self, stdout):
         self.stdout = stdout
-        self.stderr = ''
+        self.stderr = ""
 
 
 def _fake_run_otool(res_dict):
-    """ Return function to mock subprocess.run
-    """
+    """Return function to mock subprocess.run"""
 
     def func(*args, **kwargs):
         return RunRet(res_dict[tuple(args[0][:2])])
@@ -196,20 +194,34 @@ def _fake_run_otool(res_dict):
 
 
 def test_install_names_multi():
-    for arch_def in [{  # Single arch
-        ('otool', '-L'): """\
+    for arch_def in [
+        {  # Single arch
+            (
+                "otool",
+                "-L",
+            ): """\
 example.so:
 \texample.so (compatibility version 0.0.0, current version 0.0.0)
 \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
 \t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
-""",
-        ('otool', '-D'): """\
+""",  # noqa: E501
+            (
+                "otool",
+                "-D",
+            ): """\
 example.so:
 example.so
 """,
-        'expected': ('/usr/lib/libc++.1.dylib', '/usr/lib/libSystem.B.dylib')
-    }, {  # Multi arch
-        ('otool', '-L'): """\
+            "expected": (
+                "/usr/lib/libc++.1.dylib",
+                "/usr/lib/libSystem.B.dylib",
+            ),
+        },
+        {  # Multi arch
+            (
+                "otool",
+                "-L",
+            ): """\
 example.so (architecture x86_64):
 \texample.so (compatibility version 0.0.0, current version 0.0.0)
 \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
@@ -218,15 +230,22 @@ example.so (architecture arm64):
 \texample.so (compatibility version 0.0.0, current version 0.0.0)
 \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
 \t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
-""",
-        ('otool', '-D'): """\
+""",  # noqa: E501
+            (
+                "otool",
+                "-D",
+            ): """\
 example.so (architecture x86_64):
 example.so:
 example.so (architecture arm64):
 example.so
 """,
-        'expected': ('/usr/lib/libc++.1.dylib', '/usr/lib/libSystem.B.dylib')
-       }]:
-        with mock.patch('subprocess.run', _fake_run_otool(arch_def)):
-            res = get_install_names('example.so')
-            assert res == arch_def['expected']
+            "expected": (
+                "/usr/lib/libc++.1.dylib",
+                "/usr/lib/libSystem.B.dylib",
+            ),
+        },
+    ]:
+        with mock.patch("subprocess.run", _fake_run_otool(arch_def)):
+            res = get_install_names("example.so")
+            assert res == arch_def["expected"]

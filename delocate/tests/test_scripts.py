@@ -11,6 +11,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import shutil
 import subprocess
+import sys
 from os.path import abspath, basename, dirname, exists, isfile
 from os.path import join as pjoin
 from os.path import realpath, splitext
@@ -73,6 +74,7 @@ bytes_runner = ScriptRunner()
 DATA_PATH = abspath(pjoin(dirname(__file__), "data"))
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
 def test_listdeps(plat_wheel: PlatWheel) -> None:
     # smokey tests of list dependencies command
     local_libs = {
@@ -162,6 +164,7 @@ def test_listdeps(plat_wheel: PlatWheel) -> None:
     ]
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Runs macOS executable.")
 def test_path() -> None:
     # Test path cleaning
     with InTemporaryDirectory():
@@ -188,6 +191,7 @@ def test_path() -> None:
         assert os.listdir(out_path) == ["libfake.dylib"]
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
 def test_path_dylibs():
     # Test delocate-path with and without dylib extensions
     with InTemporaryDirectory():
@@ -218,6 +222,7 @@ def _check_wheel(wheel_fname, lib_sdir):
         assert_equal(os.listdir(dylibs), ["libextfunc.dylib"])
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
 def test_wheel():
     # Some tests for wheel fixing
     with InTemporaryDirectory() as tmpdir:
@@ -277,6 +282,7 @@ def test_wheel():
         assert_equal(stdout, wheel_lines1 + wheel_lines2)
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
 def test_fix_wheel_dylibs():
     # Check default and non-default search for dynamic libraries
     with InTemporaryDirectory() as tmpdir:
@@ -295,6 +301,7 @@ def test_fix_wheel_dylibs():
             assert_false(exists(pjoin("fakepkg1", ".dylibs")))
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
 def test_fix_wheel_archs():
     # type: () -> None
     # Some tests for wheel fixing
@@ -378,6 +385,7 @@ def test_fix_wheel_archs():
                 assert_false(code == 0)
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Can't run scripts.")
 def test_fuse_wheels():
     # Some tests for wheel fusing
     with InTemporaryDirectory():
@@ -400,6 +408,7 @@ def test_fuse_wheels():
         assert_same_tree("to_wheel_refused", "from_wheel")
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Can't run scripts.")
 def test_patch_wheel():
     # Some tests for patching wheel
     with InTemporaryDirectory():
@@ -428,6 +437,7 @@ def test_patch_wheel():
         )
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Can't run scripts.")
 def test_add_platforms() -> None:
     # Check adding platform to wheel name and tag section
     assert_winfo_similar(PLAT_WHEEL, EXP_ITEMS, drop_version=False)

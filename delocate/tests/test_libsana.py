@@ -6,6 +6,7 @@ Utilities for analyzing library dependencies in trees and wheels
 import os
 import shutil
 import subprocess
+import sys
 from os.path import dirname
 from os.path import join as pjoin
 from os.path import realpath, relpath, split
@@ -56,6 +57,7 @@ def get_ext_dict(local_libs):
     return ext_deps
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 @pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
 def test_tree_libs():
     # type: () -> None
@@ -148,6 +150,7 @@ def test_tree_libs():
         assert tree_libs(tmpdir, filt) == sl_exp_dict
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_tree_libs_from_directory() -> None:
     # Test ability to walk through tree, finding dynamic library refs
     # Copy specific files to avoid working tree cruft
@@ -253,6 +256,10 @@ def test_tree_libs_from_directory() -> None:
         )
 
 
+@pytest.mark.xfail(
+    sys.platform == "win32", reason="Uses symlinks.", strict=False
+)
+@pytest.mark.xfail(sys.platform != "darwin", reason="install_name_tool")
 def test_tree_libs_from_directory_with_links() -> None:
     # Test ability to walk through tree, where the same library may have
     # soft links under different subdirectories. See also GH#133, where
@@ -382,6 +389,7 @@ def get_ext_dict_stripped(local_libs, start_path):
     return ext_dict
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_stripped_lib_dict():
     # type: () -> None
     # Test routine to return lib_dict with relative paths
@@ -434,6 +442,7 @@ def test_stripped_lib_dict():
         )
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="wheel_libs")
 def test_wheel_libs(plat_wheel: PlatWheel) -> None:
     # Test routine to list dependencies from wheels
     assert wheel_libs(PURE_WHEEL) == {}
@@ -453,6 +462,7 @@ def test_wheel_libs(plat_wheel: PlatWheel) -> None:
     assert wheel_libs(PLAT_WHEEL, filt) == {}
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_wheel_libs_ignore_missing() -> None:
     # Test wheel_libs ignore_missing parameter.
     with InTemporaryDirectory() as tmpdir:
@@ -462,6 +472,7 @@ def test_wheel_libs_ignore_missing() -> None:
         wheel_libs("rpath.whl", ignore_missing=True)
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Needs Unix linkage.")
 def test_resolve_dynamic_paths():
     # type: () -> None
     # A minimal test of the resolve_rpath function
@@ -476,6 +487,7 @@ def test_resolve_dynamic_paths():
         resolve_dynamic_paths(lib_rpath, [], path)
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Path seperators.")
 def test_resolve_rpath():
     # type: () -> None
     # A minimal test of the resolve_rpath function
@@ -487,6 +499,7 @@ def test_resolve_rpath():
     assert_equal(resolve_rpath(lib_rpath, []), lib_rpath)
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_get_dependencies(tmpdir):
     # type: (object) -> None
     tmpdir = str(tmpdir)
@@ -524,6 +537,7 @@ def test_get_dependencies(tmpdir):
     }
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_walk_library():
     # type: () -> None
     with pytest.raises(DependencyNotFound):
@@ -542,6 +556,7 @@ def test_walk_library():
     }
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_walk_directory(tmpdir):
     # type: (object) -> None
     tmpdir = str(tmpdir)

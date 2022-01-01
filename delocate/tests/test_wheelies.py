@@ -68,6 +68,8 @@ class PlatWheel(NamedTuple):
     stray_lib: str  # Path to the external library.
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.")
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_fix_pure_python():
     # Test fixing a pure python package gives no change
     with InTemporaryDirectory():
@@ -104,6 +106,7 @@ def _rename_module(in_wheel, mod_fname, out_wheel):
     return out_wheel
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_fix_plat() -> None:
     # Can we fix a wheel with a stray library?
     # We have to make one that works first
@@ -160,6 +163,7 @@ def test_fix_plat() -> None:
         assert get_install_id(the_lib) == inst_id
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_script_permissions():
     with InTemporaryDirectory():
         os.makedirs("wheels")
@@ -190,6 +194,7 @@ def test_script_permissions():
                 assert st.st_mtime == mtimes[path]
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_fix_plat_dylibs():
     # Check default and non-default searches for dylibs
     with InTemporaryDirectory() as tmpdir:
@@ -223,6 +228,8 @@ def _thin_mod(wheel, arch):
         check_call(["lipo", "-thin", arch, mod_fname, "-output", mod_fname])
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.")
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test__thinning():
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
@@ -237,6 +244,7 @@ def test__thinning():
             assert_equal(get_archs(mod_fname), ARCH_M1)
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 @pytest.mark.filterwarnings("ignore:The check_verbose flag is deprecated")
 def test_check_plat_archs():
     # Check flag to check architectures
@@ -301,6 +309,7 @@ def test_check_plat_archs():
         )
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.", strict=False)
 def test_patch_wheel() -> None:
     # Check patching of wheel
     with InTemporaryDirectory():
@@ -330,6 +339,7 @@ def test_patch_wheel() -> None:
             patch_wheel(PURE_WHEEL, WHEEL_PATCH_BAD, "out.whl")
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_fix_rpath():
     # Test wheels which have an @rpath dependency
     # Also verifies the delocated libraries signature
@@ -396,6 +406,7 @@ def test_fix_rpath():
         )
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_fix_toplevel() -> None:
     # Test wheels which are not organized into packages.
 
@@ -416,6 +427,7 @@ def test_fix_toplevel() -> None:
             assert "fakepkg_toplevel.dylibs" in os.listdir(wheel_path)
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_fix_namespace() -> None:
     # Test wheels which are organized with a namespace.
     with InTemporaryDirectory():

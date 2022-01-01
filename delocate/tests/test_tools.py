@@ -5,6 +5,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 from os.path import dirname
 from os.path import join as pjoin
 
@@ -69,6 +70,7 @@ def test_uniqe_by_index():
     assert_equal(unique_by_index(gen()), [4, 2, 1])
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Needs chmod.")
 def test_ensure_permissions():
     # Test decorator to ensure permissions
     with InTemporaryDirectory():
@@ -118,6 +120,7 @@ def test_ensure_permissions():
             assert_equal(chmod_perms(fname), st)
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Needs chmod.")
 def test_ensure_writable():
     # Test ensure writable decorator
     with InTemporaryDirectory():
@@ -169,6 +172,7 @@ def _write_file(filename, contents):
         fobj.write(contents)
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.")
 def test_zip2():
     # Test utilities to unzip and zip up
     with InTemporaryDirectory():
@@ -239,6 +243,7 @@ def test_cmp_contents():
         assert_false(cmp_contents("first", "fourth"))
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs lipo.")
 def test_get_archs_fuse():
     # Test routine to get architecture types from file
     assert_equal(get_archs(LIBM1), ARCH_M1)
@@ -262,6 +267,7 @@ def test_get_archs_fuse():
         assert_raises(RuntimeError, lipo_fuse, "libcopy64", LIB64, "yetanother")
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs codesign.")
 def test_validate_signature() -> None:
     # Fully test the validate_signature tool
     def check_signature(filename: str) -> None:

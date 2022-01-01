@@ -10,3 +10,10 @@ py_version = 36
 src_paths = ["isort", "test"]
 line_length = 80
 extend_skip = ["versioneer.py", "delocate/_version.py"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+required_plugins = ["pytest-cov"]
+testpaths = ["delocate/"]
+addopts = ["--doctest-modules", "--cov=delocate", "--cov-config=.coveragerc"]
+log_file_level = "DEBUG"

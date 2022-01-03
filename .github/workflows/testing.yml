@@ -53,6 +53,14 @@ jobs:
             dist/delocate-*.whl
           retention-days: 3
           if-no-files-found: error
+      - name: Upload requirements
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-requirements
+          path: |
+            test-requirements.txt
+          retention-days: 3
+          if-no-files-found: error
       - name: Run tests
         run: |
           pytest
@@ -92,9 +100,13 @@ jobs:
       - name: Install delocate
         run: |
           pip install delocate-*.whl
+      - name: Download requirements
+        uses: actions/download-artifact@v2
+        with:
+          name: test-requirements
       - name: Install test dependencies
         run: |
-          pip install pytest
+          pip install -r test-requirements.txt
       - name: Run isolated tests
         run: |
           pytest --pyargs delocate --log-level DEBUG --doctest-modules

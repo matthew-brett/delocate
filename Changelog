@@ -22,6 +22,7 @@ Releases
 * [Unreleased]
 
   * Support for Python 3.6 has been dropped.
+  * Delocate no longer depends on the ``wheel`` API.
 
 * [0.10.2] - 2021-12-31
 

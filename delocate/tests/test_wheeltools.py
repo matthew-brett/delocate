@@ -2,15 +2,18 @@
 """
 
 import os
+import re
 import shutil
 from email.message import Message
 from os.path import basename, exists, isfile
 from os.path import join as pjoin
 from os.path import realpath, splitext
-from typing import AnyStr
+from typing import AnyStr, List, Tuple
+from zipfile import ZipFile
 
+import pytest
 from delocate.pkginfo import read_pkg_info_bytes
-from wheel.wheelfile import WheelFile
+from packaging.utils import parse_wheel_filename
 
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import open_readable, zip2dir
@@ -18,12 +21,20 @@ from ..wheeltools import (
     InWheel,
     InWheelCtx,
     WheelToolsError,
-    _get_wheelinfo_name,
     add_platforms,
     rewrite_record,
 )
 from .pytest_tools import assert_equal, assert_false, assert_raises, assert_true
 from .test_wheelies import PLAT_WHEEL, PURE_WHEEL
+
+# Non-greedy matching of an optional build number may be too clever (more
+# invalid wheel filenames will match). Separate regex for .dist-info?
+# Copied from wheel.wheelfile
+WHEEL_INFO_RE = re.compile(
+    r"""^(?P<namever>(?P<name>.+?)-(?P<ver>.+?))(-(?P<build>\d[^-]*))?
+     -(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)\.whl$""",
+    re.VERBOSE,
+)
 
 # Template for testing expected wheel information
 EXP_PLAT = splitext(PLAT_WHEEL)[0].split("-")[-1]
@@ -118,52 +129,57 @@ def _filter_key(items, key):
     return [(k, v) for k, v in items if k != key]
 
 
-def get_info(wheelfile: WheelFile) -> Message:
-    info_name = _get_wheelinfo_name(wheelfile)
-    return read_pkg_info_bytes(wheelfile.read(info_name))
+def get_info(wheel_path: str) -> Message:
+    name, version, _, _ = parse_wheel_filename(basename(wheel_path))
+    with ZipFile(wheel_path) as zip_file:
+        return read_pkg_info_bytes(
+            zip_file.read(f"{name}-{version}.dist-info/WHEEL")
+        )
 
 
-def assert_winfo_similar(whl_fname, exp_items, drop_version=True):
-    wf = WheelFile(whl_fname)
-    wheel_parts = wf.parsed_filename.groupdict()
+def assert_winfo_similar(
+    whl_fname: str, exp_items: List[Tuple[str, str]], drop_version: bool = True
+) -> None:
+    match = WHEEL_INFO_RE.match(basename(whl_fname))
+    assert match
+    wheel_parts = match.groupdict()
     # Info can contain duplicate keys (e.g. Tag)
-    w_info = sorted(get_info(wf).items())
+    w_info = sorted(get_info(whl_fname).items())
     if drop_version:
         w_info = _filter_key(w_info, "Wheel-Version")
         exp_items = _filter_key(exp_items, "Wheel-Version")
-    assert_equal(len(exp_items), len(w_info))
+    assert len(exp_items) == len(w_info)
     # Extract some information from actual values
     wheel_parts["pip_version"] = dict(w_info)["Generator"].split()[1]
     for (key1, value1), (key2, value2) in zip(
         sorted(exp_items), sorted(w_info)
     ):
-        assert_equal(key1, key2)
+        assert key1 == key2
         value1 = value1.format(**wheel_parts)
-        assert_equal(value1, value2)
+        assert value1 == value2
 
 
-def test_add_platforms():
+def test_add_platforms() -> None:
     # Check adding platform to wheel name and tag section
     assert_winfo_similar(PLAT_WHEEL, EXP_ITEMS, drop_version=False)
     with InTemporaryDirectory() as tmpdir:
         # First wheel needs proper wheel filename for later unpack test
         out_fname = basename(PURE_WHEEL)
         # Can't add platforms to a pure wheel
-        assert_raises(
-            WheelToolsError, add_platforms, PURE_WHEEL, EXTRA_PLATS, tmpdir
-        )
-        assert_false(exists(out_fname))
+        with pytest.raises(WheelToolsError):
+            add_platforms(PURE_WHEEL, EXTRA_PLATS, tmpdir)
+        assert not exists(out_fname)
         out_fname = ".".join(
             (splitext(basename(PLAT_WHEEL))[0],) + EXTRA_PLATS + ("whl",)
         )
         actual_fname = realpath(add_platforms(PLAT_WHEEL, EXTRA_PLATS, tmpdir))
-        assert_equal(actual_fname, realpath(out_fname))
-        assert_true(isfile(out_fname))
+        assert actual_fname == realpath(out_fname)
+        assert isfile(out_fname)
         assert_winfo_similar(out_fname, EXTRA_EXPS)
         # If wheel exists (as it does) then raise error
-        assert_raises(
-            WheelToolsError, add_platforms, PLAT_WHEEL, EXTRA_PLATS, tmpdir
-        )
+
+        with pytest.raises(WheelToolsError):
+            add_platforms(PLAT_WHEEL, EXTRA_PLATS, tmpdir)
         # Unless clobber is set, no error
         add_platforms(PLAT_WHEEL, EXTRA_PLATS, tmpdir, clobber=True)
         # Assemble platform tags in two waves to check tags are not being
@@ -175,7 +191,7 @@ def test_add_platforms():
                 (splitext(basename(start))[0],) + (extra_plat, "whl")
             )
             back = add_platforms(start, [extra_plat], tmpdir, clobber=True)
-            assert_equal(realpath(back), realpath(out))
+            assert realpath(back) == realpath(out)
             assert_winfo_similar(out, EXTRA_EXPS[: exp_end + i])
             start = out
         # Default is to write into directory of wheel
@@ -184,16 +200,17 @@ def test_add_platforms():
         local_plat = pjoin("wheels", basename(PLAT_WHEEL))
         local_out = pjoin("wheels", out_fname)
         add_platforms(local_plat, EXTRA_PLATS)
-        assert_true(exists(local_out))
-        assert_raises(WheelToolsError, add_platforms, local_plat, EXTRA_PLATS)
+        assert exists(local_out)
+        with pytest.raises(WheelToolsError):
+            add_platforms(local_plat, EXTRA_PLATS)
         add_platforms(local_plat, EXTRA_PLATS, clobber=True)
         # If platforms already present, don't write more
         res = sorted(os.listdir("wheels"))
-        assert_equal(add_platforms(local_out, EXTRA_PLATS, clobber=True), None)
-        assert_equal(sorted(os.listdir("wheels")), res)
+        assert add_platforms(local_out, EXTRA_PLATS, clobber=True) is None
+        assert sorted(os.listdir("wheels")) == res
         assert_winfo_similar(out_fname, EXTRA_EXPS)
         # But WHEEL tags if missing, even if file name is OK
         shutil.copy2(local_plat, local_out)
         add_platforms(local_out, EXTRA_PLATS, clobber=True)
-        assert_equal(sorted(os.listdir("wheels")), res)
+        assert sorted(os.listdir("wheels")) == res
         assert_winfo_similar(out_fname, EXTRA_EXPS)

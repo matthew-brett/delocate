@@ -6,6 +6,8 @@ from os.path import basename, dirname, exists
 from os.path import join as pjoin
 from unittest import mock
 
+import pytest
+
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import (
     InstallNameError,
@@ -193,7 +195,15 @@ def _fake_run_otool(res_dict):
     return func
 
 
-def test_install_names_multi():
+def assert_result_exception(expected, func):
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            func()
+    else:
+        assert expected == func()
+
+
+def test_names_multi():
     for arch_def in [
         {  # Single arch
             (
@@ -210,15 +220,25 @@ example.so:
                 "-D",
             ): """\
 example.so:
-example.so
+\texample.so
 """,
-            "expected": (
+            (
+                "otool",
+                "-l",
+            ): """\
+example.so:
+    cmd LC_RPATH
+cmdsize 0
+   path path/x86_64 (offset 0)
+""",
+            "expected_install_names": (
                 "/usr/lib/libc++.1.dylib",
                 "/usr/lib/libSystem.B.dylib",
             ),
+            "expected_rpaths": ("path/x86_64",),
         },
         {  # Multi arch
-            (
+            (  # Install names match.
                 "otool",
                 "-L",
             ): """\
@@ -231,21 +251,118 @@ example.so (architecture arm64):
 \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
 \t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
 """,  # noqa: E501
-            (
+            (  # Install IDs match.
                 "otool",
                 "-D",
             ): """\
 example.so (architecture x86_64):
-example.so:
+\texample.so
 example.so (architecture arm64):
-example.so
+\texample.so
 """,
-            "expected": (
+            (  # Rpaths match.
+                "otool",
+                "-l",
+            ): """\
+example.so (architecture x86_64):
+    cmd LC_RPATH
+cmdsize 0
+   path path/x86_64 (offset 0)
+example.so (architecture arm64):
+    cmd LC_RPATH
+cmdsize 0
+   path path/x86_64 (offset 0)
+""",
+            "expected_install_names": (
                 "/usr/lib/libc++.1.dylib",
                 "/usr/lib/libSystem.B.dylib",
             ),
+            "expected_rpaths": ("path/x86_64",),
+        },
+        {  # Multi arch - not matching install names, rpaths
+            (  # Install names do not match (compatibility version).
+                "otool",
+                "-L",
+            ): """\
+example.so (architecture x86_64):
+\texample.so (compatibility version 0.0.0, current version 0.0.0)
+\t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
+\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
+example.so (architecture arm64):
+\texample.so (compatibility version 0.0.0, current version 0.0.0)
+\t/usr/lib/libc++.1.dylib (compatibility version 0.0.0, current version 905.6.0)
+\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
+""",  # noqa: E501
+            (  # Install IDs match.
+                "otool",
+                "-D",
+            ): """\
+example.so (architecture x86_64):
+\texample.so
+example.so (architecture arm64):
+\texample.so
+""",
+            (  # Rpaths do not match.
+                "otool",
+                "-l",
+            ): """\
+example.so (architecture x86_64):
+    cmd LC_RPATH
+cmdsize 0
+   path path/x86_64 (offset 0)
+example.so (architecture arm64):
+    cmd LC_RPATH
+cmdsize 0
+   path path/arm64 (offset 0)
+""",
+            "expected_install_names": NotImplementedError,
+            "expected_rpaths": NotImplementedError,
+        },
+        {  # Multi arch - not matching install IDS
+            (  # Install names match.
+                "otool",
+                "-L",
+            ): """\
+example.so (architecture x86_64):
+\texample.so (compatibility version 0.0.0, current version 0.0.0)
+\t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
+\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
+example.so (architecture arm64):
+\texample.so (compatibility version 0.0.0, current version 0.0.0)
+\t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
+\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
+""",  # noqa: E501
+            (  # Different install IDs for different archs.
+                "otool",
+                "-D",
+            ): """\
+example.so (architecture x86_64):
+\texample1.so
+example.so (architecture arm64):
+\texample.so
+""",
+            (  # RPaths match.
+                "otool",
+                "-l",
+            ): """\
+example.so (architecture x86_64):
+    cmd LC_RPATH
+cmdsize 0
+   path path/x86_64 (offset 0)
+example.so (architecture arm64):
+    cmd LC_RPATH
+cmdsize 0
+   path path/x86_64 (offset 0)
+""",
+            "expected_install_names": NotImplementedError,
+            "expected_rpaths": ("path/x86_64",),
         },
     ]:
         with mock.patch("subprocess.run", _fake_run_otool(arch_def)):
-            res = get_install_names("example.so")
-            assert res == arch_def["expected"]
+            assert_result_exception(
+                arch_def["expected_install_names"],
+                lambda: get_install_names("example.so"),
+            )
+            assert_result_exception(
+                arch_def["expected_rpaths"], lambda: get_rpaths("example.so")
+            )

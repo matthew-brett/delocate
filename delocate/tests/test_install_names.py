@@ -136,7 +136,7 @@ def test_set_install_id():
     assert_raises(InstallNameError, set_install_id, TEST_LIB, "libbof.dylib")
 
 
-def test_get_rpaths():
+def test_get_empty_rpaths():
     # Test fetch of rpaths
     # Not dynamic libs, no rpaths
     for fname in (LIBB, A_OBJECT, LIBA_STATIC, ICO_FILE, PY_FILE, BIN_FILE):

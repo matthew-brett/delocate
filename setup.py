@@ -16,7 +16,7 @@ setup(
     author_email="matthew.brett@gmail.com",
     url="http://github.com/matthew-brett/delocate",
     packages=find_packages(),
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
         "machomachomangler; sys_platform == 'win32'",
         "bindepend; sys_platform == 'win32'",

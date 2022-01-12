@@ -13,7 +13,7 @@ rm -f */libs/*.dylib
 rm -f */MANIFEST
 
 cd fakepkg1
-python setup.py clean bdist_wheel --py-limited-api=cp36
+python setup.py clean bdist_wheel --py-limited-api=cp37
 cd -
 
 cd fakepkg2
@@ -21,15 +21,15 @@ python setup.py clean bdist_wheel
 cd -
 
 cd fakepkg_rpath
-python setup.py clean bdist_wheel --py-limited-api=cp36
+python setup.py clean bdist_wheel --py-limited-api=cp37
 cd -
 
 cd fakepkg_toplevel
-python setup.py clean bdist_wheel --py-limited-api=cp36
+python setup.py clean bdist_wheel --py-limited-api=cp37
 cd -
 
 cd fakepkg_namespace
-python setup.py clean bdist_wheel --py-limited-api=cp36
+python setup.py clean bdist_wheel --py-limited-api=cp37
 cd -
 
 OUT_PATH=../delocate/tests/data

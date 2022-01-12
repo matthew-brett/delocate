@@ -21,6 +21,8 @@ Releases
 
 * [Unreleased]
 
+  * Support for Python 3.6 has been dropped.
+
 * [0.10.2] - 2021-12-31
 
   Bugfix and compatibility release.

@@ -20,7 +20,7 @@ setup(
     install_requires=[
         "machomachomangler; sys_platform == 'win32'",
         "bindepend; sys_platform == 'win32'",
-        "wheel>=0.32.0",
+        "packaging>=20.9",
         "typing_extensions",
     ],
     package_data={

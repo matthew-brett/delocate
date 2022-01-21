@@ -95,6 +95,57 @@ def back_tick(
     return proc.stdout.strip(), proc.stderr.strip()
 
 
+def _run(
+    cmd: Sequence[str], *, check: bool
+) -> subprocess.CompletedProcess[str]:
+    """Run ``cmd`` capturing output and handling non-zero exit codes by default.
+
+    Parameters
+    ----------
+    cmd : sequence
+        The command to execute, passed to `subprocess.run`.
+    check : bool, keyword-only
+        If True then non-zero exit codes will raise RuntimeError.
+
+    Returns
+    -------
+    out : CompletedProcess
+        A CompletedProcess instance from `subprocess.run`.
+        Outputs have been captured, so use ``out.stdout`` and ``out.stderr`` to
+        access them.
+
+    Raises
+    ------
+    RuntimeError:
+        If the command returns a non-zero exit code and ``check`` is True.
+
+    Examples
+    --------
+    >>> _run(["python", "-c", "print('hello')"], check=True)
+    CompletedProcess(args=['python', '-c', "print('hello')"], returncode=0, stdout='hello\\n', stderr='')
+    >>> _run(["python", "-c", "print('hello'); raise SystemExit('world')"], check=True)
+    Traceback (most recent call last):
+        ...
+    RuntimeError: Command ['python', '-c', "print('hello'); raise SystemExit('world')"] failed with non-zero exit code 1.
+    stdout:hello
+    stderr:world
+    """  # noqa: E501
+    try:
+        return subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=check,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(
+            f"Command {exc.cmd}"
+            f" failed with non-zero exit code {exc.returncode}."
+            f"\nstdout:{exc.stdout.strip()}\nstderr:{exc.stderr.strip()}"
+        ) from exc
+
+
 def unique_by_index(sequence):
     """unique elements in `sequence` in the order in which they occur
 
@@ -461,12 +512,7 @@ def get_install_names(filename: str) -> Tuple[str, ...]:
     InstallNameError
         On any unexpected output from ``otool``.
     """
-    otool = subprocess.run(
-        ["otool", "-L", filename],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
-    )
+    otool = _run(["otool", "-L", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
     install_id = get_install_id(filename)
@@ -528,12 +574,7 @@ def _get_install_ids(filename: str) -> Dict[str, str]:
     InstallNameError
         On any unexpected output from ``otool``.
     """
-    otool = subprocess.run(
-        ["otool", "-D", filename],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
-    )
+    otool = _run(["otool", "-D", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return {}
     out = {}
@@ -571,11 +612,8 @@ def set_install_name(
         raise InstallNameError(
             "{0} not in install names for {1}".format(oldname, filename)
         )
-    subprocess.run(
-        ["install_name_tool", "-change", oldname, newname, filename],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=True,
+    _run(
+        ["install_name_tool", "-change", oldname, newname, filename], check=True
     )
     if ad_hoc_sign:
         # ad hoc signature is represented by a dash
@@ -602,12 +640,7 @@ def set_install_id(filename: str, install_id: str, ad_hoc_sign: bool = True):
     """
     if get_install_id(filename) is None:
         raise InstallNameError("{0} has no install id".format(filename))
-    subprocess.run(
-        ["install_name_tool", "-id", install_id, filename],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=True,
-    )
+    _run(["install_name_tool", "-id", install_id, filename], check=True)
     if ad_hoc_sign:
         replace_signature(filename, "-")
 
@@ -695,12 +728,7 @@ def get_rpaths(filename: str) -> Tuple[str, ...]:
     InstallNameError
         On any unexpected output from ``otool``.
     """
-    otool = subprocess.run(
-        ["otool", "-l", filename],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
-    )
+    otool = _run(["otool", "-l", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
     rpaths = _check_ignore_archs(_parse_otool_rpaths(otool.stdout))
@@ -744,12 +772,7 @@ def add_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
     ad_hoc_sign : {True, False}, optional
         If True, sign file with ad-hoc signature
     """
-    subprocess.run(
-        ["install_name_tool", "-add_rpath", newpath, filename],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=True,
-    )
+    _run(["install_name_tool", "-add_rpath", newpath, filename], check=True)
     if ad_hoc_sign:
         replace_signature(filename, "-")
 
@@ -766,12 +789,7 @@ def zip2dir(zip_fname: str, out_dir: str) -> None:
     """
     # Use unzip command rather than zipfile module to preserve permissions
     # http://bugs.python.org/issue15795
-    subprocess.run(
-        ["unzip", "-o", "-d", out_dir, zip_fname],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=True,
-    )
+    _run(["unzip", "-o", "-d", out_dir, zip_fname], check=True)
 
 
 def dir2zip(in_dir, zip_fname):
@@ -874,15 +892,9 @@ def get_archs(libname: str) -> FrozenSet[str]:
     if not exists(libname):
         raise RuntimeError(libname + " is not a file")
     try:
-        lipo = subprocess.run(
-            ["lipo", "-info", libname],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            check=True,
-        )
+        lipo = _run(["lipo", "-info", libname], check=True)
         stdout = lipo.stdout.strip()
-    except subprocess.CalledProcessError:
+    except RuntimeError:
         return frozenset()
     lines = [line.strip() for line in stdout.split("\n") if line.strip()]
     # For some reason, output from lipo -info on .a file generates this line
@@ -924,16 +936,10 @@ def lipo_fuse(
     RuntimeError
         If the lipo command exits with an error.
     """
-    try:
-        lipo = subprocess.run(
-            ["lipo", "-create", in_fname1, in_fname2, "-output", out_fname],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-            universal_newlines=True,
-        )
-    except subprocess.CalledProcessError as exc:
-        raise RuntimeError(f"Command {exc.cmd} failed with error: {exc.stderr}")
+    lipo = _run(
+        ["lipo", "-create", in_fname1, in_fname2, "-output", out_fname],
+        check=True,
+    )
     if ad_hoc_sign:
         replace_signature(out_fname, "-")
     return lipo.stdout.strip()
@@ -952,12 +958,7 @@ def replace_signature(filename: str, identity: str) -> None:
     identity : str
         The signing identity to use.
     """
-    subprocess.run(
-        ["codesign", "--force", "--sign", identity, filename],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=True,
-    )
+    _run(["codesign", "--force", "--sign", identity, filename], check=True)
 
 
 def validate_signature(filename: str) -> None:
@@ -973,12 +974,7 @@ def validate_signature(filename: str) -> None:
     filename : str
         Filepath to a binary file
     """
-    codesign = subprocess.run(
-        ["codesign", "--verify", filename],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
-    )
+    codesign = _run(["codesign", "--verify", filename], check=False)
     if not codesign.stderr:
         return  # The existing signature is valid
     if "code object is not signed at all" in codesign.stderr:

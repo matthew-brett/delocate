@@ -670,8 +670,7 @@ def delocate_wheel(
             libraries=libraries_in_lib_path,
             install_id_prefix=DLC_PREFIX + relpath(lib_sdir, wheel_dir),
         )
-        if len(copied_libs):
-            rewrite_record(wheel_dir)
+        rewrite_record(wheel_dir)
         if len(copied_libs) or not in_place:
             dir2zip(wheel_dir, out_wheel)
     return stripped_lib_dict(copied_libs, wheel_dir + os.path.sep)

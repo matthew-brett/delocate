@@ -212,7 +212,8 @@ def _update_install_names(
             new_install_name = "@loader_path/" + req_rel
             if orig_install_name == new_install_name:
                 logger.info(
-                    "NOT modifying install name in %s from %s, as the new name would be the same.",
+                    "NOT modifying install name in %s from %s, as the new name"
+                    " would be the same.",
                     relpath(requiring, root_path),
                     orig_install_name,
                 )

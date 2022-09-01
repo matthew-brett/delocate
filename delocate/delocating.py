@@ -210,13 +210,20 @@ def _update_install_names(
         for requiring, orig_install_name in lib_dict[required].items():
             req_rel = relpath(required, dirname(requiring))
             new_install_name = "@loader_path/" + req_rel
-            logger.info(
-                "Modifying install name in %s from %s to %s",
-                relpath(requiring, root_path),
-                orig_install_name,
-                new_install_name,
-            )
-            set_install_name(requiring, orig_install_name, new_install_name)
+            if orig_install_name == new_install_name:
+                logger.info(
+                    "NOT modifying install name in %s from %s, as the new name would be the same.",
+                    relpath(requiring, root_path),
+                    orig_install_name,
+                )
+            else:
+                logger.info(
+                    "Modifying install name in %s from %s to %s",
+                    relpath(requiring, root_path),
+                    orig_install_name,
+                    new_install_name,
+                )
+                set_install_name(requiring, orig_install_name, new_install_name)
 
 
 def copy_recurse(

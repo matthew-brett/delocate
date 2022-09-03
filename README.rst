@@ -198,7 +198,7 @@ something like::
     /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1197.1.1)
 
 where the first line is the `install name id`_ that the linker picked up when
-linking ``myext.so`` to ``libme.dylib``.  You job is to fix the build process
+linking ``myext.so`` to ``libme.dylib``.  Your job is to fix the build process
 so that ``libme.dylib`` has install name id ``/path/to/libme.dylib``.
 This is not a problem specific to Delocate; you will need to do this to
 make sure that ``myext.so`` can load ``libme.dylib`` without ``libme.dylib``

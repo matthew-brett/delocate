@@ -3,6 +3,7 @@
 Tools that aren't specific to delocation
 """
 
+import base64
 import csv
 import glob
 import hashlib
@@ -14,10 +15,10 @@ from os.path import join as pjoin
 from os.path import relpath
 from os.path import sep as psep
 from os.path import splitext
+from typing import Iterable, Optional, Union, overload
 
 from delocate.pkginfo import read_pkg_info, write_pkg_info
-from wheel.util import native, urlsafe_b64encode
-from wheel.wheelfile import WheelFile
+from packaging.utils import parse_wheel_filename
 
 from .tmpdirs import InTemporaryDirectory
 from .tools import dir2zip, open_rw, unique_by_index, zip2dir
@@ -34,7 +35,7 @@ def _open_for_csv(name, mode):
     return open_rw(name, mode, newline="", encoding="utf-8")
 
 
-def rewrite_record(bdist_dir):
+def rewrite_record(bdist_dir: str) -> None:
     """Rewrite RECORD file with hashes for all files in `wheel_sdir`
 
     Copied from :method:`wheel.bdist_wheel.bdist_wheel.write_record`
@@ -71,12 +72,14 @@ def rewrite_record(bdist_dir):
             relative_path = relpath(path, bdist_dir)
             if skip(relative_path):
                 hash = ""
-                size = ""
+                size: Union[int, str] = ""
             else:
                 with open(path, "rb") as f:
                     data = f.read()
                 digest = hashlib.sha256(data).digest()
-                hash = "sha256=" + native(urlsafe_b64encode(digest))
+                hash = "sha256=%s" % (
+                    base64.urlsafe_b64encode(digest).decode("ascii").strip("=")
+                )
                 size = len(data)
             path_for_record = relpath(path, bdist_dir).replace(psep, "/")
             writer.writerow((path_for_record, hash, size))
@@ -154,11 +157,32 @@ class InWheelCtx(InWheel):
         return self
 
 
-def _get_wheelinfo_name(wheelfile: WheelFile):
-    return wheelfile.dist_info_path + "/WHEEL"
+@overload
+def add_platforms(
+    in_wheel: str,
+    platforms: Iterable[str],
+    out_path: str,
+    clobber: bool = False,
+) -> str:
+    ...
 
 
-def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
+@overload
+def add_platforms(
+    in_wheel: str,
+    platforms: Iterable[str],
+    out_path: None = None,
+    clobber: bool = False,
+) -> None:
+    ...
+
+
+def add_platforms(
+    in_wheel: str,
+    platforms: Iterable[str],
+    out_path: Optional[str] = None,
+    clobber: bool = False,
+) -> Optional[str]:
     """Add platform tags `platforms` to `in_wheel` filename and WHEEL tags
 
     Add any platform tags in `platforms` that are missing from `in_wheel`
@@ -187,13 +211,14 @@ def add_platforms(in_wheel, platforms, out_path=None, clobber=False):
     """
     in_wheel = abspath(in_wheel)
     out_path = dirname(in_wheel) if out_path is None else abspath(out_path)
-    wf = WheelFile(in_wheel)
-    info_fname = _get_wheelinfo_name(wf)
+    name, version, _, tags = parse_wheel_filename(basename(in_wheel))
+    info_fname = f"{name}-{version}.dist-info/WHEEL"
+
     # Check what tags we have
-    in_fname_tags = wf.parsed_filename.groupdict()["plat"].split(".")
-    extra_fname_tags = [tag for tag in platforms if tag not in in_fname_tags]
+    platform_tags = {tag.platform for tag in tags}
+    extra_fname_tags = [tag for tag in platforms if tag not in platform_tags]
     in_wheel_base, ext = splitext(basename(in_wheel))
-    out_wheel_base = ".".join([in_wheel_base] + list(extra_fname_tags))
+    out_wheel_base = ".".join([in_wheel_base] + extra_fname_tags)
     out_wheel = pjoin(out_path, out_wheel_base + ext)
     if exists(out_wheel) and not clobber:
         raise WheelToolsError(

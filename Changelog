@@ -21,6 +21,9 @@ Releases
 
 * [Unreleased]
 
+  * Running Delocate on already delocated wheels will no longer corrupt them.
+    [#157](https://github.com/matthew-brett/delocate/pull/157)
+
 * [0.10.2] - 2021-12-31
 
   Bugfix and compatibility release.

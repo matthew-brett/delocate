@@ -1,9 +1,20 @@
 """ Tests for install name utilities """
 
+import contextlib
 import os
 import shutil
 from os.path import basename, dirname, exists
 from os.path import join as pjoin
+from subprocess import CompletedProcess
+from typing import (
+    ContextManager,
+    Dict,
+    NamedTuple,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 from unittest import mock
 
 import pytest
@@ -138,11 +149,11 @@ def test_set_install_id():
     assert_raises(InstallNameError, set_install_id, TEST_LIB, "libbof.dylib")
 
 
-def test_get_empty_rpaths():
+def test_get_empty_rpaths() -> None:
     # Test fetch of rpaths
     # Not dynamic libs, no rpaths
     for fname in (LIBB, A_OBJECT, LIBA_STATIC, ICO_FILE, PY_FILE, BIN_FILE):
-        assert_equal(get_rpaths(fname), ())
+        assert get_rpaths(fname) == ()
 
 
 def test_get_environment_variable_paths():
@@ -178,70 +189,79 @@ def _copy_libs(lib_files, out_path):
     return copied
 
 
-class RunRet:
-    """Mock return result from subprocess.run"""
-
-    def __init__(self, stdout):
-        self.stdout = stdout
-        self.stderr = ""
-
-
-def _fake_run_otool(res_dict):
-    """Return function to mock subprocess.run"""
-
-    def func(*args, **kwargs):
-        return RunRet(res_dict[tuple(args[0][:2])])
-
-    return func
+def assert_raises_if_exception(
+    exception: object,
+) -> ContextManager[object]:
+    """Returns a pytest.raises context if `exception` is an Exception type."""
+    if isinstance(exception, type) and issubclass(exception, Exception):
+        return pytest.raises(exception)
+    return contextlib.nullcontext()
 
 
-def assert_result_exception(expected, func):
-    if isinstance(expected, type) and issubclass(expected, Exception):
-        with pytest.raises(expected):
-            func()
-    else:
-        assert expected == func()
+class ToolArchMock(NamedTuple):
+    """A group of expectations and mocks for otool-based function tests."""
+
+    commands: Dict[Tuple[str, ...], str]  # {command: stdout}
+    "Subprocess commands and their expected stdout for mocking."
+    expected_install_names: Union[Sequence[str], Type[Exception]]
+    "The expected return result of get_install_names."
+    expected_rpaths: Union[Sequence[str], Type[Exception]]
+    "The expected return result of get_rpaths."
+
+    def mock_subprocess_run(
+        self, cmd: Sequence[str], *args: object, **kwargs: object
+    ) -> CompletedProcess:
+        """A function to mock subprocess.run with this objects commands."""
+        return CompletedProcess(cmd, 0, stdout=self.commands[tuple(cmd)])
 
 
-def test_names_multi():
-    for arch_def in [
-        {  # Single arch
-            (
-                "otool",
-                "-L",
-            ): """\
+@pytest.mark.parametrize(
+    "arch_def",
+    [
+        ToolArchMock(  # Single arch
+            commands={
+                (
+                    "otool",
+                    "-L",
+                    "example.so",
+                ): """\
 example.so:
 \texample.so (compatibility version 0.0.0, current version 0.0.0)
 \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
 \t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
 """,  # noqa: E501
-            (
-                "otool",
-                "-D",
-            ): """\
+                (
+                    "otool",
+                    "-D",
+                    "example.so",
+                ): """\
 example.so:
 \texample.so
 """,
-            (
-                "otool",
-                "-l",
-            ): """\
+                (
+                    "otool",
+                    "-l",
+                    "example.so",
+                ): """\
 example.so:
     cmd LC_RPATH
 cmdsize 0
    path path/x86_64 (offset 0)
 """,
-            "expected_install_names": (
+            },
+            expected_install_names=(
                 "/usr/lib/libc++.1.dylib",
                 "/usr/lib/libSystem.B.dylib",
             ),
-            "expected_rpaths": ("path/x86_64",),
-        },
-        {  # Multi arch
-            (  # Install names match.
-                "otool",
-                "-L",
-            ): """\
+            expected_rpaths=("path/x86_64",),
+        ),
+        ToolArchMock(  # Multi arch
+            commands={
+                (  # Install names match.
+                    "otool",
+                    "-L",
+                    "example.so",
+                ): """\
 example.so (architecture x86_64):
 \texample.so (compatibility version 0.0.0, current version 0.0.0)
 \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
@@ -251,19 +271,21 @@ example.so (architecture arm64):
 \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
 \t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
 """,  # noqa: E501
-            (  # Install IDs match.
-                "otool",
-                "-D",
-            ): """\
+                (  # Install IDs match.
+                    "otool",
+                    "-D",
+                    "example.so",
+                ): """\
 example.so (architecture x86_64):
 \texample.so
 example.so (architecture arm64):
 \texample.so
 """,
-            (  # Rpaths match.
-                "otool",
-                "-l",
-            ): """\
+                (  # Rpaths match.
+                    "otool",
+                    "-l",
+                    "example.so",
+                ): """\
 example.so (architecture x86_64):
     cmd LC_RPATH
 cmdsize 0
@@ -273,17 +295,20 @@ example.so (architecture arm64):
 cmdsize 0
    path path/x86_64 (offset 0)
 """,
-            "expected_install_names": (
+            },
+            expected_install_names=(
                 "/usr/lib/libc++.1.dylib",
                 "/usr/lib/libSystem.B.dylib",
             ),
-            "expected_rpaths": ("path/x86_64",),
-        },
-        {  # Multi arch - not matching install names, rpaths
-            (  # Install names do not match (compatibility version).
-                "otool",
-                "-L",
-            ): """\
+            expected_rpaths=("path/x86_64",),
+        ),
+        ToolArchMock(
+            commands={  # Multi arch - not matching install names, rpaths
+                (  # Install names do not match (compatibility version).
+                    "otool",
+                    "-L",
+                    "example.so",
+                ): """\
 example.so (architecture x86_64):
 \texample.so (compatibility version 0.0.0, current version 0.0.0)
 \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
@@ -293,19 +318,21 @@ example.so (architecture arm64):
 \t/usr/lib/libc++.1.dylib (compatibility version 0.0.0, current version 905.6.0)
 \t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
 """,  # noqa: E501
-            (  # Install IDs match.
-                "otool",
-                "-D",
-            ): """\
+                (  # Install IDs match.
+                    "otool",
+                    "-D",
+                    "example.so",
+                ): """\
 example.so (architecture x86_64):
 \texample.so
 example.so (architecture arm64):
 \texample.so
 """,
-            (  # Rpaths do not match.
-                "otool",
-                "-l",
-            ): """\
+                (  # Rpaths do not match.
+                    "otool",
+                    "-l",
+                    "example.so",
+                ): """\
 example.so (architecture x86_64):
     cmd LC_RPATH
 cmdsize 0
@@ -315,14 +342,17 @@ example.so (architecture arm64):
 cmdsize 0
    path path/arm64 (offset 0)
 """,
-            "expected_install_names": NotImplementedError,
-            "expected_rpaths": NotImplementedError,
-        },
-        {  # Multi arch - not matching install IDS
-            (  # Install names match.
-                "otool",
-                "-L",
-            ): """\
+            },
+            expected_install_names=NotImplementedError,
+            expected_rpaths=NotImplementedError,
+        ),
+        ToolArchMock(
+            commands={  # Multi arch - not matching install IDS
+                (  # Install names match.
+                    "otool",
+                    "-L",
+                    "example.so",
+                ): """\
 example.so (architecture x86_64):
 \texample.so (compatibility version 0.0.0, current version 0.0.0)
 \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
@@ -332,19 +362,21 @@ example.so (architecture arm64):
 \t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 905.6.0)
 \t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
 """,  # noqa: E501
-            (  # Different install IDs for different archs.
-                "otool",
-                "-D",
-            ): """\
+                (  # Different install IDs for different archs.
+                    "otool",
+                    "-D",
+                    "example.so",
+                ): """\
 example.so (architecture x86_64):
 \texample1.so
 example.so (architecture arm64):
 \texample.so
 """,
-            (  # RPaths match.
-                "otool",
-                "-l",
-            ): """\
+                (  # RPaths match.
+                    "otool",
+                    "-l",
+                    "example.so",
+                ): """\
 example.so (architecture x86_64):
     cmd LC_RPATH
 cmdsize 0
@@ -354,15 +386,18 @@ example.so (architecture arm64):
 cmdsize 0
    path path/x86_64 (offset 0)
 """,
-            "expected_install_names": NotImplementedError,
-            "expected_rpaths": ("path/x86_64",),
-        },
-    ]:
-        with mock.patch("subprocess.run", _fake_run_otool(arch_def)):
-            assert_result_exception(
-                arch_def["expected_install_names"],
-                lambda: get_install_names("example.so"),
+            },
+            expected_install_names=NotImplementedError,
+            expected_rpaths=("path/x86_64",),
+        ),
+    ],
+)
+def test_names_multi(arch_def: ToolArchMock) -> None:
+    with mock.patch("subprocess.run", arch_def.mock_subprocess_run):
+        with assert_raises_if_exception(arch_def.expected_install_names):
+            assert (
+                get_install_names("example.so")
+                == arch_def.expected_install_names
             )
-            assert_result_exception(
-                arch_def["expected_rpaths"], lambda: get_rpaths("example.so")
-            )
+        with assert_raises_if_exception(arch_def.expected_rpaths):
+            assert get_rpaths("example.so") == arch_def.expected_rpaths

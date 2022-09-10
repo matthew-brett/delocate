@@ -3,6 +3,7 @@
 import contextlib
 import os
 import shutil
+import sys
 from os.path import basename, dirname, exists
 from os.path import join as pjoin
 from subprocess import CompletedProcess
@@ -52,6 +53,7 @@ PY_FILE = pjoin(DATA_PATH, "some_code.py")
 BIN_FILE = pjoin(DATA_PATH, "binary_example.bin")
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_get_install_names() -> None:
     # Test install name listing
     assert set(get_install_names(LIBA)) == set(EXT_LIBS)
@@ -104,6 +106,7 @@ def test_parse_install_name():
     )
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_install_id():
     # Test basic otool library listing
     assert_equal(get_install_id(LIBA), "liba.dylib")
@@ -115,6 +118,7 @@ def test_install_id():
     assert_equal(get_install_id(ICO_FILE), None)
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_change_install_name():
     # Test ability to change install names in library
     libb_names = get_install_names(LIBB)
@@ -136,6 +140,7 @@ def test_change_install_name():
         )
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_set_install_id():
     # Test ability to change install id in library
     liba_id = get_install_id(LIBA)
@@ -149,7 +154,8 @@ def test_set_install_id():
     assert_raises(InstallNameError, set_install_id, TEST_LIB, "libbof.dylib")
 
 
-def test_get_empty_rpaths() -> None:
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
+def test_get_rpaths() -> None:
     # Test fetch of rpaths
     # Not dynamic libs, no rpaths
     for fname in (LIBB, A_OBJECT, LIBA_STATIC, ICO_FILE, PY_FILE, BIN_FILE):
@@ -166,6 +172,7 @@ def test_get_environment_variable_paths():
         assert_equal(get_environment_variable_paths(), ("two", "three"))
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_add_rpath():
     # Test adding to rpath
     with InTemporaryDirectory() as tmpdir:

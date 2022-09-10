@@ -5,6 +5,7 @@ from __future__ import division, print_function
 import os
 import shutil
 import subprocess
+import sys
 from collections import namedtuple
 from os.path import basename, dirname
 from os.path import join as pjoin
@@ -91,6 +92,7 @@ def without_system_libs(obj):
     return out
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Runs macOS executable.")
 @pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
 @pytest.mark.parametrize(
     "tree_libs_func", [tree_libs, tree_libs_from_directory]
@@ -226,6 +228,7 @@ def _copy_to(fname: str, directory: str, new_base: str) -> str:
     return new_name
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 @pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:copy_recurse:DeprecationWarning")
 def test_copy_recurse() -> None:
@@ -339,6 +342,7 @@ def test_copy_recurse() -> None:
         assert copied_libs == copied_copied
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 @pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:copy_recurse:DeprecationWarning")
 def test_copy_recurse_overwrite():
@@ -367,6 +371,7 @@ def test_copy_recurse_overwrite():
         copy_recurse("subtree", filt_func)
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Runs macOS executable.")
 def test_delocate_path() -> None:
     # Test high-level path delocator script
     with InTemporaryDirectory():
@@ -446,6 +451,7 @@ def _make_bare_depends():
     return liba, bare_b
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_delocate_path_dylibs():
     # type: () -> None
     # Test options for delocating everything, or just dynamic libraries
@@ -484,6 +490,7 @@ def test_delocate_path_dylibs():
         )
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="lipo")
 def test_check_archs():
     # type: () -> None
     # Test utility to check architectures in copied_libs dict
@@ -580,6 +587,9 @@ def test_check_archs():
     )
 
 
+@pytest.mark.xfail(
+    sys.platform == "win32", reason="Needs Unix paths.", strict=False
+)
 def test_bads_report():
     # type: () -> None
     # Test bads_report of architecture errors
@@ -592,10 +602,10 @@ def test_bads_report():
         bads_report({(LIB64, LIBM1, ARCH_M1)}), fmt_str_3.format(LIBM1, LIB64)
     )
     # One line report applying path stripper
-    assert_equal(
-        bads_report({(LIB64, LIBM1, ARCH_M1)}, dirname(LIB64)),
-        fmt_str_3.format(basename(LIBM1), basename(LIB64)),
-    )
+    assert bads_report(
+        {(LIB64, LIBM1, ARCH_M1)}, dirname(LIB64)
+    ) == fmt_str_3.format(basename(LIBM1), basename(LIB64))
+
     # Multi-line report
     report = bads_report(
         {
@@ -639,6 +649,7 @@ def test_bads_report():
     )
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage")
 def test_dyld_library_path_lookups() -> None:
     # Test that DYLD_LIBRARY_PATH can be used to find libs during
     # delocation
@@ -661,6 +672,7 @@ def test_dyld_library_path_lookups() -> None:
         subprocess.run([test_lib], check=True)
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage")
 def test_dyld_library_path_beats_basename():
     # type: () -> None
     # Test that we find libraries on DYLD_LIBRARY_PATH before basename
@@ -685,6 +697,7 @@ def test_dyld_library_path_beats_basename():
         assert_equal(predicted_lib_location, realpath(new_libb))
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage")
 def test_dyld_fallback_library_path_loses_to_basename():
     # type: () -> None
     # Test that we find libraries on basename before DYLD_FALLBACK_LIBRARY_PATH

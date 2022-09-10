@@ -9,6 +9,8 @@ from os.path import basename, dirname, isdir
 from os.path import join as pjoin
 from os.path import relpath
 
+import pytest
+
 from ..fuse import fuse_trees, fuse_wheels
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import cmp_contents, dir2zip, get_archs, open_readable, zip2dir
@@ -40,6 +42,7 @@ def assert_listdir_equal(path, listing):
     assert sorted(os.listdir(path)) == sorted(listing)
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="lipo")
 def test_fuse_trees():
     # Test function to fuse two paths
     with InTemporaryDirectory():
@@ -85,6 +88,7 @@ def test_fuse_trees():
         )
 
 
+@pytest.mark.xfail(sys.platform != "darwin", reason="lipo")
 def test_fuse_wheels() -> None:
     # Test function to fuse two wheels
     wheel_base = basename(PURE_WHEEL)

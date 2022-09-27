@@ -13,7 +13,7 @@ jobs:
   flake8:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
         with:
           python-version: "3.8"
@@ -29,7 +29,7 @@ jobs:
   mypy:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
         with:
           python-version: "3.8"
@@ -49,7 +49,7 @@ jobs:
   black:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install Black
         run: pip install black
       - name: Run black
@@ -58,7 +58,7 @@ jobs:
   isort:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install isort
         run: pip install isort
       - name: Run isort
@@ -67,7 +67,7 @@ jobs:
   tests:
     runs-on: macos-10.15
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       - uses: maxim-lobanov/setup-xcode@v1

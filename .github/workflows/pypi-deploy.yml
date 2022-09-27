@@ -11,7 +11,7 @@ jobs:
     steps:
       # checkout@v1 is required since versioneer uses git describe.
       - uses: actions/checkout@v1
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.x"
       - name: Install deployment dependencies

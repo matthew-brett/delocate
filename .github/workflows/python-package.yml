@@ -169,14 +169,14 @@ jobs:
         name: Check otool version
         run: otool --version
       - name: Download wheel
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: delocate-wheel
       - name: Install delocate
         run: |
           pip install delocate-*.whl
       - name: Download requirements
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: test-requirements
       - name: Install test dependencies

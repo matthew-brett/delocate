@@ -814,6 +814,42 @@ def add_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
         replace_signature(filename, "-")
 
 
+@ensure_writable
+def delete_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
+    """Delete rpath `newpath` from library `filename`
+
+    Parameters
+    ----------
+    filename : str
+        filename of library
+    newpath : str
+        rpath to add
+    ad_hoc_sign : {True, False}, optional
+        If True, sign file with ad-hoc signature
+    """
+    _run(["install_name_tool", "-delete_rpath", newpath, filename], check=True)
+    if ad_hoc_sign:
+        replace_signature(filename, "-")
+
+
+@ensure_writable
+def remove_absolute_rpaths(filename: str, ad_hoc_sign: bool = True) -> None:
+    """Remove absolute filename rpaths in `filename`
+
+    Parameters
+    ----------
+    filename : str
+        filename of library
+    ad_hoc_sign : {True, False}, optional
+        If True, sign file with ad-hoc signature
+    """
+    for rpath in get_rpaths(filename):
+        if rpath.startswith("/"):
+            delete_rpath(filename, rpath)
+            if ad_hoc_sign:
+                replace_signature(filename, "-")
+
+
 def zip2dir(
     zip_fname: str | PathLike[str], out_dir: str | PathLike[str]
 ) -> None:

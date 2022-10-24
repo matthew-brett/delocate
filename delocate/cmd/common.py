@@ -80,6 +80,11 @@ def delocate_args(parser: OptionParser):
                     "as much as possible"
                 ),
             ),
+            Option(
+                "--sanitize-rpaths",
+                action="store_true",
+                help="Remove absolute rpaths from binaries",
+            ),
         ]
     )
 
@@ -91,6 +96,7 @@ class DelocateArgs(TypedDict):
     executable_path: str
     lib_filt_func: Callable[[str], bool] | Literal["dylibs-only"] | None
     ignore_missing: bool
+    sanitize_rpaths: bool
 
 
 def delocate_values(opts: Values) -> DelocateArgs:
@@ -115,4 +121,5 @@ def delocate_values(opts: Values) -> DelocateArgs:
         "executable_path": opts.executable_path,
         "lib_filt_func": "dylibs-only" if opts.dylibs_only else None,
         "ignore_missing": opts.ignore_missing_dependencies,
+        "sanitize_rpaths": opts.sanitize_rpaths,
     }

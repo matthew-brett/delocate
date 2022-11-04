@@ -21,6 +21,8 @@ Releases
 
 * [Unreleased]
 
+* [0.10.3] - 2022-11-04
+
   * Support for Python 3.6 has been dropped.
   * Delocate no longer depends on the ``wheel`` API.
   * Running Delocate on already delocated wheels will no longer corrupt them.

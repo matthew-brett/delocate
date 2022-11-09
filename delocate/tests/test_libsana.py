@@ -13,6 +13,7 @@ from os.path import realpath, relpath, split
 from typing import Dict, Iterable, Text
 
 import pytest
+from unittest import mock
 
 from ..delocating import DelocationError, filter_system_libs
 from ..libsana import (
@@ -501,12 +502,14 @@ def test_resolve_rpath():
 
 def test_resolve_dynamic_paths_fallthrough():
     # type: () -> None
-    if not os.path.exists("/usr/lib/libstdc++.6.dylib"):
-        pytest.skip("Needs /usr/lib/libstdc++.6.dylib")
-    # A minimal test of the resolve_dynamic_paths_fallthrough
-    lib_rpath = pjoin("@rpath", "libstdc++.6.dylib")
-    # Should find /usr/lib/libstdc++.6.dylib
-    assert_equal(resolve_rpath(lib_rpath, []), "/usr/lib/libstdc++.6.dylib")
+    # A minimal test of the resolve_dynamic_paths fallthrough
+    path, lib = split(LIBA)
+    lib_rpath = pjoin("@rpath", lib)
+    # Should return the given parameter as is since it can't be found
+    with pytest.raises(DependencyNotFound):
+        resolve_dynamic_paths(lib_rpath, [], path)
+    with mock.patch("delocate.libsana._default_paths_to_search", (path,)):
+        assert_equal(resolve_dynamic_paths(lib_rpath, [], path), realpath(LIBA))
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")

@@ -473,6 +473,9 @@ def tree_libs(
     return lib_dict
 
 
+_default_paths_to_search = ("/usr/local/lib", "/usr/lib")
+
+
 def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
     # type: (Text, Iterable[Text], Text, Optional[Text]) -> Text
     """Return `lib_path` with any special runtime linking names resolved.
@@ -526,7 +529,7 @@ def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
 
     # these paths are searched by the macos loader in order if the
     # library is not in the previous paths.
-    paths_to_search.extend(["/usr/local/lib", "/usr/lib"])
+    paths_to_search.extend(_default_paths_to_search)
 
     rel_path = lib_path.split("/", 1)[1]
     for prefix_path in paths_to_search:
@@ -571,7 +574,7 @@ def resolve_rpath(lib_path, rpaths):
         return lib_path
 
     lib_rpath = lib_path.split("/", 1)[1]
-    for rpath in rpaths:
+    for rpath in tuple(rpaths) + _default_paths_to_search:
         rpath_lib = realpath(pjoin(rpath, lib_rpath))
         if os.path.exists(rpath_lib):
             return rpath_lib

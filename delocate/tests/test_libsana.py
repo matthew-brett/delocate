@@ -505,9 +505,12 @@ def test_resolve_dynamic_paths_fallthrough():
     # A minimal test of the resolve_dynamic_paths fallthrough
     path, lib = split(LIBA)
     lib_rpath = pjoin("@rpath", lib)
-    # Should return the given parameter as is since it can't be found
+    # Should fail as rpath is not given and the library cannot be found
+    # in default paths to search
     with pytest.raises(DependencyNotFound):
         resolve_dynamic_paths(lib_rpath, [], path)
+    # Since the library is in the default paths to search, this should
+    # return the full path to the library
     with mock.patch("delocate.libsana._default_paths_to_search", (path,)):
         assert_equal(resolve_dynamic_paths(lib_rpath, [], path), realpath(LIBA))
 

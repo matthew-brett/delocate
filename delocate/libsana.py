@@ -512,7 +512,9 @@ def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
     if executable_path is None:
         executable_path = dirname(sys.executable)
 
-    if not lib_path.startswith(("@rpath/", "@loader_path/", "@executable_path/")):
+    if not lib_path.startswith(
+        ("@rpath/", "@loader_path/", "@executable_path/")
+    ):
         return realpath(lib_path)
 
     if lib_path.startswith("@loader_path/"):
@@ -520,7 +522,7 @@ def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
     elif lib_path.startswith("@executable_path/"):
         paths_to_search = [executable_path]
     elif lib_path.startswith("@rpath/"):
-        paths_to_search = rpaths.copy()
+        paths_to_search = list(rpaths)
 
     # these paths are searched by the macos loader in order if the
     # library is not in the previous paths.

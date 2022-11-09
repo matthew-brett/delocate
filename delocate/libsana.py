@@ -511,20 +511,28 @@ def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
     """
     if executable_path is None:
         executable_path = dirname(sys.executable)
-    if lib_path.startswith("@loader_path/"):
-        return realpath(pjoin(loader_path, lib_path.split("/", 1)[1]))
-    if lib_path.startswith("@executable_path/"):
-        return realpath(pjoin(executable_path, lib_path.split("/", 1)[1]))
-    if not lib_path.startswith("@rpath/"):
+
+    if not lib_path.startswith(("@rpath/", "@loader_path/", "@executable_path/")):
         return realpath(lib_path)
 
-    lib_rpath = lib_path.split("/", 1)[1]
-    for rpath in rpaths:
-        rpath_lib = resolve_dynamic_paths(
-            pjoin(rpath, lib_rpath), (), loader_path, executable_path
+    if lib_path.startswith("@loader_path/"):
+        paths_to_search = [loader_path]
+    elif lib_path.startswith("@executable_path/"):
+        paths_to_search = [executable_path]
+    elif lib_path.startswith("@rpath/"):
+        paths_to_search = rpaths.copy()
+
+    # these paths are searched by the macos loader in order if the
+    # library is not in the previous paths.
+    paths_to_search.extend(["/usr/local/lib", "/usr/lib"])
+
+    rel_path = lib_path.split("/", 1)[1]
+    for prefix_path in paths_to_search:
+        abs_path = resolve_dynamic_paths(
+            pjoin(prefix_path, rel_path), (), loader_path, executable_path
         )
-        if os.path.exists(rpath_lib):
-            return realpath(rpath_lib)
+        if os.path.exists(abs_path):
+            return realpath(abs_path)
 
     raise DependencyNotFound(lib_path)
 

@@ -499,6 +499,16 @@ def test_resolve_rpath():
     assert_equal(resolve_rpath(lib_rpath, []), lib_rpath)
 
 
+def test_resolve_dynamic_paths_fallthrough():
+    # type: () -> None
+    if not os.path.exists("/usr/lib/libstdc++.6.dylib"):
+        pytest.skip("Needs /usr/lib/libstdc++.6.dylib")
+    # A minimal test of the resolve_dynamic_paths_fallthrough
+    lib_rpath = pjoin("@rpath", "libstdc++.6.dylib")
+    # Should find /usr/lib/libstdc++.6.dylib
+    assert_equal(resolve_rpath(lib_rpath, []), "/usr/lib/libstdc++.6.dylib")
+
+
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_get_dependencies(tmpdir):
     # type: (object) -> None

@@ -577,7 +577,7 @@ def resolve_rpath(lib_path, rpaths):
         return lib_path
 
     lib_rpath = lib_path.split("/", 1)[1]
-    for rpath in tuple(rpaths) + _default_paths_to_search:
+    for rpath in (*rpaths, *_default_paths_to_search):
         rpath_lib = realpath(pjoin(rpath, lib_rpath))
         if os.path.exists(rpath_lib):
             return rpath_lib

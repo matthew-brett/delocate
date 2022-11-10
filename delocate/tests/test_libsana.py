@@ -501,8 +501,7 @@ def test_resolve_rpath():
 
 
 @pytest.mark.xfail(sys.platform == "win32", reason="Needs Unix linkage.")
-def test_resolve_dynamic_paths_fallthrough():
-    # type: () -> None
+def test_resolve_dynamic_paths_fallthrough() -> None:
     # A minimal test of the resolve_dynamic_paths fallthrough
     path, lib = split(LIBA)
     lib_rpath = pjoin("@rpath", lib)
@@ -513,7 +512,7 @@ def test_resolve_dynamic_paths_fallthrough():
     # Since the library is in the default paths to search, this should
     # return the full path to the library
     with mock.patch("delocate.libsana._default_paths_to_search", (path,)):
-        assert_equal(resolve_dynamic_paths(lib_rpath, [], path), realpath(LIBA))
+        assert resolve_dynamic_paths(lib_rpath, [], path) == realpath(LIBA)
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")

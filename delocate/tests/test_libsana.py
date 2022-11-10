@@ -500,6 +500,7 @@ def test_resolve_rpath():
     assert_equal(resolve_rpath(lib_rpath, []), lib_rpath)
 
 
+@pytest.mark.xfail(sys.platform == "win32", reason="Needs Unix linkage.")
 def test_resolve_dynamic_paths_fallthrough():
     # type: () -> None
     # A minimal test of the resolve_dynamic_paths fallthrough

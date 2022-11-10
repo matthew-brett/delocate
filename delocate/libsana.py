@@ -533,9 +533,12 @@ def resolve_dynamic_paths(lib_path, rpaths, loader_path, executable_path=None):
 
     rel_path = lib_path.split("/", 1)[1]
     for prefix_path in paths_to_search:
-        abs_path = resolve_dynamic_paths(
-            pjoin(prefix_path, rel_path), (), loader_path, executable_path
-        )
+        try:
+            abs_path = resolve_dynamic_paths(
+                pjoin(prefix_path, rel_path), (), loader_path, executable_path
+            )
+        except DependencyNotFound:
+            continue
         if os.path.exists(abs_path):
             return realpath(abs_path)
 

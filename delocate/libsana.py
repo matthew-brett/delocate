@@ -314,7 +314,7 @@ def _tree_libs_from_libraries(
             if depending_path is None:
                 missing_libs = True
                 continue
-            if copy_filt_func and not copy_filt_func(depending_path):
+            if not copy_filt_func(depending_path):
                 continue
             lib_dict.setdefault(depending_path, {})
             lib_dict[depending_path][library_path] = install_name

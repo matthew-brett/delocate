@@ -21,6 +21,10 @@ Releases
 
 * [Unreleased]
 
+  * Dependency paths with ``@rpath``, ``@loader_path`` and ``@executable_path``
+    will now look at ``/usr/local/lib`` and ``/usr/lib`` after the
+    rpaths, loader path and executable path are searched respectively.
+
 * [0.10.3] - 2022-11-04
 
   * Support for Python 3.6 has been dropped.

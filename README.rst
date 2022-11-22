@@ -120,7 +120,13 @@ are both dual architecture binaries.  For example::
     $ lipo -info /usr/bin/python
     Architectures in the fat file: /usr/bin/python are: x86_64 arm64e
 
-This Big Sur macOS Python has both ``x86_64`` and ``arm64`` (M1) versions
+**Note**: you can compile ARM binaries for basic ARM (``arm64``), or to use
+some extended ARM capabilities (``arm64e``) - see `this SO post
+<https://stackoverflow.com/questions/52624308/xcode-arm64-vs-arm64e>`_.  Both
+types of binaries work on Mac M1 and M2 machines, so we will use ``arm64`` to
+refer to either ``arm64`` or ``arm64e``.
+
+The Big Sur macOS Python above has both ``x86_64`` and ``arm64`` (M1) versions
 fused into one file.  Earlier versions of macOS had dual architectures that
 were 32-bit (``i386``) and 64-bit (``x86_64``).
 
@@ -160,6 +166,51 @@ fault by adding the ``-v`` (verbose) flag::
     ...
 
 I need to rebuild this wheel to link with dual-architecture libraries.
+
+Making dual-architecture binaries
+=================================
+
+Modern Mac wheels can be either ``arm64`` (M1/M2 ARM), ``x86_64`` (64-bit
+Intel) or both (``universal2``).
+
+Building an entire Python wheel as dual-architecture can be difficult, perhaps
+because you need to link different libraries in the two cases, or you need
+different compiler flags, or because you build for ``arm64`` on one continuous
+integration platform (such as - at time of writing - Cirrus CI), and ``x86_64``
+on another.
+
+One solution to this problem is to do an entire ``arm64`` wheel build, and then
+an entire ``x86_64`` wheel build, and *fuse* the two wheels into a universal
+wheel.
+
+That is what the ``delocate-fuse`` command does.
+
+Let's say you have built an ARM and Intel wheel, called, respectively:
+
+* ``scipy-1.9.3-cp311-cp311-macosx_11_0_arm64.whl``
+* ``scipy-1.9.3-cp311-cp311-macosx_10_9_x86_64.whl``
+
+Then you could create a new fused (``universal2``) wheel in the `tmp`
+subdirectory with::
+
+    delocate-fuse scipy-1.9.3-cp311-cp311-macosx_12_0_arm64.whl scipy-1.9.3-cp311-cp311-macosx_10_9_x86_64.whl -w tmp
+
+The output wheel in that case would be:
+
+* ``tmp/scipy-1.9.3-cp311-cp311-macosx_12_0_arm64.whl``
+
+Note that we specified an output directory above with the ``-w`` flag.  If we
+had not done that, then we overwrite the first wheel with the fused wheel.  And
+note that the wheel written into the ``tmp`` subdirectory has the same name as
+the first-specified wheel.
+
+In the new wheel, you will find, using ``lipo -archs`` - that all binaries with
+the same name in each wheel are now universal (``x86_64`` and ``arm64``).
+
+To be useful, you should rename the output wheel to reflect the fact that it is
+now a universal wheel - in this case to:
+
+* ``tmp/scipy-1.9.3-cp311-cp311-macosx_12_0_universal2.whl``
 
 Troubleshooting
 ===============

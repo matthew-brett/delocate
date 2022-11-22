@@ -161,6 +161,43 @@ fault by adding the ``-v`` (verbose) flag::
 
 I need to rebuild this wheel to link with dual-architecture libraries.
 
+Making dual-architecture binaries
+=================================
+
+Modern Mac wheels can be either ``arm64e`` (M1 ARM), ``x86_64`` (64-bit Intel) or
+both ("universal").
+
+Building an entire Python wheel as dual-architecture can be difficult, perhaps
+because you need to link different libraries in the two cases, or you need
+different compiler flags.
+
+One solution to this problem is to do an entire ``arm64e`` wheel build, and then
+an entire ``x86_64`` wheel build, and *fuse* the two wheels into a universal
+wheel.
+
+That is what the ``delocate-fuse`` command does.
+
+Let's say you have built an ARM and Intel wheel, called, respectively:
+
+* ``scipy-1.9.3-cp311-cp311-macosx_12_0_arm64.whl``
+* ``scipy-1.9.3-cp311-cp311-macosx_10_9_x86_64.whl``
+
+Then you could create a new fused (universal) wheel in the `tmp` subdirectory with::
+
+    delocate-fuse scipy-1.9.3-cp311-cp311-macosx_12_0_arm64.whl scipy-1.9.3-cp311-cp311-macosx_10_9_x86_64.whl -w tmp
+
+The output wheel in that case would be:
+
+* ``tmp/scipy-1.9.3-cp311-cp311-macosx_12_0_arm64.whl``
+
+You will find, using ``lipo -archs`` - that all binaries with the same name in
+each wheel are now universal (``x86_64`` and ``arm64``).
+
+To be useful, you should rename it to reflect the fact that it is now
+a universal wheel - in this case to:
+
+* ``tmp/scipy-1.9.3-cp311-cp311-macosx_12_0_universal2.whl``
+
 Troubleshooting
 ===============
 

@@ -173,7 +173,7 @@ def _write_file(filename, contents):
 
 
 @pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.")
-def test_zip2():
+def test_zip2() -> None:
     # Test utilities to unzip and zip up
     with InTemporaryDirectory():
         os.mkdir("a_dir")
@@ -185,14 +185,14 @@ def test_zip2():
         zip_fname = pjoin("zips", "my.zip")
         dir2zip("a_dir", zip_fname)
         zip2dir(zip_fname, "another_dir")
-        assert_equal(os.listdir("another_dir"), ["file1.txt", "s_dir"])
-        assert_equal(os.listdir(pjoin("another_dir", "s_dir")), ["file2.txt"])
+        assert set(os.listdir("another_dir")) == {"file1.txt", "s_dir"}
+        assert set(os.listdir(pjoin("another_dir", "s_dir"))) == {"file2.txt"}
         # Try zipping from a subdirectory, with a different extension
         dir2zip(s_dir, "another.ext")
         # Remove original tree just to be sure
         shutil.rmtree("a_dir")
         zip2dir("another.ext", "third_dir")
-        assert_equal(os.listdir("third_dir"), ["file2.txt"])
+        assert set(os.listdir("third_dir")) == {"file2.txt"}
         # Check permissions kept in zip unzip cycle
         os.mkdir("a_dir")
         permissions = stat.S_IRUSR | stat.S_IWGRP | stat.S_IXGRP
@@ -202,7 +202,7 @@ def test_zip2():
         dir2zip("a_dir", "test.zip")
         zip2dir("test.zip", "another_dir")
         out_fname = pjoin("another_dir", "permitted_file")
-        assert_equal(os.stat(out_fname).st_mode & 0o777, permissions)
+        assert os.stat(out_fname).st_mode & 0o777 == permissions
 
 
 def test_find_package_dirs():

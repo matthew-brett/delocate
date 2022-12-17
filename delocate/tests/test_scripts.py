@@ -302,8 +302,7 @@ def test_fix_wheel_dylibs():
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
-def test_fix_wheel_archs():
-    # type: () -> None
+def test_fix_wheel_archs() -> None:
     # Some tests for wheel fixing
     with InTemporaryDirectory() as tmpdir:
         # Test check of architectures
@@ -316,13 +315,11 @@ def test_fix_wheel_archs():
         # Broken with one architecture removed
         archs = set(("x86_64", "arm64"))
 
-        def _fix_break(arch):
-            # type: (Text) -> None
+        def _fix_break(arch: Text) -> None:
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
 
-        def _fix_break_fix(arch):
-            # type: (Text) -> None
+        def _fix_break_fix(arch: Text) -> None:
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
             _thin_mod(fixed_wheel, arch)

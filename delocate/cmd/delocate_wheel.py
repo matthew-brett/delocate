@@ -17,8 +17,7 @@ from typing import List, Optional, Text
 from delocate import __version__, delocate_wheel
 
 
-def main():
-    # type: () -> None
+def main() -> None:
     parser = OptionParser(
         usage="%s WHEEL_FILENAME\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__,
@@ -110,7 +109,7 @@ def main():
             os.makedirs(wheel_dir)
     else:
         wheel_dir = None
-    require_archs = None  # type: Optional[List[Text]]
+    require_archs: Optional[List[Text]] = None
     if opts.require_archs is None:
         require_archs = [] if opts.check_archs else None
     elif "," in opts.require_archs:

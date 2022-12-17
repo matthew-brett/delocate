@@ -56,11 +56,10 @@ class DelocationError(Exception):
 
 
 def delocate_tree_libs(
-    lib_dict,  # type: Mapping[Text, Mapping[Text, Text]]
-    lib_path,  # type: Text
-    root_path,  # type: Text
-):
-    # type: (...) -> Dict[Text, Dict[Text, Text]]
+    lib_dict: Mapping[Text, Mapping[Text, Text]],
+    lib_path: Text,
+    root_path: Text,
+) -> Dict[Text, Dict[Text, Text]]:
     """Move needed libraries in `lib_dict` into `lib_path`
 
     `lib_dict` has keys naming libraries required by the files in the
@@ -116,10 +115,9 @@ def delocate_tree_libs(
 
 
 def _analyze_tree_libs(
-    lib_dict,  # type: Mapping[Text, Mapping[Text, Text]]
-    root_path,  # type: Text
-):
-    # type: (...) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]
+    lib_dict: Mapping[Text, Mapping[Text, Text]],
+    root_path: Text,
+) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]:
     """Verify then return which library files to copy and delocate.
 
     Returns
@@ -159,12 +157,11 @@ def _analyze_tree_libs(
 
 
 def _copy_required_libs(
-    lib_dict,  # type: Mapping[Text, Mapping[Text, Text]]
-    lib_path,  # type: Text
-    root_path,  # type: Text
-    libraries_to_copy,  # type: Iterable[Text]
-):
-    # type (...) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]
+    lib_dict: Mapping[Text, Mapping[Text, Text]],
+    lib_path: Text,
+    root_path: Text,
+    libraries_to_copy: Iterable[Text],
+) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]:
     """Copy libraries outside of root_path to lib_path.
 
     Returns
@@ -199,11 +196,10 @@ def _copy_required_libs(
 
 
 def _update_install_names(
-    lib_dict,  # type: Mapping[Text, Mapping[Text, Text]]
-    root_path,  # type: Text
-    files_to_delocate,  # type: Iterable[Text]
-):
-    # type: (...) -> None
+    lib_dict: Mapping[Text, Mapping[Text, Text]],
+    root_path: Text,
+    files_to_delocate: Iterable[Text],
+) -> None:
     """Update the install names of libraries."""
     for required in files_to_delocate:
         # Set relative path for local library
@@ -228,11 +224,10 @@ def _update_install_names(
 
 
 def copy_recurse(
-    lib_path,  # type: Text
-    copy_filt_func=None,  # type: Optional[Callable[[Text], bool]]
-    copied_libs=None,  # type: Optional[Dict[Text, Dict[Text, Text]]]
-):
-    # type: (...) -> Dict[Text, Dict[Text, Text]]
+    lib_path: Text,
+    copy_filt_func: Optional[Callable[[Text], bool]] = None,
+    copied_libs: Optional[Dict[Text, Dict[Text, Text]]] = None,
+) -> Dict[Text, Dict[Text, Text]]:
     """Analyze `lib_path` for library dependencies and copy libraries
 
     `lib_path` is a directory containing libraries.  The libraries might
@@ -288,11 +283,10 @@ def copy_recurse(
 
 
 def _copy_required(
-    lib_path,  # type: Text
-    copy_filt_func,  # type: Optional[Callable[[Text], bool]]
-    copied_libs,  # type: Dict[Text, Dict[Text, Text]]
-):
-    # type: (...) -> None
+    lib_path: Text,
+    copy_filt_func: Optional[Callable[[Text], bool]],
+    copied_libs: Dict[Text, Dict[Text, Text]],
+) -> None:
     """Copy libraries required for files in `lib_path` to `copied_libs`
 
     Augment `copied_libs` dictionary with any newly copied libraries, modifying
@@ -403,14 +397,13 @@ def _delocate_filter_function(
 
 
 def delocate_path(
-    tree_path,  # type: Text
-    lib_path,  # type: Text
-    lib_filt_func=None,  # type: Optional[Union[str, Callable[[Text], bool]]]
-    copy_filt_func=filter_system_libs,  # type: Optional[Callable[[Text], bool]]
-    executable_path=None,  # type: Optional[Text]
-    ignore_missing=False,  # type: bool
-):
-    # type: (...) -> Dict[Text, Dict[Text, Text]]
+    tree_path: Text,
+    lib_path: Text,
+    lib_filt_func: Optional[Union[str, Callable[[Text], bool]]] = None,
+    copy_filt_func: Optional[Callable[[Text], bool]] = filter_system_libs,
+    executable_path: Optional[Text] = None,
+    ignore_missing: bool = False,
+) -> Dict[Text, Dict[Text, Text]]:
     """Copy required libraries for files in `tree_path` into `lib_path`
 
     Parameters
@@ -481,8 +474,9 @@ def delocate_path(
     return delocate_tree_libs(lib_dict, lib_path, tree_path)
 
 
-def _copy_lib_dict(lib_dict):
-    # type: (Mapping[Text, Mapping[Text, Text]]) -> Dict[Text, Dict[Text, Text]]  # noqa: E501
+def _copy_lib_dict(
+    lib_dict: Mapping[Text, Mapping[Text, Text]]
+) -> Dict[Text, Dict[Text, Text]]:
     """Returns a copy of lib_dict."""
     return {  # Convert nested Mapping types into nested Dict types.
         required: dict(requiring) for required, requiring in lib_dict.items()
@@ -684,8 +678,9 @@ def delocate_wheel(
     return stripped_lib_dict(copied_libs, wheel_dir + os.path.sep)
 
 
-def patch_wheel(in_wheel, patch_fname, out_wheel=None):
-    # type: (Text, Text, Optional[Text]) -> None
+def patch_wheel(
+    in_wheel: Text, patch_fname: Text, out_wheel: Optional[Text] = None
+) -> None:
     """Apply ``-p1`` style patch in `patch_fname` to contents of `in_wheel`
 
     If `out_wheel` is None (the default), overwrite the wheel `in_wheel`
@@ -725,11 +720,12 @@ _ARCH_LOOKUP = {"intel": ["i386", "x86_64"], "universal2": ["x86_64", "arm64"]}
 
 
 def check_archs(
-    copied_libs,  # type: Mapping[Text, Mapping[Text, Text]]
-    require_archs=(),  # type:  Union[Text, Iterable[Text]]
-    stop_fast=False,  # type: bool
-):
-    # type: (...) -> Set[Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]]  # noqa: E501
+    copied_libs: Mapping[Text, Mapping[Text, Text]],
+    require_archs: Union[Text, Iterable[Text]] = (),
+    stop_fast: bool = False,
+) -> Set[
+    Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]
+]:
     """Check compatibility of archs in `copied_libs` dict
 
     Parameters
@@ -772,9 +768,9 @@ def check_archs(
     if isinstance(require_archs, str):
         require_archs = _ARCH_LOOKUP.get(require_archs, [require_archs])
     require_archs_set = frozenset(require_archs)
-    bads = (
-        []
-    )  # type: List[Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]]  # noqa: E501
+    bads: List[
+        Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]
+    ] = []
     for depended_lib, dep_dict in copied_libs.items():
         depended_archs = get_archs(depended_lib)
         for depending_lib, install_name in dep_dict.items():

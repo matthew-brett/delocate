@@ -47,8 +47,7 @@ from .test_install_names import (
 from .test_wheelies import PLAT_WHEEL, PURE_WHEEL, RPATH_WHEEL, PlatWheel
 
 
-def get_ext_dict(local_libs):
-    # type: (Iterable[Text]) -> Dict[Text, Dict[Text, Text]]
+def get_ext_dict(local_libs: Iterable[Text]) -> Dict[Text, Dict[Text, Text]]:
     ext_deps = {}
     for ext_lib in EXT_LIBS:
         lib_deps = {}
@@ -60,8 +59,7 @@ def get_ext_dict(local_libs):
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 @pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
-def test_tree_libs():
-    # type: () -> None
+def test_tree_libs() -> None:
     # Test ability to walk through tree, finding dynamic library refs
     # Copy specific files to avoid working tree cruft
     to_copy = [LIBA, LIBB, LIBC, TEST_LIB]
@@ -81,8 +79,7 @@ def test_tree_libs():
         # default - no filtering
         assert tree_libs(tmpdir) == exp_dict
 
-        def filt(fname):
-            # type: (Text) -> bool
+        def filt(fname: Text) -> bool:
             return fname.endswith(".dylib")
 
         exp_dict = get_ext_dict([liba, libb, libc])
@@ -351,8 +348,7 @@ def test_tree_libs_from_directory_with_links() -> None:
             assert tree_libs_from_directory(tmpdir) == exp_dict
 
 
-def test_get_prefix_stripper():
-    # type: () -> None
+def test_get_prefix_stripper() -> None:
     # Test function factory to strip prefixes
     f = get_prefix_stripper("")
     assert_equal(f("a string"), "a string")
@@ -362,8 +358,7 @@ def test_get_prefix_stripper():
     assert_equal(f("b a string"), "b a string")
 
 
-def test_get_rp_stripper():
-    # type: () -> None
+def test_get_rp_stripper() -> None:
     # realpath prefix stripper
     # Just does realpath and adds path sep
     cwd = realpath(os.getcwd())
@@ -376,8 +371,9 @@ def test_get_rp_stripper():
     assert_equal(f(rp_test_path), "path")
 
 
-def get_ext_dict_stripped(local_libs, start_path):
-    # type: (Iterable[Text], Text) -> Dict[Text, Dict[Text, Text]]
+def get_ext_dict_stripped(
+    local_libs: Iterable[Text], start_path: Text
+) -> Dict[Text, Dict[Text, Text]]:
     ext_dict = {}
     for ext_lib in EXT_LIBS:
         lib_deps = {}
@@ -391,8 +387,7 @@ def get_ext_dict_stripped(local_libs, start_path):
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
-def test_stripped_lib_dict():
-    # type: () -> None
+def test_stripped_lib_dict() -> None:
     # Test routine to return lib_dict with relative paths
     to_copy = [LIBA, LIBB, LIBC, TEST_LIB]
     with InTemporaryDirectory() as tmpdir:
@@ -474,8 +469,7 @@ def test_wheel_libs_ignore_missing() -> None:
 
 
 @pytest.mark.xfail(sys.platform == "win32", reason="Needs Unix linkage.")
-def test_resolve_dynamic_paths():
-    # type: () -> None
+def test_resolve_dynamic_paths() -> None:
     # A minimal test of the resolve_rpath function
     path, lib = split(LIBA)
     lib_rpath = pjoin("@rpath", lib)
@@ -489,8 +483,7 @@ def test_resolve_dynamic_paths():
 
 
 @pytest.mark.xfail(sys.platform == "win32", reason="Path seperators.")
-def test_resolve_rpath():
-    # type: () -> None
+def test_resolve_rpath() -> None:
     # A minimal test of the resolve_rpath function
     path, lib = split(LIBA)
     lib_rpath = pjoin("@rpath", lib)
@@ -516,8 +509,7 @@ def test_resolve_dynamic_paths_fallthrough() -> None:
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
-def test_get_dependencies(tmpdir):
-    # type: (object) -> None
+def test_get_dependencies(tmpdir: object) -> None:
     tmpdir = str(tmpdir)
     with pytest.raises(DependencyNotFound):
         list(get_dependencies("nonexistent.lib"))
@@ -554,8 +546,7 @@ def test_get_dependencies(tmpdir):
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
-def test_walk_library():
-    # type: () -> None
+def test_walk_library() -> None:
     with pytest.raises(DependencyNotFound):
         list(walk_library("nonexistent.lib"))
     assert set(walk_library(LIBA, filt_func=filter_system_libs)) == {
@@ -573,8 +564,7 @@ def test_walk_library():
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
-def test_walk_directory(tmpdir):
-    # type: (object) -> None
+def test_walk_directory(tmpdir: object) -> None:
     tmpdir = str(tmpdir)
     assert set(walk_directory(tmpdir)) == set()
 

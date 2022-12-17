@@ -345,8 +345,7 @@ def test_copy_recurse() -> None:
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 @pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:copy_recurse:DeprecationWarning")
-def test_copy_recurse_overwrite():
-    # type: () -> None
+def test_copy_recurse_overwrite() -> None:
     # Check that copy_recurse won't overwrite pre-existing libs
     with InTemporaryDirectory():
         # Get some fixed up libraries to play with
@@ -356,8 +355,7 @@ def test_copy_recurse_overwrite():
         )
         # Filter system libs
 
-        def filt_func(libname):
-            # type: (Text) -> bool
+        def filt_func(libname: Text) -> bool:
             return not libname.startswith("/usr/lib")
 
         os.makedirs("subtree")
@@ -434,8 +432,7 @@ def test_delocate_path() -> None:
             delocate_path("subtree5", "deplibs5", lib_filt_func="invalid-str")
 
 
-def _make_bare_depends():
-    # type: () -> Tuple[Text, Text]
+def _make_bare_depends() -> Tuple[Text, Text]:
     # Copy:
     # * liba.dylib to 'libs' dir, which is a dependency of libb.dylib
     # * libb.dylib to 'subtree' dir, as 'libb' (no extension).
@@ -452,8 +449,7 @@ def _make_bare_depends():
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
-def test_delocate_path_dylibs():
-    # type: () -> None
+def test_delocate_path_dylibs() -> None:
     # Test options for delocating everything, or just dynamic libraries
     _rp = realpath  # shortcut
     with InTemporaryDirectory():
@@ -474,14 +470,12 @@ def test_delocate_path_dylibs():
         # Callable, dylibs only, does not inspect
         liba, bare_b = _make_bare_depends()
 
-        def func(fn):
-            # type: (Text) -> bool
+        def func(fn: Text) -> bool:
             return fn.endswith(".dylib")
 
         assert_equal(delocate_path("subtree", "deplibs", func), {})
 
-        def func(fn):
-            # type: (Text) -> bool
+        def func(fn: Text) -> bool:
             return fn.endswith("libb")
 
         assert_equal(
@@ -491,11 +485,10 @@ def test_delocate_path_dylibs():
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="lipo")
-def test_check_archs():
-    # type: () -> None
+def test_check_archs() -> None:
     # Test utility to check architectures in copied_libs dict
     # No libs always OK
-    s0 = set()  # type: Set[Any]
+    s0: Set[Any] = set()
     assert_equal(check_archs({}), s0)
     # One lib to itself OK
     lib_M1_M1 = {LIBM1: {LIBM1: "install_name"}}
@@ -590,8 +583,7 @@ def test_check_archs():
 @pytest.mark.xfail(
     sys.platform == "win32", reason="Needs Unix paths.", strict=False
 )
-def test_bads_report():
-    # type: () -> None
+def test_bads_report() -> None:
     # Test bads_report of architecture errors
     # No bads, no report
     assert_equal(bads_report(set()), "")
@@ -673,8 +665,7 @@ def test_dyld_library_path_lookups() -> None:
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage")
-def test_dyld_library_path_beats_basename():
-    # type: () -> None
+def test_dyld_library_path_beats_basename() -> None:
     # Test that we find libraries on DYLD_LIBRARY_PATH before basename
     with TempDirWithoutEnvVars("DYLD_LIBRARY_PATH") as tmpdir:
         # Copy libs into a temporary directory
@@ -698,8 +689,7 @@ def test_dyld_library_path_beats_basename():
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage")
-def test_dyld_fallback_library_path_loses_to_basename():
-    # type: () -> None
+def test_dyld_fallback_library_path_loses_to_basename() -> None:
     # Test that we find libraries on basename before DYLD_FALLBACK_LIBRARY_PATH
     with TempDirWithoutEnvVars("DYLD_FALLBACK_LIBRARY_PATH") as tmpdir:
         # Copy libs into a temporary directory

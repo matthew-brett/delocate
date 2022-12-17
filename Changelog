@@ -21,9 +21,12 @@ Releases
 
 * [Unreleased]
 
+* [0.10.4] - 2022-12-17
+
   * Dependency paths with ``@rpath``, ``@loader_path`` and ``@executable_path``
     will now look at ``/usr/local/lib`` and ``/usr/lib`` after the
-    rpaths, loader path and executable path are searched respectively.
+    rpaths, loader path, or executable path is searched.
+    [#167](https://github.com/matthew-brett/delocate/pull/167)
 
 * [0.10.3] - 2022-11-04
 

@@ -22,6 +22,8 @@ Provides scripts:
 * ``delocate-path`` -- copy libraries a tree depends on into the tree and relink
 * ``delocate-wheel`` -- rewrite wheel having copied and relinked library
   dependencies into the wheel tree.
+* ``delocate-fuse`` -- combine two wheels with different architectures into one
+  wheel with dual architecture binaries.
 
 `Auditwheel <https://github.com/pypa/auditwheel>`_ is a similar tool for Linux.
 Auditwheel started life as a partial fork of Delocate.

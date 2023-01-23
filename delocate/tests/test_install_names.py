@@ -401,10 +401,11 @@ cmdsize 0
 )
 def test_names_multi(arch_def: ToolArchMock) -> None:
     with mock.patch("subprocess.run", arch_def.mock_subprocess_run):
-        with assert_raises_if_exception(arch_def.expected_install_names):
-            assert (
-                get_install_names("example.so")
-                == arch_def.expected_install_names
-            )
-        with assert_raises_if_exception(arch_def.expected_rpaths):
-            assert get_rpaths("example.so") == arch_def.expected_rpaths
+        with mock.patch("delocate.tools._is_macho_file", return_value=True):
+            with assert_raises_if_exception(arch_def.expected_install_names):
+                assert (
+                    get_install_names("example.so")
+                    == arch_def.expected_install_names
+                )
+            with assert_raises_if_exception(arch_def.expected_rpaths):
+                assert get_rpaths("example.so") == arch_def.expected_rpaths

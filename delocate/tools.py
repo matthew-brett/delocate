@@ -148,6 +148,30 @@ def _run(
         ) from exc
 
 
+# Mach-O magic numbers. See:
+# https://github.com/apple-oss-distributions/xnu/blob/5c2921b07a2480ab43ec66f5b9e41cb872bc554f/EXTERNAL_HEADERS/mach-o/loader.h#L65
+# https://github.com/apple-oss-distributions/cctools/blob/658da8c66b4e184458f9c810deca9f6428a773a5/include/mach-o/fat.h#L48
+MACHO_MAGIC = (
+    0xFEEDFACE.to_bytes(4, "little"),  # MH_MAGIC
+    0xFEEDFACE.to_bytes(4, "big"),  # MH_MAGIC
+    0xFEEDFACF.to_bytes(4, "little"),  # MH_MAGIC_64
+    0xFEEDFACF.to_bytes(4, "big"),  # MH_MAGIC_64
+    0xCAFEBABE.to_bytes(4, "big"),  # FAT_MAGIC (always big-endian)
+    0xCAFEBABF.to_bytes(4, "big"),  # FAT_MAGIC_64 (always big-endian)
+)
+
+
+def _is_macho_file(filename: str) -> bool:
+    try:
+        with open(filename, "rb") as f:
+            header = f.read(4)
+            return header in MACHO_MAGIC
+    except PermissionError:
+        return False
+    except FileNotFoundError:
+        return False
+
+
 def unique_by_index(sequence):
     """unique elements in `sequence` in the order in which they occur
 
@@ -514,6 +538,8 @@ def get_install_names(filename: str) -> Tuple[str, ...]:
     InstallNameError
         On any unexpected output from ``otool``.
     """
+    if not _is_macho_file(filename):
+        return ()
     otool = _run(["otool", "-L", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
@@ -576,6 +602,8 @@ def _get_install_ids(filename: str) -> Dict[str, str]:
     InstallNameError
         On any unexpected output from ``otool``.
     """
+    if not _is_macho_file(filename):
+        return {}
     otool = _run(["otool", "-D", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return {}
@@ -730,6 +758,8 @@ def get_rpaths(filename: str) -> Tuple[str, ...]:
     InstallNameError
         On any unexpected output from ``otool``.
     """
+    if not _is_macho_file(filename):
+        return ()
     otool = _run(["otool", "-l", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()

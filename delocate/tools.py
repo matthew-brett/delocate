@@ -162,7 +162,7 @@ MACHO_MAGIC = (
 
 
 def _is_macho_file(filename: str) -> bool:
-    """Return True if the file at `filename` begins with a Mach-O magic number."""
+    """Return True if file at `filename` begins with Mach-O magic number."""
     try:
         with open(filename, "rb") as f:
             header = f.read(4)

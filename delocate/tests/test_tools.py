@@ -13,6 +13,7 @@ import pytest
 
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import (
+    _is_macho_file,
     add_rpath,
     back_tick,
     chmod_perms,
@@ -325,3 +326,17 @@ def test_validate_signature() -> None:
         )
         with pytest.raises(subprocess.CalledProcessError):
             check_signature("libcopy")
+
+
+def test_is_macho_file() -> None:
+    MACHO_FILES = frozenset(
+        filename
+        for filename in os.listdir(DATA_PATH)
+        if filename.endswith((".o", ".dylib", ".so", "test-lib"))
+    )
+
+    for filename in os.listdir(DATA_PATH):
+        path = pjoin(DATA_PATH, filename)
+        if not os.path.isfile(path):
+            continue
+        assert_equal(_is_macho_file(path), filename in MACHO_FILES)

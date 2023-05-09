@@ -791,7 +791,7 @@ def zip2dir(zip_fname: str, out_dir: str) -> None:
     """
     # Use unzip command rather than zipfile module to preserve permissions
     # http://bugs.python.org/issue15795
-    _run(["unzip", "-o", "-d", out_dir, zip_fname], check=True)
+    _run(["unzip", "-q", "-o", "-d", out_dir, zip_fname], check=True)
 
 
 def dir2zip(in_dir, zip_fname):

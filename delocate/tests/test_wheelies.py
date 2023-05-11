@@ -68,7 +68,6 @@ class PlatWheel(NamedTuple):
     stray_lib: str  # Path to the external library.
 
 
-@pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.")
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_fix_pure_python():
     # Test fixing a pure python package gives no change
@@ -228,7 +227,6 @@ def _thin_mod(wheel, arch):
         check_call(["lipo", "-thin", arch, mod_fname, "-output", mod_fname])
 
 
-@pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.")
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test__thinning():
     with InTemporaryDirectory() as tmpdir:
@@ -309,7 +307,6 @@ def test_check_plat_archs():
         )
 
 
-@pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.", strict=False)
 def test_patch_wheel() -> None:
     # Check patching of wheel
     with InTemporaryDirectory():

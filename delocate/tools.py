@@ -5,12 +5,13 @@ import os
 import re
 import stat
 import subprocess
-import time
 import warnings
 import zipfile
+from datetime import datetime
+from os import PathLike
 from os.path import exists, isdir
 from os.path import join as pjoin
-from os.path import relpath
+from pathlib import Path
 from typing import (
     Any,
     Dict,
@@ -812,22 +813,42 @@ def add_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
         replace_signature(filename, "-")
 
 
-def zip2dir(zip_fname: str, out_dir: str) -> None:
+def zip2dir(
+    zip_fname: str | PathLike[str], out_dir: str | PathLike[str]
+) -> None:
     """Extract `zip_fname` into output directory `out_dir`
 
     Parameters
     ----------
-    zip_fname : str
+    zip_fname : str or Path-like
         Filename of zip archive to write
-    out_dir : str
+    out_dir : str or Path-like
         Directory path containing files to go in the zip archive
     """
-    # Use unzip command rather than zipfile module to preserve permissions
+    # The zipfile module does not preserve permissions correctly
     # http://bugs.python.org/issue15795
-    _run(["unzip", "-q", "-o", "-d", out_dir, zip_fname], check=True)
+    with zipfile.ZipFile(zip_fname, "r") as zip:
+        for name in zip.namelist():
+            member = zip.getinfo(name)
+            extracted_path = zip.extract(member, out_dir)
+            attr = member.external_attr >> 16
+            if member.is_dir():
+                os.chmod(extracted_path, 0o755)
+            elif attr != 0:
+                mode = attr & 0o777  # Permission bits
+                os.chmod(extracted_path, mode)
+            # Restore timestamp
+            modified_time = datetime(*member.date_time).timestamp()
+            os.utime(extracted_path, (modified_time, modified_time))
 
 
-def dir2zip(in_dir, zip_fname):
+def dir2zip(
+    in_dir: str | PathLike[str],
+    zip_fname: str | PathLike[str],
+    *,
+    compression: int = zipfile.ZIP_DEFLATED,
+    compress_level: int = -1,
+) -> None:
     """Make a zip file `zip_fname` with contents of directory `in_dir`
 
     The recorded filenames are relative to `in_dir`, so doing a standard zip
@@ -836,33 +857,34 @@ def dir2zip(in_dir, zip_fname):
 
     Parameters
     ----------
-    in_dir : str
+    in_dir : str or Path-like
         Directory path containing files to go in the zip archive
-    zip_fname : str
+    zip_fname : str or Path-like
         Filename of zip archive to write
+    compression : int, optional, keyword-only
+        The zipfile compression type used.
+    compress_level : int, optional, keyword-only
+        The compression level used for this archive.
     """
-    z = zipfile.ZipFile(zip_fname, "w", compression=zipfile.ZIP_DEFLATED)
-    for root, dirs, files in os.walk(in_dir):
-        for file in files:
-            in_fname = pjoin(root, file)
-            in_stat = os.stat(in_fname)
-            # Preserve file permissions, but allow copy
-            info = zipfile.ZipInfo(in_fname)
-            info.filename = relpath(in_fname, in_dir)
-            if os.path.sep == "\\":
-                # Make the path unix friendly on windows.
-                # PyPI won't accept wheels with windows path separators
-                info.filename = relpath(in_fname, in_dir).replace("\\", "/")
-            # Set time from modification time
-            info.date_time = time.localtime(in_stat.st_mtime)
-            # See https://stackoverflow.com/questions/434641/how-do-i-set-permissions-attributes-on-a-file-in-a-zip-file-using-pythons-zip/48435482#48435482 # noqa: E501
-            # Also set regular file permissions
-            perms = stat.S_IMODE(in_stat.st_mode) | stat.S_IFREG
-            info.external_attr = perms << 16
-            with open_readable(in_fname, "rb") as fobj:
-                contents = fobj.read()
-            z.writestr(info, contents, zipfile.ZIP_DEFLATED)
-    z.close()
+    with zipfile.ZipFile(
+        zip_fname, "w", compression=compression, compresslevel=compress_level
+    ) as zip:
+        for root, dirs, files in os.walk(in_dir):
+            for dir in dirs:
+                dir_path = Path(root, dir)
+                out_dir_name = str(dir_path.relative_to(in_dir)) + "/"
+                zip_info = zipfile.ZipInfo.from_file(dir_path, out_dir_name)
+                zip.writestr(zip_info, b"")
+            for file in files:
+                file_path = Path(root, file)
+                out_file_path = file_path.relative_to(in_dir)
+                zip_info = zipfile.ZipInfo.from_file(file_path, out_file_path)
+                zip.writestr(
+                    zip_info,
+                    file_path.read_bytes(),
+                    compress_type=compression,
+                    compresslevel=compress_level,
+                )
 
 
 def find_package_dirs(root_path: str) -> Set[str]:

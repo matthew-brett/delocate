@@ -21,6 +21,8 @@ Releases
 
 * [Unreleased]
 
+ * Fixed `UnicodeDecodeError` when an archive has non-ASCII characters.
+
 * [0.10.4] - 2022-12-17
 
   * Dependency paths with ``@rpath``, ``@loader_path`` and ``@executable_path``

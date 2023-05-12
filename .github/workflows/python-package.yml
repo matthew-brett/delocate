@@ -21,7 +21,7 @@ jobs:
         run: |
           pip install flake8
       - name: Run Flake8
-        uses: liskin/gh-problem-matcher-wrap@v1
+        uses: liskin/gh-problem-matcher-wrap@v2
         with:
           linters: flake8
           run: flake8 .
@@ -41,7 +41,7 @@ jobs:
           pip install pytest
           python setup.py develop
       - name: MyPy
-        uses: liskin/gh-problem-matcher-wrap@v1
+        uses: liskin/gh-problem-matcher-wrap@v2
         with:
           linters: mypy
           run: mypy --show-column-numbers delocate/
@@ -90,7 +90,7 @@ jobs:
           MB_PYTHON_VERSION: "3.9"
           MB_PYTHON_OSX_VER: "10.9"
       - name: Upload test data
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: delocate-tests-data
           path: |
@@ -104,7 +104,7 @@ jobs:
         run: |
           python setup.py develop bdist_wheel
       - name: Upload wheel
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: delocate-wheel
           path: |
@@ -112,7 +112,7 @@ jobs:
           retention-days: 3
           if-no-files-found: error
       - name: Upload requirements
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: test-requirements
           path: |
@@ -126,7 +126,7 @@ jobs:
         run: |
           coverage xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
           token: "624762bf-aaf0-4a75-b450-16f5ebece0b1"
@@ -147,6 +147,9 @@ jobs:
           - os: "macos-12"
             xcode: "14.0"
             python: "3.x"
+          - os: "macos-13"
+            xcode: "14.2"
+            python: "3.x"
           - os: "ubuntu-latest"
             python: "3.7"
           - os: "ubuntu-latest"
@@ -155,7 +158,9 @@ jobs:
             python: "3.9"
           - os: "ubuntu-latest"
             python: "3.10"
-          - os: "windows-2022"
+          - os: "ubuntu-latest"
+            python: "3.11"
+          - os: "windows-latest"
             python: "3.x"
     steps:
       - if: runner.os == 'macOS'

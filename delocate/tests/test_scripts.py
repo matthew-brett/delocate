@@ -6,24 +6,24 @@ If we appear to be running from the development directory, use the scripts in
 the top-level folder ``scripts``.  Otherwise try and get the scripts from the
 path
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import annotations
 
 import os
 import shutil
 import subprocess
 import sys
-from os.path import abspath, basename, dirname, exists, isfile
+from os.path import basename, exists
 from os.path import join as pjoin
 from os.path import realpath, splitext
-from typing import Text
+from pathlib import Path
+from typing import Any, Text
 
 import pytest
+from typing_extensions import Protocol
 
 from ..tmpdirs import InGivenDirectory, InTemporaryDirectory
 from ..tools import dir2zip, set_install_name, zip2dir
 from ..wheeltools import InWheel
-from .pytest_tools import assert_equal, assert_false, assert_raises, assert_true
-from .scriptrunner import ScriptRunner
 from .test_delocating import _copy_to, _make_bare_depends, _make_libtree
 from .test_fuse import assert_same_tree
 from .test_install_names import EXT_LIBS
@@ -45,16 +45,16 @@ from .test_wheeltools import (
     assert_winfo_similar,
 )
 
+DATA_PATH = (Path(__file__).parent / "data").resolve(strict=True)
 
-def _proc_lines(in_str):
-    """Decode `in_string` to str, split lines, strip whitespace
 
-    Remove any empty lines.
+def _proc_lines(in_str: str) -> list[str]:
+    """Return input split across lines, striping whitespace, without blanks.
 
     Parameters
     ----------
-    in_str : bytes
-        Input bytes for splitting, stripping
+    in_str : str
+        Input for splitting, stripping
 
     Returns
     -------
@@ -62,20 +62,30 @@ def _proc_lines(in_str):
         List of line ``str`` where each line has been stripped of leading and
         trailing whitespace and empty lines have been removed.
     """
-    lines = in_str.decode("latin1").splitlines()
+    lines = in_str.splitlines()
     return [line.strip() for line in lines if line.strip() != ""]
 
 
-lines_runner = ScriptRunner(output_processor=_proc_lines)
-run_command = lines_runner.run_command
-bytes_runner = ScriptRunner()
+class RunResult(Protocol):
+    """Result of running a script."""
+
+    success: bool
+    returncode: int
+    stdout: str
+    stderr: str
 
 
-DATA_PATH = abspath(pjoin(dirname(__file__), "data"))
+class ScriptRunner(Protocol):
+    """Protocol for pytest-console-scripts ScriptRunner."""
+
+    def run(self, command: str, *arguments: str, **options: Any) -> RunResult:
+        ...
 
 
-@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
-def test_listdeps(plat_wheel: PlatWheel) -> None:
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_listdeps(plat_wheel: PlatWheel, script_runner: ScriptRunner) -> None:
     # smokey tests of list dependencies command
     local_libs = {
         "liba.dylib",
@@ -85,75 +95,78 @@ def test_listdeps(plat_wheel: PlatWheel) -> None:
     }
     # single path, with libs
     with InGivenDirectory(DATA_PATH):
-        code, stdout, stderr = run_command(["delocate-listdeps", DATA_PATH])
-    assert set(stdout) == local_libs
-    assert code == 0
+        result = script_runner.run("delocate-listdeps", str(DATA_PATH))
+    assert result.success
+    assert set(_proc_lines(result.stdout)) == local_libs
     # single path, no libs
     with InTemporaryDirectory():
         zip2dir(PURE_WHEEL, "pure")
-        code, stdout, stderr = run_command(["delocate-listdeps", "pure"])
-        assert set(stdout) == set()
-        assert code == 0
+        result = script_runner.run("delocate-listdeps", "pure")
+        assert result.success
+        assert result.stdout.strip() == ""
+
         # Multiple paths one with libs
         zip2dir(plat_wheel.whl, "plat")
-        code, stdout, stderr = run_command(
-            ["delocate-listdeps", "pure", "plat"]
-        )
-        assert stdout == ["pure:", "plat:", plat_wheel.stray_lib]
-        assert code == 0
+        result = script_runner.run("delocate-listdeps", "pure", "plat")
+        assert result.success
+        assert _proc_lines(result.stdout) == [
+            "pure:",
+            "plat:",
+            plat_wheel.stray_lib,
+        ]
+
         # With -d flag, get list of dependending modules
-        code, stdout, stderr = run_command(
-            ["delocate-listdeps", "-d", "pure", "plat"]
-        )
-        assert stdout == [
+        result = script_runner.run("delocate-listdeps", "-d", "pure", "plat")
+        assert result.success
+        assert _proc_lines(result.stdout) == [
             "pure:",
             "plat:",
             plat_wheel.stray_lib + ":",
-            pjoin("plat", "fakepkg1", "subpkg", "module2.abi3.so"),
+            str(Path("plat", "fakepkg1", "subpkg", "module2.abi3.so")),
         ]
-        assert code == 0
 
     # With --all flag, get all dependencies
     with InGivenDirectory(DATA_PATH):
-        code, stdout, stderr = run_command(
-            ["delocate-listdeps", "--all", DATA_PATH]
-        )
+        result = script_runner.run("delocate-listdeps", "--all", str(DATA_PATH))
+    assert result.success
     rp_ext_libs = set(realpath(L) for L in EXT_LIBS)
-    assert set(stdout) == local_libs | rp_ext_libs
-    assert code == 0
+    assert set(_proc_lines(result.stdout)) == local_libs | rp_ext_libs
+
     # Works on wheels as well
-    code, stdout, stderr = run_command(["delocate-listdeps", PURE_WHEEL])
-    assert set(stdout) == set()
-    code, stdout, stderr = run_command(
-        ["delocate-listdeps", PURE_WHEEL, plat_wheel.whl]
-    )
-    assert stdout == [
+    result = script_runner.run("delocate-listdeps", PURE_WHEEL)
+    assert result.success
+    assert result.stdout.strip() == ""
+    result = script_runner.run("delocate-listdeps", PURE_WHEEL, plat_wheel.whl)
+    assert result.success
+    assert _proc_lines(result.stdout) == [
         PURE_WHEEL + ":",
         plat_wheel.whl + ":",
         plat_wheel.stray_lib,
     ]
+
     # -d flag (is also --dependency flag)
     m2 = pjoin("fakepkg1", "subpkg", "module2.abi3.so")
-    code, stdout, stderr = run_command(
-        ["delocate-listdeps", "--depending", PURE_WHEEL, plat_wheel.whl]
+    result = script_runner.run(
+        "delocate-listdeps", "--depending", PURE_WHEEL, plat_wheel.whl
     )
-    assert stdout == [
+    assert result.success
+    assert _proc_lines(result.stdout) == [
         PURE_WHEEL + ":",
         plat_wheel.whl + ":",
         plat_wheel.stray_lib + ":",
         m2,
     ]
+
     # Can be used with --all
-    code, stdout, stderr = run_command(
-        [
-            "delocate-listdeps",
-            "--all",
-            "--depending",
-            PURE_WHEEL,
-            plat_wheel.whl,
-        ]
+    result = script_runner.run(
+        "delocate-listdeps",
+        "--all",
+        "--depending",
+        PURE_WHEEL,
+        plat_wheel.whl,
     )
-    assert stdout == [
+    assert result.success
+    assert _proc_lines(result.stdout) == [
         PURE_WHEEL + ":",
         plat_wheel.whl + ":",
         plat_wheel.stray_lib + ":",
@@ -164,8 +177,10 @@ def test_listdeps(plat_wheel: PlatWheel) -> None:
     ]
 
 
-@pytest.mark.xfail(sys.platform != "darwin", reason="Runs macOS executable.")
-def test_path() -> None:
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Runs macOS executable."
+)
+def test_path(script_runner: ScriptRunner) -> None:
     # Test path cleaning
     with InTemporaryDirectory():
         # Make a tree; use realpath for OSX /private/var - /var
@@ -182,108 +197,116 @@ def test_path() -> None:
         subprocess.run([stest_lib], check=True)
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
         # Check it fixes up correctly
-        code, stdout, stderr = run_command(
-            ["delocate-path", "subtree", "subtree2", "-L", "deplibs"]
-        )
-        assert len(os.listdir(pjoin("subtree", "deplibs"))) == 0
+        assert script_runner.run(
+            "delocate-path", "subtree", "subtree2", "-L", "deplibs"
+        ).success
+        assert len(os.listdir(Path("subtree", "deplibs"))) == 0
         # Check fake libary gets copied and delocated
-        out_path = pjoin("subtree2", "deplibs")
+        out_path = Path("subtree2", "deplibs")
         assert os.listdir(out_path) == ["libfake.dylib"]
 
 
-@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
-def test_path_dylibs():
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_path_dylibs(script_runner: ScriptRunner) -> None:
     # Test delocate-path with and without dylib extensions
     with InTemporaryDirectory():
         # With 'dylibs-only' - does not inspect non-dylib files
         liba, bare_b = _make_bare_depends()
-        out_dypath = pjoin("subtree", "deplibs")
-        code, stdout, stderr = run_command(
-            ["delocate-path", "subtree", "-L", "deplibs", "-d"]
-        )
-        assert_equal(len(os.listdir(out_dypath)), 0)
-        code, stdout, stderr = run_command(
-            ["delocate-path", "subtree", "-L", "deplibs", "--dylibs-only"]
-        )
-        assert_equal(len(os.listdir(pjoin("subtree", "deplibs"))), 0)
+        out_dypath = Path("subtree", "deplibs")
+        assert script_runner.run(
+            "delocate-path", "subtree", "-L", "deplibs", "-d"
+        ).success
+        assert len(os.listdir(out_dypath)) == 0
+        assert script_runner.run(
+            "delocate-path", "subtree", "-L", "deplibs", "--dylibs-only"
+        ).success
+        assert len(os.listdir(Path("subtree", "deplibs"))) == 0
         # Default - does inspect non-dylib files
-        code, stdout, stderr = run_command(
-            ["delocate-path", "subtree", "-L", "deplibs"]
-        )
-        assert_equal(os.listdir(out_dypath), ["liba.dylib"])
+        assert script_runner.run(
+            "delocate-path", "subtree", "-L", "deplibs"
+        ).success
+        assert os.listdir(out_dypath) == ["liba.dylib"]
 
 
-def _check_wheel(wheel_fname, lib_sdir):
-    wheel_fname = abspath(wheel_fname)
+def _check_wheel(wheel_fname: str | Path, lib_sdir: str | Path) -> None:
+    wheel_fname = Path(wheel_fname).resolve(strict=True)
     with InTemporaryDirectory():
-        zip2dir(wheel_fname, "plat_pkg")
-        dylibs = pjoin("plat_pkg", "fakepkg1", lib_sdir)
-        assert_true(exists(dylibs))
-        assert_equal(os.listdir(dylibs), ["libextfunc.dylib"])
+        zip2dir(str(wheel_fname), "plat_pkg")
+        dylibs = Path("plat_pkg", "fakepkg1", lib_sdir)
+        assert dylibs.exists()
+        assert os.listdir(dylibs) == ["libextfunc.dylib"]
 
 
-@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
-def test_wheel():
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_wheel(script_runner: ScriptRunner) -> None:
     # Some tests for wheel fixing
     with InTemporaryDirectory() as tmpdir:
         # Default in-place fix
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        code, stdout, stderr = run_command(["delocate-wheel", fixed_wheel])
+        assert script_runner.run("delocate-wheel", fixed_wheel).success
         _check_wheel(fixed_wheel, ".dylibs")
         # Make another copy to test another output directory
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        code, stdout, stderr = run_command(
-            ["delocate-wheel", "-L", "dynlibs_dir", fixed_wheel]
-        )
+        assert script_runner.run(
+            "delocate-wheel", "-L", "dynlibs_dir", fixed_wheel
+        ).success
         _check_wheel(fixed_wheel, "dynlibs_dir")
         # Another output directory
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        code, stdout, stderr = run_command(
-            ["delocate-wheel", "-w", "fixed", fixed_wheel]
-        )
-        _check_wheel(pjoin("fixed", basename(fixed_wheel)), ".dylibs")
+        assert script_runner.run(
+            "delocate-wheel", "-w", "fixed", fixed_wheel
+        ).success
+        _check_wheel(Path("fixed", basename(fixed_wheel)), ".dylibs")
         # More than one wheel
         shutil.copy2(fixed_wheel, "wheel_copy.ext")
-        code, stdout, stderr = run_command(
-            ["delocate-wheel", "-w", "fixed2", fixed_wheel, "wheel_copy.ext"]
+        result = script_runner.run(
+            "delocate-wheel", "-w", "fixed2", fixed_wheel, "wheel_copy.ext"
         )
-        assert_equal(
-            stdout,
-            ["Fixing: " + name for name in (fixed_wheel, "wheel_copy.ext")],
-        )
-        _check_wheel(pjoin("fixed2", basename(fixed_wheel)), ".dylibs")
-        _check_wheel(pjoin("fixed2", "wheel_copy.ext"), ".dylibs")
+        assert result.success
+        assert _proc_lines(result.stdout) == [
+            "Fixing: " + name for name in (fixed_wheel, "wheel_copy.ext")
+        ]
+        _check_wheel(Path("fixed2", basename(fixed_wheel)), ".dylibs")
+        _check_wheel(Path("fixed2", "wheel_copy.ext"), ".dylibs")
+
         # Verbose - single wheel
-        code, stdout, stderr = run_command(
-            ["delocate-wheel", "-w", "fixed3", fixed_wheel, "-v"]
+        result = script_runner.run(
+            "delocate-wheel", "-w", "fixed3", fixed_wheel, "-v"
         )
-        _check_wheel(pjoin("fixed3", basename(fixed_wheel)), ".dylibs")
+        assert result.success
+        _check_wheel(Path("fixed3", basename(fixed_wheel)), ".dylibs")
         wheel_lines1 = [
             "Fixing: " + fixed_wheel,
             "Copied to package .dylibs directory:",
             stray_lib,
         ]
-        assert_equal(stdout, wheel_lines1)
-        code, stdout, stderr = run_command(
-            [
-                "delocate-wheel",
-                "-v",
-                "--wheel-dir",
-                "fixed4",
-                fixed_wheel,
-                "wheel_copy.ext",
-            ]
+        assert _proc_lines(result.stdout) == wheel_lines1
+
+        result = script_runner.run(
+            "delocate-wheel",
+            "-v",
+            "--wheel-dir",
+            "fixed4",
+            fixed_wheel,
+            "wheel_copy.ext",
         )
+        assert result.success
         wheel_lines2 = [
             "Fixing: wheel_copy.ext",
             "Copied to package .dylibs directory:",
             stray_lib,
         ]
-        assert_equal(stdout, wheel_lines1 + wheel_lines2)
+        assert _proc_lines(result.stdout) == wheel_lines1 + wheel_lines2
 
 
-@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
-def test_fix_wheel_dylibs():
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_fix_wheel_dylibs(script_runner: ScriptRunner) -> None:
     # Check default and non-default search for dynamic libraries
     with InTemporaryDirectory() as tmpdir:
         # Default in-place fix
@@ -291,26 +314,24 @@ def test_fix_wheel_dylibs():
         _rename_module(fixed_wheel, "module.other", "test.whl")
         shutil.copyfile("test.whl", "test2.whl")
         # Default is to look in all files and therefore fix
-        code, stdout, stderr = run_command(["delocate-wheel", "test.whl"])
+        assert script_runner.run("delocate-wheel", "test.whl").success
         _check_wheel("test.whl", ".dylibs")
         # Can turn this off to only look in dynamic lib exts
-        code, stdout, stderr = run_command(
-            ["delocate-wheel", "test2.whl", "-d"]
-        )
+        assert script_runner.run("delocate-wheel", "test2.whl", "-d").success
         with InWheel("test2.whl"):  # No fix
-            assert_false(exists(pjoin("fakepkg1", ".dylibs")))
+            assert not Path("fakepkg1", ".dylibs").exists()
 
 
-@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
-def test_fix_wheel_archs() -> None:
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_fix_wheel_archs(script_runner: ScriptRunner) -> None:
     # Some tests for wheel fixing
     with InTemporaryDirectory() as tmpdir:
         # Test check of architectures
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
         # Fixed wheel, architectures are OK
-        code, stdout, stderr = run_command(
-            ["delocate-wheel", fixed_wheel, "-k"]
-        )
+        assert script_runner.run("delocate-wheel", fixed_wheel, "-k").success
         _check_wheel(fixed_wheel, ".dylibs")
         # Broken with one architecture removed
         archs = set(("x86_64", "arm64"))
@@ -327,158 +348,158 @@ def test_fix_wheel_archs() -> None:
         for arch in archs:
             # Not checked
             _fix_break(arch)
-            code, stdout, stderr = run_command(["delocate-wheel", fixed_wheel])
+            assert script_runner.run("delocate-wheel", fixed_wheel).success
             _check_wheel(fixed_wheel, ".dylibs")
             # Checked
             _fix_break(arch)
-            code, stdout, stderr = bytes_runner.run_command(
-                ["delocate-wheel", fixed_wheel, "--check-archs"],
-                check_code=False,
+            result = script_runner.run(
+                "delocate-wheel", fixed_wheel, "--check-archs"
             )
-            assert_false(code == 0)
-            stderr_unicode = stderr.decode("latin1").strip()
-            assert stderr_unicode.startswith("Traceback")
+            assert result.returncode != 0
+            assert result.stderr.startswith("Traceback")
             assert (
                 "DelocationError: Some missing architectures in wheel"
-                in stderr_unicode
+                in result.stderr
             )
-            assert_equal(stdout.strip(), b"")
+            assert result.stdout.strip() == ""
             # Checked, verbose
             _fix_break(arch)
-            code, stdout, stderr = bytes_runner.run_command(
-                ["delocate-wheel", fixed_wheel, "--check-archs", "-v"],
-                check_code=False,
+            result = script_runner.run(
+                "delocate-wheel", fixed_wheel, "--check-archs", "-v"
             )
-            assert_false(code == 0)
-            stderr = stderr.decode("latin1").strip()
-            assert "Traceback" in stderr
-            assert stderr.endswith(
+            assert result.returncode != 0
+            assert "Traceback" in result.stderr
+            assert result.stderr.endswith(
                 "DelocationError: Some missing architectures in wheel"
                 f"\n{'fakepkg1/subpkg/module2.abi3.so'}"
                 f" needs arch {archs.difference([arch]).pop()}"
-                f" missing from {stray_lib}"
+                f" missing from {stray_lib}\n"
             )
-            stdout_unicode = stdout.decode("latin1").strip()
-            assert stdout_unicode == f"Fixing: {fixed_wheel}"
+            assert result.stdout == f"Fixing: {fixed_wheel}\n"
             # Require particular architectures
         both_archs = "arm64,x86_64"
         for ok in ("universal2", "arm64", "x86_64", both_archs):
             _fixed_wheel(tmpdir)
-            code, stdout, stderr = run_command(
-                ["delocate-wheel", fixed_wheel, "--require-archs=" + ok]
-            )
+            assert script_runner.run(
+                "delocate-wheel", fixed_wheel, "--require-archs=" + ok
+            ).success
         for arch in archs:
             other_arch = archs.difference([arch]).pop()
             for not_ok in ("intel", both_archs, other_arch):
                 _fix_break_fix(arch)
-                code, stdout, stderr = run_command(
-                    [
+                assert (
+                    script_runner.run(
                         "delocate-wheel",
                         fixed_wheel,
                         "--require-archs=" + not_ok,
-                    ],
-                    check_code=False,
+                    ).returncode
+                    != 0
                 )
-                assert_false(code == 0)
 
 
-@pytest.mark.xfail(sys.platform == "win32", reason="Can't run scripts.")
-def test_fuse_wheels():
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform == "win32", reason="Can't run scripts."
+)
+def test_fuse_wheels(script_runner: ScriptRunner) -> None:
     # Some tests for wheel fusing
     with InTemporaryDirectory():
         zip2dir(PLAT_WHEEL, "to_wheel")
         zip2dir(PLAT_WHEEL, "from_wheel")
         dir2zip("to_wheel", "to_wheel.whl")
         dir2zip("from_wheel", "from_wheel.whl")
-        code, stdout, stderr = run_command(
-            ["delocate-fuse", "to_wheel.whl", "from_wheel.whl"]
-        )
-        assert_equal(code, 0)
+        assert script_runner.run(
+            "delocate-fuse", "to_wheel.whl", "from_wheel.whl"
+        ).success
         zip2dir("to_wheel.whl", "to_wheel_fused")
         assert_same_tree("to_wheel_fused", "from_wheel")
         # Test output argument
         os.mkdir("wheels")
-        code, stdout, stderr = run_command(
-            ["delocate-fuse", "to_wheel.whl", "from_wheel.whl", "-w", "wheels"]
-        )
+        assert script_runner.run(
+            "delocate-fuse", "to_wheel.whl", "from_wheel.whl", "-w", "wheels"
+        ).success
         zip2dir(pjoin("wheels", "to_wheel.whl"), "to_wheel_refused")
         assert_same_tree("to_wheel_refused", "from_wheel")
 
 
-@pytest.mark.xfail(sys.platform == "win32", reason="Can't run scripts.")
-def test_patch_wheel():
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform == "win32", reason="Can't run scripts."
+)
+def test_patch_wheel(script_runner: ScriptRunner) -> None:
     # Some tests for patching wheel
     with InTemporaryDirectory():
         shutil.copyfile(PURE_WHEEL, "example.whl")
         # Default is to overwrite input
-        code, stdout, stderr = run_command(
-            ["delocate-patch", "example.whl", WHEEL_PATCH]
-        )
+        assert script_runner.run(
+            "delocate-patch", "example.whl", WHEEL_PATCH
+        ).success
         zip2dir("example.whl", "wheel1")
-        with open(pjoin("wheel1", "fakepkg2", "__init__.py"), "rt") as fobj:
-            assert_equal(fobj.read(), 'print("Am in init")\n')
+        assert (
+            Path("wheel1", "fakepkg2", "__init__.py").read_text()
+            == 'print("Am in init")\n'
+        )
         # Pass output directory
         shutil.copyfile(PURE_WHEEL, "example.whl")
-        code, stdout, stderr = run_command(
-            ["delocate-patch", "example.whl", WHEEL_PATCH, "-w", "wheels"]
-        )
+        assert script_runner.run(
+            "delocate-patch", "example.whl", WHEEL_PATCH, "-w", "wheels"
+        ).success
         zip2dir(pjoin("wheels", "example.whl"), "wheel2")
-        with open(pjoin("wheel2", "fakepkg2", "__init__.py"), "rt") as fobj:
-            assert_equal(fobj.read(), 'print("Am in init")\n')
+        assert (
+            Path("wheel2", "fakepkg2", "__init__.py").read_text()
+            == 'print("Am in init")\n'
+        )
         # Bad patch fails
         shutil.copyfile(PURE_WHEEL, "example.whl")
-        assert_raises(
-            RuntimeError,
-            run_command,
-            ["delocate-patch", "example.whl", WHEEL_PATCH_BAD],
-        )
+        assert not script_runner.run(
+            "delocate-patch", "example.whl", WHEEL_PATCH_BAD
+        ).success
 
 
-@pytest.mark.xfail(sys.platform == "win32", reason="Can't run scripts.")
-def test_add_platforms() -> None:
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform == "win32", reason="Can't run scripts."
+)
+def test_add_platforms(script_runner: ScriptRunner) -> None:
     # Check adding platform to wheel name and tag section
     assert_winfo_similar(PLAT_WHEEL, EXP_ITEMS, drop_version=False)
     with InTemporaryDirectory() as tmpdir:
         # First wheel needs proper wheel filename for later unpack test
         out_fname = basename(PURE_WHEEL)
         # Need to specify at least one platform
-        with pytest.raises(RuntimeError):
-            run_command(["delocate-addplat", PURE_WHEEL, "-w", tmpdir])
-        plat_args = ["-p", EXTRA_PLATS[0], "--plat-tag", EXTRA_PLATS[1]]
+        assert not script_runner.run(
+            "delocate-addplat", PURE_WHEEL, "-w", tmpdir
+        ).success
+        plat_args = ("-p", EXTRA_PLATS[0], "--plat-tag", EXTRA_PLATS[1])
         # Can't add platforms to a pure wheel
-        with pytest.raises(RuntimeError):
-            run_command(
-                ["delocate-addplat", PURE_WHEEL, "-w", tmpdir] + plat_args
-            )
+        assert not script_runner.run(
+            "delocate-addplat", PURE_WHEEL, "-w", tmpdir, *plat_args
+        ).success
         assert not exists(out_fname)
         # Error raised (as above) unless ``--skip-error`` flag set
-        code, stdout, stderr = run_command(
-            ["delocate-addplat", PURE_WHEEL, "-w", tmpdir, "-k"] + plat_args
-        )
+        assert script_runner.run(
+            "delocate-addplat", PURE_WHEEL, "-w", tmpdir, "-k", *plat_args
+        ).success
         # Still doesn't do anything though
         assert not exists(out_fname)
         # Works for plat_wheel
         out_fname = ".".join(
             (splitext(basename(PLAT_WHEEL))[0],) + EXTRA_PLATS + ("whl",)
         )
-        code, stdout, stderr = run_command(
-            ["delocate-addplat", PLAT_WHEEL, "-w", tmpdir] + plat_args
-        )
-        assert isfile(out_fname)
+        assert script_runner.run(
+            "delocate-addplat", PLAT_WHEEL, "-w", tmpdir, *plat_args
+        ).success
+        assert Path(out_fname).is_file()
         assert_winfo_similar(out_fname, EXTRA_EXPS)
-        # If wheel exists (as it does) then raise error
-        with pytest.raises(RuntimeError):
-            run_command(
-                ["delocate-addplat", PLAT_WHEEL, "-w", tmpdir] + plat_args
-            )
+        # If wheel exists (as it does) then fail
+        assert not script_runner.run(
+            "delocate-addplat", PLAT_WHEEL, "-w", tmpdir, *plat_args
+        ).success
         # Unless clobber is set
-        code, stdout, stderr = run_command(
-            ["delocate-addplat", PLAT_WHEEL, "-c", "-w", tmpdir] + plat_args
-        )
+        assert script_runner.run(
+            "delocate-addplat", PLAT_WHEEL, "-c", "-w", tmpdir, *plat_args
+        ).success
         # Can also specify platform tags via --osx-ver flags
-        code, stdout, stderr = run_command(
-            ["delocate-addplat", PLAT_WHEEL, "-c", "-w", tmpdir, "-x", "10_9"]
-        )
+        assert script_runner.run(
+            "delocate-addplat", PLAT_WHEEL, "-c", "-w", tmpdir, "-x", "10_9"
+        ).success
         assert_winfo_similar(out_fname, EXTRA_EXPS)
         # Can mix plat_tag and osx_ver
         extra_extra = ("macosx_10_12_universal2", "macosx_10_12_x86_64")
@@ -491,34 +512,32 @@ def test_add_platforms() -> None:
         extra_big_exp = EXTRA_EXPS + [
             ("Tag", "{pyver}-{abi}-" + plat) for plat in extra_extra
         ]
-        code, stdout, stderr = run_command(
-            [
-                "delocate-addplat",
-                PLAT_WHEEL,
-                "-w",
-                tmpdir,
-                "-x",
-                "10_12",
-                "-d",
-                "universal2",
-            ]
-            + plat_args
-        )
+        assert script_runner.run(
+            "delocate-addplat",
+            PLAT_WHEEL,
+            "-w",
+            tmpdir,
+            "-x",
+            "10_12",
+            "-d",
+            "universal2",
+            *plat_args,
+        ).success
         assert_winfo_similar(out_big_fname, extra_big_exp)
         # Default is to write into directory of wheel
         os.mkdir("wheels")
         shutil.copy2(PLAT_WHEEL, "wheels")
         local_plat = pjoin("wheels", basename(PLAT_WHEEL))
         local_out = pjoin("wheels", out_fname)
-        code, stdout, stderr = run_command(
-            ["delocate-addplat", local_plat] + plat_args
-        )
+        assert script_runner.run(
+            "delocate-addplat", local_plat, *plat_args
+        ).success
         assert exists(local_out)
         # With rm_orig flag, delete original unmodified wheel
         os.unlink(local_out)
-        code, stdout, stderr = run_command(
-            ["delocate-addplat", "-r", local_plat] + plat_args
-        )
+        assert script_runner.run(
+            "delocate-addplat", "-r", local_plat, *plat_args
+        ).success
         assert not exists(local_plat)
         assert exists(local_out)
         # Copy original back again
@@ -526,22 +545,23 @@ def test_add_platforms() -> None:
         # If platforms already present, don't write more
         res = sorted(os.listdir("wheels"))
         assert_winfo_similar(local_out, EXTRA_EXPS)
-        code, stdout, stderr = run_command(
-            ["delocate-addplat", local_out, "--clobber"] + plat_args
-        )
+        assert script_runner.run(
+            "delocate-addplat", local_out, "--clobber", *plat_args
+        ).success
         assert sorted(os.listdir("wheels")) == res
         assert_winfo_similar(local_out, EXTRA_EXPS)
         # The wheel doesn't get deleted output name same as input, as here
-        code, stdout, stderr = run_command(
-            ["delocate-addplat", local_out, "-r", "--clobber"] + plat_args
-        )
+        assert script_runner.run(
+            "delocate-addplat", local_out, "-r", "--clobber", *plat_args
+        ).success
         assert sorted(os.listdir("wheels")) == res
         # But adds WHEEL tags if missing, even if file name is OK
         shutil.copy2(local_plat, local_out)
         with pytest.raises(AssertionError):
             assert_winfo_similar(local_out, EXTRA_EXPS)
-        code, stdout, stderr = run_command(
-            ["delocate-addplat", local_out, "--clobber"] + plat_args
-        )
+        assert script_runner.run(
+            "delocate-addplat", local_out, "--clobber", *plat_args
+        ).success
         assert sorted(os.listdir("wheels")) == res
+        assert_winfo_similar(local_out, EXTRA_EXPS)
         assert_winfo_similar(local_out, EXTRA_EXPS)

@@ -9,17 +9,17 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      # checkout@v1 is required since versioneer uses git describe.
+      # checkout@v1 is used to that tags are more relaible.
       - uses: actions/checkout@v1
       - uses: actions/setup-python@v4
         with:
           python-version: "3.x"
       - name: Install deployment dependencies
         run: |
-          pip install wheel twine
+          pip install twine build
       - name: Build distribution
         run: |
-          python setup.py sdist bdist_wheel
+          python -m build
       - name: Upload to PyPI
         env:
           TWINE_USERNAME: __token__

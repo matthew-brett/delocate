@@ -39,7 +39,7 @@ jobs:
       - name: Install Delocate dependencies.
         run: |
           pip install pytest
-          python setup.py develop
+          pip install -e .
       - name: MyPy
         uses: liskin/gh-problem-matcher-wrap@v2
         with:
@@ -99,10 +99,13 @@ jobs:
           if-no-files-found: error
       - name: Install test dependencies
         run: |
-          pip install -r test-requirements.txt
+          pip install -r test-requirements.txt build
+      - name: Build delocate
+        run: |
+          python -m build
       - name: Install delocate
         run: |
-          python setup.py develop bdist_wheel
+          pip install -e .
       - name: Upload wheel
         uses: actions/upload-artifact@v3
         with:

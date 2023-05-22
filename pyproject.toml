@@ -1,14 +1,51 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "delocate"
+dynamic = ["version"]
+description = "Move macOS dynamic libraries into package"
+authors = [{ name = "Matthew Brett", email = "matthew.brett@gmail.com" }]
+maintainers = [{ name = "Matthew Brett", email = "matthew.brett@gmail.com" }]
+readme = "README.rst"
+requires-python = ">=3.7"
+license = { file = "LICENSE" }
+dependencies = [
+    "bindepend; sys_platform == 'win32'",
+    "machomachomangler; sys_platform == 'win32'",
+    "packaging>=20.9",
+    "typing_extensions",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Build Tools",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "http://github.com/matthew-brett/delocate"
+
+[tool.setuptools_scm]
+write_to = "delocate/_version.py"
+
 [tool.black]
 line-length = 80
 target-version = ['py37']
-extend-exclude = '''versioneer.py|delocate/_version.py'''
+extend-exclude = '''delocate/_version.py'''
 
 [tool.isort]
 profile = "black"
 py_version = 37
 src_paths = ["isort", "test"]
 line_length = 80
-extend_skip = ["versioneer.py", "delocate/_version.py"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

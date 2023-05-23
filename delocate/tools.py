@@ -827,16 +827,18 @@ def zip2dir(
     """
     # The zipfile module does not preserve permissions correctly
     # http://bugs.python.org/issue15795
+    # external_attr is not well documented but you can learn about it here
+    # https://unix.stackexchange.com/questions/14705/the-zip-formats-external-file-attribute
     with zipfile.ZipFile(zip_fname, "r") as zip:
         for name in zip.namelist():
             member = zip.getinfo(name)
             extracted_path = zip.extract(member, out_dir)
-            attr = member.external_attr >> 16
+            unix_attrs = member.external_attr >> 16
             if member.is_dir():
                 os.chmod(extracted_path, 0o755)
-            elif attr != 0:
-                mode = attr & 0o777  # Permission bits
-                os.chmod(extracted_path, mode)
+            elif unix_attrs != 0:
+                permissions = unix_attrs & 0o777
+                os.chmod(extracted_path, permissions)
             # Restore timestamp
             modified_time = datetime(*member.date_time).timestamp()
             os.utime(extracted_path, (modified_time, modified_time))

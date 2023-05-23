@@ -173,7 +173,7 @@ def _write_file(filename, contents):
         fobj.write(contents)
 
 
-@pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.")
+@pytest.mark.skipif(sys.platform == "win32", reason="Tests Unix permissions")
 def test_zip2() -> None:
     # Test utilities to unzip and zip up
     with InTemporaryDirectory():

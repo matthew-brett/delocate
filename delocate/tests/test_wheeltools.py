@@ -4,7 +4,6 @@
 import os
 import re
 import shutil
-import sys
 from email.message import Message
 from os.path import basename, exists, isfile
 from os.path import join as pjoin
@@ -59,7 +58,6 @@ def assert_record_equal(record_orig: AnyStr, record_new: AnyStr) -> None:
     assert sorted(record_orig.splitlines()) == sorted(record_new.splitlines())
 
 
-@pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.", strict=False)
 def test_rewrite_record():
     dist_info_sdir = "fakepkg2-1.0.dist-info"
     with InTemporaryDirectory():
@@ -90,7 +88,6 @@ def test_rewrite_record():
         assert_raises(WheelToolsError, rewrite_record, "wheel")
 
 
-@pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.", strict=False)
 def test_in_wheel():
     # Test in-wheel context managers
     # Stuff they share
@@ -162,7 +159,6 @@ def assert_winfo_similar(
         assert value1 == value2
 
 
-@pytest.mark.xfail(sys.platform == "win32", reason="Needs unzip.")
 def test_add_platforms() -> None:
     # Check adding platform to wheel name and tag section
     assert_winfo_similar(PLAT_WHEEL, EXP_ITEMS, drop_version=False)

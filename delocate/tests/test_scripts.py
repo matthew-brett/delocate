@@ -460,20 +460,17 @@ def test_add_platforms(script_runner: ScriptRunner) -> None:
         # First wheel needs proper wheel filename for later unpack test
         out_fname = basename(PURE_WHEEL)
         # Need to specify at least one platform
-        assert (
+        with pytest.raises(subprocess.CalledProcessError):
             script_runner.run(
-                ["delocate-addplat", PURE_WHEEL, "-w", tmpdir]
-            ).returncode
-            != 0
-        )
+                ["delocate-addplat", PURE_WHEEL, "-w", tmpdir], check=True
+            )
         plat_args = ("-p", EXTRA_PLATS[0], "--plat-tag", EXTRA_PLATS[1])
         # Can't add platforms to a pure wheel
-        assert (
+        with pytest.raises(subprocess.CalledProcessError):
             script_runner.run(
-                ["delocate-addplat", PURE_WHEEL, "-w", tmpdir, *plat_args]
-            ).returncode
-            != 0
-        )
+                ["delocate-addplat", PURE_WHEEL, "-w", tmpdir, *plat_args],
+                check=True,
+            )
         assert not exists(out_fname)
         # Error raised (as above) unless ``--skip-error`` flag set
         script_runner.run(
@@ -493,12 +490,11 @@ def test_add_platforms(script_runner: ScriptRunner) -> None:
         assert Path(out_fname).is_file()
         assert_winfo_similar(out_fname, EXTRA_EXPS)
         # If wheel exists (as it does) then fail
-        assert (
+        with pytest.raises(subprocess.CalledProcessError):
             script_runner.run(
-                ["delocate-addplat", PLAT_WHEEL, "-w", tmpdir, *plat_args]
-            ).returncode
-            != 0
-        )
+                ["delocate-addplat", PLAT_WHEEL, "-w", tmpdir, *plat_args],
+                check=True,
+            )
         # Unless clobber is set
         script_runner.run(
             ["delocate-addplat", PLAT_WHEEL, "-c", "-w", tmpdir, *plat_args],

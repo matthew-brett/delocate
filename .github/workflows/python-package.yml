@@ -38,8 +38,8 @@ jobs:
           pip install mypy
       - name: Install Delocate dependencies.
         run: |
-          pip install pytest
-          pip install -e .
+          pip install --requirement test-requirements.txt
+          pip install --editable .
       - name: MyPy
         uses: liskin/gh-problem-matcher-wrap@v2
         with:

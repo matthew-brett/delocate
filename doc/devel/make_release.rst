@@ -81,60 +81,14 @@ to upstream on github.
 
     git tag -s 0.6.0
 
-  Because we're using `versioneer`_ it is the tag which sets the package
-  version.
+  The package version will be derived from the tag automatically.
 
-* Once everything looks good, upload the source release to PyPi.  See
-  `setuptools intro`_ and `twine`_::
+* Push the tag with something like ``git push origin 0.6.0`` and that tag will
+  be automatically deployed to PyPI.
 
-    # Check there's nothing in the working tree you want
-    git status
-
-  After you've confirmed that the ``git reset --hard`` below is what you want,
-  then::
-
-    git clean -fxd
-    git stat  # check for any stray files
-    git reset --hard   # careful of those stray files!
-    python setup.py sdist --formats=zip
-
-  Check the wheel filename looks correct::
-
-    ls dist/*.zip
-
-  If so then upload to pypi (see below)::
-
-    twine upload -s dist/*.zip
-
-* Upload wheels by building in virtualenvs, something like::
-
-   workon py27
-   rm -rf build
-   python setup.py bdist_wheel
-   workon py33
-   rm -rf build
-   python setup.py bdist_wheel
-   workon py34
-   rm -rf build
-   python setup.py bdist_wheel
-   twine upload -s dist/*.whl
-
-* Remember you'll need your ``~/.pypirc`` file set up right for this to work.
-  See `setuptools intro`_.  The file should look something like this::
-
-    [distutils]
-    index-servers =
-        warehouse
-
-    [warehouse]
-    repository: https://upload.pypi.io/legacy/
-    username:your.pypi.username
-    password:your-password
-
-* Check how everything looks on pypi - the description, the packages.  If
-  necessary delete the release and try again if it doesn't look right.
-
-* Push the tag with something like ``git push origin 0.6.0``
+* Check how everything looks on PyPI - the description, the packages.
+  If anything doesn't look right then yank the release and upload with the
+  patch version incremented.
 
 * Announce to the mailing lists.  With fear and trembling.
 

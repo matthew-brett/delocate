@@ -1,5 +1,3 @@
-include versioneer.py
-include setup.cfg
 include delocate/_version.py
 include LICENSE
 include README.rst

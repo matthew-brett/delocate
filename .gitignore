@@ -5,3 +5,4 @@ MANIFEST
 .coverage
 delocate*info/
 .cache
+_version.py

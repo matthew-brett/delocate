@@ -12,6 +12,5 @@
 .. _delocate pypi: https://pypi.org/project/delocate
 .. _delocate issues: http://github.com/matthew-brett/delocate/issues
 .. _delocate travis-ci: https://travis-ci.org/matthew-brett/delocate
-.. _versioneer: https://github.com/warner/python-versioneer
 
 .. vim:syntax=rst

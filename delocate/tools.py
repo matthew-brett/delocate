@@ -5,6 +5,7 @@ import os
 import re
 import stat
 import subprocess
+import time
 import warnings
 import zipfile
 from datetime import datetime
@@ -844,12 +845,42 @@ def zip2dir(
             os.utime(extracted_path, (modified_time, modified_time))
 
 
+_ZIP_TIMESTAMP_MIN = 315532800  # 1980-01-01 00:00:00 UTC
+DateTuple = Tuple[int, int, int, int, int, int]
+
+
+def _get_zip_datetime(
+    date_time: Optional[DateTuple] = None,
+) -> Optional[DateTuple]:
+    """Utility function to support reproducible builds
+
+    https://reproducible-builds.org/docs/source-date-epoch/
+
+    Parameters
+    ----------
+    date_time : tuple of int, optional
+        Datetime tuple ``(Y, m, d, H, M, S)``.
+
+    Returns
+    -------
+    zip_date_time : tuple of int, optional
+        Datetime tuple corresponding to the ``SOURCE_DATE_EPOCH``
+        environment variable if set, otherwise the input `date_time`.
+    """
+    source_date_epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    if source_date_epoch is not None:
+        timestamp = max(int(source_date_epoch), _ZIP_TIMESTAMP_MIN)
+        date_time = time.gmtime(timestamp)[0:6]
+    return date_time
+
+
 def dir2zip(
     in_dir: str | PathLike[str],
     zip_fname: str | PathLike[str],
     *,
     compression: int = zipfile.ZIP_DEFLATED,
     compress_level: int = -1,
+    date_time: Optional[DateTuple] = None,
 ) -> None:
     """Make a zip file `zip_fname` with contents of directory `in_dir`
 
@@ -867,7 +898,10 @@ def dir2zip(
         The zipfile compression type used.
     compress_level : int, optional, keyword-only
         The compression level used for this archive.
+    date_time : tuple of int, optional, keyword-only
+        Datetime tuple ``(Y, m, d, H, M, S)`` for all recorded entries.
     """
+    date_time = _get_zip_datetime(date_time)
     with zipfile.ZipFile(
         zip_fname, "w", compression=compression, compresslevel=compress_level
     ) as zip:
@@ -876,11 +910,15 @@ def dir2zip(
                 dir_path = Path(root, dir)
                 out_dir_name = str(dir_path.relative_to(in_dir)) + "/"
                 zip_info = zipfile.ZipInfo.from_file(dir_path, out_dir_name)
+                if date_time is not None:
+                    zip_info.date_time = date_time
                 zip.writestr(zip_info, b"")
             for file in files:
                 file_path = Path(root, file)
                 out_file_path = file_path.relative_to(in_dir)
                 zip_info = zipfile.ZipInfo.from_file(file_path, out_file_path)
+                if date_time is not None:
+                    zip_info.date_time = date_time
                 zip.writestr(
                     zip_info,
                     file_path.read_bytes(),

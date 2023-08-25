@@ -5,6 +5,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import zipfile
 from glob import glob
 from os.path import abspath, basename, exists, isdir
 from os.path import join as pjoin
@@ -30,6 +31,7 @@ from ..tools import (
     zip2dir,
 )
 from ..wheeltools import InWheel
+from .env_tools import _scope_env
 from .pytest_tools import assert_equal, assert_false, assert_raises, assert_true
 from .test_install_names import DATA_PATH, EXT_LIBS
 from .test_tools import ARCH_BOTH, ARCH_M1
@@ -439,3 +441,20 @@ def test_fix_namespace() -> None:
         }
 
         assert delocate_wheel(NAMESPACE_WHEEL, "out.whl") == stray_libs
+
+
+def test_source_date_epoch():
+    with InTemporaryDirectory():
+        zip2dir(PURE_WHEEL, "package")
+        for date_time, sde in (
+            ((1980, 1, 1, 0, 0, 0), 42),
+            ((1980, 1, 1, 0, 0, 0), 315532800),
+            ((1980, 1, 1, 0, 0, 2), 315532802),
+            ((2020, 2, 2, 0, 0, 0), 1580601600),
+        ):
+            with _scope_env(SOURCE_DATE_EPOCH=str(sde)):
+                dir2zip("package", "package.zip")
+            with zipfile.ZipFile("package.zip", "r") as zip:
+                for name in zip.namelist():
+                    member = zip.getinfo(name)
+                    assert_equal(member.date_time, date_time)

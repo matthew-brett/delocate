@@ -443,7 +443,7 @@ def test_fix_namespace() -> None:
         assert delocate_wheel(NAMESPACE_WHEEL, "out.whl") == stray_libs
 
 
-def test_source_date_epoch():
+def test_source_date_epoch() -> None:
     with InTemporaryDirectory():
         zip2dir(PURE_WHEEL, "package")
         for date_time, sde in (

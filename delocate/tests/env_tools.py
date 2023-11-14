@@ -1,5 +1,6 @@
 import os
 from contextlib import contextmanager
+from typing import Iterator
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -27,7 +28,7 @@ def TempDirWithoutEnvVars(*env_vars):
 
 
 @contextmanager
-def _scope_env(**env):
+def _scope_env(**env: str) -> Iterator[None]:
     """Add `env` to the environment and remove them after testing
     is complete.
     """

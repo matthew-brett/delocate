@@ -846,12 +846,12 @@ def zip2dir(
 
 
 _ZIP_TIMESTAMP_MIN = 315532800  # 1980-01-01 00:00:00 UTC
-DateTuple = Tuple[int, int, int, int, int, int]
+_DateTuple = Tuple[int, int, int, int, int, int]
 
 
 def _get_zip_datetime(
-    date_time: Optional[DateTuple] = None,
-) -> Optional[DateTuple]:
+    date_time: Optional[_DateTuple] = None,
+) -> Optional[_DateTuple]:
     """Utility function to support reproducible builds
 
     https://reproducible-builds.org/docs/source-date-epoch/
@@ -880,7 +880,7 @@ def dir2zip(
     *,
     compression: int = zipfile.ZIP_DEFLATED,
     compress_level: int = -1,
-    date_time: Optional[DateTuple] = None,
+    date_time: Optional[_DateTuple] = None,
 ) -> None:
     """Make a zip file `zip_fname` with contents of directory `in_dir`
 

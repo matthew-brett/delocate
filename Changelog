@@ -21,12 +21,14 @@ Releases
 
 * [Unreleased]
 
- * Fixed `UnicodeDecodeError` when an archive has non-ASCII characters.
+* [0.10.5] - 2023-11-14
 
- * Honor the ``SOURCE_DATE_EPOCH`` environment variable to support
-   `reproducible builds
-   <https://reproducible-builds.org/docs/source-date-epoch/>`_.
-   [#187](https://github.com/matthew-brett/delocate/pull/187)
+  * Fixed `UnicodeDecodeError` when an archive has non-ASCII characters.
+    [#189](https://github.com/matthew-brett/delocate/issues/189)
+  * Honor the ``SOURCE_DATE_EPOCH`` environment variable to support
+    `reproducible builds
+    <https://reproducible-builds.org/docs/source-date-epoch/>`_.
+    [#187](https://github.com/matthew-brett/delocate/pull/187)
 
 * [0.10.4] - 2022-12-17
 

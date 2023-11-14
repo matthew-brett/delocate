@@ -23,6 +23,11 @@ Releases
 
  * Fixed `UnicodeDecodeError` when an archive has non-ASCII characters.
 
+ * Honor the ``SOURCE_DATE_EPOCH`` environment variable to support
+   `reproducible builds
+   <https://reproducible-builds.org/docs/source-date-epoch/>`_.
+   [#187](https://github.com/matthew-brett/delocate/pull/187)
+
 * [0.10.4] - 2022-12-17
 
   * Dependency paths with ``@rpath``, ``@loader_path`` and ``@executable_path``

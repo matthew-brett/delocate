@@ -1,5 +1,6 @@
 import os
 from contextlib import contextmanager
+from typing import Iterator
 
 from ..tmpdirs import InTemporaryDirectory
 
@@ -24,3 +25,20 @@ def TempDirWithoutEnvVars(*env_vars):
             else:
                 if var in os.environ:
                     del os.environ[var]
+
+
+@contextmanager
+def _scope_env(**env: str) -> Iterator[None]:
+    """Add `env` to the environment and remove them after testing
+    is complete.
+    """
+    env_save = {key: os.environ.get(key) for key in env}
+    try:
+        os.environ.update(env)
+        yield
+    finally:
+        for key, value in env_save.items():
+            if value is None:
+                del os.environ[key]
+            else:
+                os.environ[key] = value

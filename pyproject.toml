@@ -49,7 +49,7 @@ line_length = 80
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-required_plugins = ["pytest-cov"]
+required_plugins = ["pytest-console-scripts>=1.4.0", "pytest-cov"]
 testpaths = ["delocate/"]
 addopts = ["--doctest-modules", "--cov=delocate", "--cov-config=.coveragerc"]
 log_file_level = "DEBUG"

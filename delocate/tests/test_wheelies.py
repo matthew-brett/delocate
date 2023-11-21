@@ -1,4 +1,5 @@
 """ Direct tests of fixes to wheels """
+from __future__ import annotations
 
 import os
 import shutil
@@ -10,6 +11,7 @@ from glob import glob
 from os.path import abspath, basename, exists, isdir
 from os.path import join as pjoin
 from os.path import realpath
+from pathlib import Path
 from subprocess import check_call
 from typing import NamedTuple
 
@@ -83,7 +85,7 @@ def test_fix_pure_python():
         assert_false(exists(pjoin("pure_pkg", "fakepkg2", ".dylibs")))
 
 
-def _fixed_wheel(out_path):
+def _fixed_wheel(out_path: str | Path) -> tuple[str, str]:
     wheel_base = basename(PLAT_WHEEL)
     with InGivenDirectory(out_path):
         zip2dir(PLAT_WHEEL, "_plat_pkg")
@@ -99,12 +101,13 @@ def _fixed_wheel(out_path):
     return pjoin(out_path, wheel_base), stray_lib
 
 
-def _rename_module(in_wheel, mod_fname, out_wheel):
-    # Rename module with library dependency in wheel
-    with InWheel(in_wheel, out_wheel):
-        mod_dir = pjoin("fakepkg1", "subpkg")
-        os.rename(pjoin(mod_dir, "module2.abi3.so"), pjoin(mod_dir, mod_fname))
-    return out_wheel
+def _rename_module(
+    in_wheel: str | Path, mod_fname: str | Path, out_wheel: str | Path
+) -> None:
+    """Rename a module with library dependency in a wheel."""
+    with InWheel(str(in_wheel), str(out_wheel)):
+        mod_dir = Path("fakepkg1", "subpkg")
+        os.rename(Path(mod_dir, "module2.abi3.so"), Path(mod_dir, mod_fname))
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
@@ -219,13 +222,14 @@ def test_fix_plat_dylibs():
         )
 
 
-def _thin_lib(stray_lib, arch):
+def _thin_lib(stray_lib: str | Path, arch: str) -> None:
+    stray_lib = str(stray_lib)
     check_call(["lipo", "-thin", arch, stray_lib, "-output", stray_lib])
 
 
-def _thin_mod(wheel, arch):
+def _thin_mod(wheel: str | Path, arch: str) -> None:
     with InWheel(wheel, wheel):
-        mod_fname = pjoin("fakepkg1", "subpkg", "module2.abi3.so")
+        mod_fname = str(Path("fakepkg1", "subpkg", "module2.abi3.so"))
         check_call(["lipo", "-thin", arch, mod_fname, "-output", mod_fname])
 
 

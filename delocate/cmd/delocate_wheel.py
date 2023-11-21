@@ -15,6 +15,9 @@ from os.path import join as pjoin
 from typing import List, Optional, Text
 
 from delocate import __version__, delocate_wheel
+from delocate.delocating import filter_system_libs
+
+logger = logging.getLogger(__name__)
 
 
 def main() -> None:
@@ -63,6 +66,16 @@ def main() -> None:
                 "--dylibs-only",
                 action="store_true",
                 help="Only analyze files with known dynamic library extensions",
+            ),
+            Option(
+                "-e",
+                "--exclude",
+                action="append",
+                default=[],
+                type="string",
+                help=(
+                    "Exclude any libraries where path includes the given string"
+                ),
             ),
             Option(
                 "--require-archs",
@@ -117,6 +130,21 @@ def main() -> None:
     else:
         require_archs = opts.require_archs
     lib_filt_func = "dylibs-only" if opts.dylibs_only else None
+
+    exclude_files: List[str] = opts.exclude
+
+    def copy_filter_exclude(name: str) -> bool:
+        """Returns False if name is excluded, uses normal rules otherwise."""
+        for exclude_str in exclude_files:
+            if exclude_str in name:
+                logger.info(
+                    "%s excluded because of exclude %r rule.",
+                    name,
+                    exclude_str,
+                )
+                return False
+        return filter_system_libs(name)
+
     for wheel in wheels:
         if multi or opts.verbose:
             print("Fixing: " + wheel)
@@ -129,6 +157,7 @@ def main() -> None:
             out_wheel,
             lib_filt_func=lib_filt_func,
             lib_sdir=opts.lib_sdir,
+            copy_filt_func=copy_filter_exclude,
             require_archs=require_archs,
             executable_path=opts.executable_path,
             ignore_missing=opts.ignore_missing_dependencies,

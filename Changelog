@@ -21,6 +21,9 @@ Releases
 
 * [Unreleased]
 
+  * Dependencies can be manually excluded with the ``--exclude <name>`` flag.
+    [#106](https://github.com/matthew-brett/delocate/pull/106)
+
 * [0.10.5] - 2023-11-14
 
   * Fixed `UnicodeDecodeError` when an archive has non-ASCII characters.

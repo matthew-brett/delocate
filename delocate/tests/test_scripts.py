@@ -574,3 +574,23 @@ def test_add_platforms(script_runner: ScriptRunner) -> None:
         assert sorted(os.listdir("wheels")) == res
         assert_winfo_similar(local_out, EXTRA_EXPS)
         assert_winfo_similar(local_out, EXTRA_EXPS)
+
+
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
+def test_fix_wheel_with_excluded_dylibs(script_runner: ScriptRunner):
+    with InTemporaryDirectory() as tmpdir:
+        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
+        _rename_module(fixed_wheel, "module.other", "test.whl")
+        shutil.copyfile("test.whl", "test2.whl")
+        # We exclude the stray library so it shouldn't be present in the wheel
+        result = script_runner.run(
+            ["delocate-wheel", "-vv", "-e", "extfunc", "test.whl"], check=True
+        )
+        assert "libextfunc.dylib excluded" in result.stderr
+        with InWheel("test.whl"):
+            assert not Path("plat_pkg/fakepkg1/.dylibs").exists()
+        # We exclude a library that does not exist so we should behave normally
+        script_runner.run(
+            ["delocate-wheel", "-e", "doesnotexist", "test2.whl"], check=True
+        )
+        _check_wheel("test2.whl", ".dylibs")

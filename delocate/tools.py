@@ -1,6 +1,7 @@
 """ Tools for getting and setting install names """
 from __future__ import annotations
 
+import logging
 import os
 import re
 import stat
@@ -27,6 +28,8 @@ from typing import (
 )
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
 
 
 class InstallNameError(Exception):
@@ -814,26 +817,37 @@ def add_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
         replace_signature(filename, "-")
 
 
-@ensure_writable
-def delete_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
-    """Delete rpath `newpath` from library `filename`
+_SANITARY_RPATH = re.compile(r"^@loader_path/|^@executable_path/")
+"""Matches rpaths which are considered sanitary."""
 
-    Parameters
-    ----------
-    filename : str
-        filename of library
-    newpath : str
-        rpath to add
-    ad_hoc_sign : {True, False}, optional
-        If True, sign file with ad-hoc signature
+
+def _is_rpath_sanitary(rpath: str) -> bool:
+    """Returns True if `rpath` is considered sanitary.
+
+    Includes only paths relative to `@executable_path` or `@loader_path`.
+
+    Excludes absolute and relative (to the current directory) paths.
+
+    Examples
+    --------
+    >>> _is_rpath_sanitary("/absolute/path")
+    False
+    >>> _is_rpath_sanitary("relative/path")
+    False
+    >>> _is_rpath_sanitary("@loader_path/../example")
+    True
+    >>> _is_rpath_sanitary("@executable_path/../example")
+    True
+    >>> _is_rpath_sanitary("fake/@loader_path/../example")
+    False
+    >>> _is_rpath_sanitary("@other_path/../example")
+    False
     """
-    _run(["install_name_tool", "-delete_rpath", newpath, filename], check=True)
-    if ad_hoc_sign:
-        replace_signature(filename, "-")
+    return bool(_SANITARY_RPATH.match(rpath))
 
 
 @ensure_writable
-def remove_absolute_rpaths(filename: str, ad_hoc_sign: bool = True) -> None:
+def _remove_absolute_rpaths(filename: str, ad_hoc_sign: bool = True) -> None:
     """Remove absolute filename rpaths in `filename`
 
     Parameters
@@ -843,11 +857,16 @@ def remove_absolute_rpaths(filename: str, ad_hoc_sign: bool = True) -> None:
     ad_hoc_sign : {True, False}, optional
         If True, sign file with ad-hoc signature
     """
+    commands = []  # install_name_tool commands
     for rpath in get_rpaths(filename):
-        if rpath.startswith("/"):
-            delete_rpath(filename, rpath)
-            if ad_hoc_sign:
-                replace_signature(filename, "-")
+        if not _is_rpath_sanitary(rpath):
+            commands += ["-delete_rpath", rpath]
+            logger.info("Sanitize: Deleting rpath %r from %r", rpath, filename)
+    if not commands:
+        return
+    _run(["install_name_tool", filename, *commands], check=True)
+    if ad_hoc_sign:
+        replace_signature(filename, "-")
 
 
 def zip2dir(

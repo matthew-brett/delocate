@@ -83,7 +83,7 @@ def delocate_args(parser: OptionParser):
             Option(
                 "--sanitize-rpaths",
                 action="store_true",
-                help="Remove absolute rpaths from binaries",
+                help="Remove absolute and relative rpaths from binaries",
             ),
         ]
     )

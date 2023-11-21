@@ -35,10 +35,10 @@ from .libsana import (
 )
 from .tmpdirs import TemporaryDirectory
 from .tools import (
+    _remove_absolute_rpaths,
     dir2zip,
     find_package_dirs,
     get_archs,
-    remove_absolute_rpaths,
     set_install_id,
     set_install_name,
     validate_signature,
@@ -130,7 +130,7 @@ def _sanitize_rpaths(
     for required in files_to_delocate:
         # Set relative path for local library
         for requiring, orig_install_name in lib_dict[required].items():
-            remove_absolute_rpaths(requiring)
+            _remove_absolute_rpaths(requiring)
 
 
 def _analyze_tree_libs(

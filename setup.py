@@ -22,17 +22,4 @@ setup(
         ],
         "delocate": ["py.typed"],
     },
-    entry_points={
-        "console_scripts": [
-            f"delocate-{name} = delocate.cmd.delocate_{name}:main"
-            for name in (
-                "addplat",
-                "fuse",
-                "listdeps",
-                "patch",
-                "path",
-                "wheel",
-            )
-        ]
-    },
 )

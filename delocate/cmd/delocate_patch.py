@@ -13,13 +13,15 @@ from os.path import basename, exists, expanduser
 from os.path import join as pjoin
 
 from delocate import __version__, patch_wheel
+from delocate.cmd.common import verbosity_args, verbosity_config
 
 
-def main():
+def main() -> None:
     parser = OptionParser(
         usage="%s WHEEL_FILENAME PATCH_FNAME\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__,
     )
+    verbosity_args(parser)
     parser.add_option(
         Option(
             "-w",
@@ -32,15 +34,8 @@ def main():
             ),
         )
     )
-    parser.add_option(
-        Option(
-            "-v",
-            "--verbose",
-            action="store_true",
-            help="Print input and output wheels",
-        )
-    )
     (opts, args) = parser.parse_args()
+    verbosity_config(opts)
     if len(args) != 2:
         parser.print_help()
         sys.exit(1)

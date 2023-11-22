@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python3
 """ List library dependencies for libraries in path or wheel
 """
 # vim: ft=python

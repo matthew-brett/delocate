@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python3
 """ Copy, relink library dependencies for wheel
 
 Overwrites the wheel in-place by default

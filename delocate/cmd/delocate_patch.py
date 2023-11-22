@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python3
 """ Apply patch to tree stored in wheel
 
 Overwrites the wheel in-place by default

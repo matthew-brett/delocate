@@ -60,6 +60,7 @@ def delocate_tree_libs(
     lib_dict: Mapping[Text, Mapping[Text, Text]],
     lib_path: Text,
     root_path: Text,
+    *,
     sanitize_rpaths: bool = False,
 ) -> Dict[Text, Dict[Text, Text]]:
     """Move needed libraries in `lib_dict` into `lib_path`
@@ -88,7 +89,7 @@ def delocate_tree_libs(
         library within the subtrees of `root_path` does not get copied, but
         libraries linking to it have links adjusted to use relative path to
         this library.
-    sanitize_rpaths : bool, default=False
+    sanitize_rpaths : bool, default=False, keyword-only
         If True, absolute paths in rpaths of binaries are removed.
 
     Returns
@@ -422,6 +423,7 @@ def delocate_path(
     copy_filt_func: Optional[Callable[[Text], bool]] = filter_system_libs,
     executable_path: Optional[Text] = None,
     ignore_missing: bool = False,
+    *,
     sanitize_rpaths: bool = False,
 ) -> Dict[Text, Dict[Text, Text]]:
     """Copy required libraries for files in `tree_path` into `lib_path`
@@ -449,7 +451,7 @@ def delocate_path(
         `@executable_path`.
     ignore_missing : bool, default=False
         Continue even if missing dependencies are detected.
-    sanitize_rpaths : bool, default=False
+    sanitize_rpaths : bool, default=False, keyword-only
         If True, absolute paths in rpaths of binaries are removed.
 
     Returns
@@ -584,6 +586,7 @@ def delocate_wheel(
     copy_filt_func: Optional[Callable[[str], bool]] = filter_system_libs,
     require_archs: Union[None, str, Iterable[str]] = None,
     check_verbose: Optional[bool] = None,
+    *,
     executable_path: Optional[str] = None,
     ignore_missing: bool = False,
     sanitize_rpaths: bool = False,

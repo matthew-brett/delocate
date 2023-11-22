@@ -10,21 +10,14 @@ defaults:
     shell: bash
 
 jobs:
-  flake8:
+  pre-commit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
-      - name: Install Flake8
-        run: |
-          pip install flake8
-      - name: Run Flake8
-        uses: liskin/gh-problem-matcher-wrap@v2
-        with:
-          linters: flake8
-          run: flake8 .
+          python-version: "3.12"
+      - uses: pre-commit/action@v3.0.0
 
   mypy:
     runs-on: ubuntu-latest
@@ -46,25 +39,8 @@ jobs:
           linters: mypy
           run: mypy --show-column-numbers delocate/
 
-  black:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Black
-        run: pip install black
-      - name: Run black
-        run: black . --check --diff
-
-  isort:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install isort
-        run: pip install isort
-      - name: Run isort
-        run: isort . --check --diff
-
   tests:
+    needs: [pre-commit, mypy]
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v3

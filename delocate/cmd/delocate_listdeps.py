@@ -11,15 +11,17 @@ from os.path import isdir, realpath
 from os.path import sep as psep
 
 from delocate import __version__, wheel_libs
+from delocate.cmd.common import verbosity_args, verbosity_config
 from delocate.delocating import filter_system_libs
 from delocate.libsana import stripped_lib_dict, tree_libs_from_directory
 
 
-def main():
+def main() -> None:
     parser = OptionParser(
         usage="%s WHEEL_OR_PATH_TO_ANALYZE\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__,
     )
+    verbosity_args(parser)
     parser.add_options(
         [
             Option(
@@ -37,6 +39,7 @@ def main():
         ]
     )
     (opts, paths) = parser.parse_args()
+    verbosity_config(opts)
     if len(paths) < 1:
         parser.print_help()
         sys.exit(1)

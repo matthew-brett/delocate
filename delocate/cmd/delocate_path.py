@@ -9,13 +9,21 @@ import sys
 from optparse import Option, OptionParser
 
 from delocate import __version__, delocate_path
+from delocate.cmd.common import (
+    delocate_args,
+    delocate_values,
+    verbosity_args,
+    verbosity_config,
+)
 
 
-def main():
+def main() -> None:
     parser = OptionParser(
         usage="%s PATH_TO_ANALYZE\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__,
     )
+    verbosity_args(parser)
+    delocate_args(parser)
     parser.add_options(
         [
             Option(
@@ -25,39 +33,16 @@ def main():
                 type="string",
                 help="Output subdirectory path to copy library dependencies",
             ),
-            Option(
-                "-d",
-                "--dylibs-only",
-                action="store_true",
-                help="Only analyze files with known dynamic library extensions",
-            ),
-            Option(
-                "--executable-path",
-                action="store",
-                type="string",
-                default=os.path.dirname(sys.executable),
-                help=(
-                    "The path used to resolve @executable_path in dependencies"
-                ),
-            ),
-            Option(
-                "--ignore-missing-dependencies",
-                action="store_true",
-                help=(
-                    "Skip dependencies which couldn't be found and delocate "
-                    "as much as possible"
-                ),
-            ),
         ]
     )
     (opts, paths) = parser.parse_args()
+    verbosity_config(opts)
     if len(paths) < 1:
         parser.print_help()
         sys.exit(1)
 
     if opts.lib_path is None:
         opts.lib_path = ".dylibs"
-    lib_filt_func = "dylibs-only" if opts.dylibs_only else None
     multi = len(paths) > 1
     for path in paths:
         if multi:
@@ -67,9 +52,7 @@ def main():
         delocate_path(
             path,
             lib_path,
-            lib_filt_func,
-            executable_path=opts.executable_path,
-            ignore_missing=opts.ignore_missing_dependencies,
+            **delocate_values(opts),
         )
 
 

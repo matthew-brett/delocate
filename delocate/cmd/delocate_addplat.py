@@ -24,14 +24,16 @@ from os.path import join as exists
 from os.path import realpath
 
 from delocate import __version__
+from delocate.cmd.common import verbosity_args, verbosity_config
 from delocate.wheeltools import WheelToolsError, add_platforms
 
 
-def main():
+def main() -> None:
     parser = OptionParser(
         usage="%s WHEEL_FILENAME\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__,
     )
+    verbosity_args(parser)
     parser.add_option(
         Option(
             "-p",
@@ -108,15 +110,8 @@ def main():
             ),
         )
     )
-    parser.add_option(
-        Option(
-            "-v",
-            "--verbose",
-            action="store_true",
-            help="Show more verbose report of progress and failure",
-        )
-    )
     (opts, wheels) = parser.parse_args()
+    verbosity_config(opts)
     if len(wheels) < 1:
         parser.print_help()
         sys.exit(1)

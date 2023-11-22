@@ -12,14 +12,16 @@ from os.path import abspath, basename, expanduser
 from os.path import join as pjoin
 
 from delocate import __version__
+from delocate.cmd.common import verbosity_args, verbosity_config
 from delocate.fuse import fuse_wheels
 
 
-def main():
+def main() -> None:
     parser = OptionParser(
         usage="%s WHEEL1 WHEEL2\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__,
     )
+    verbosity_args(parser)
     parser.add_option(
         Option(
             "-w",
@@ -32,15 +34,8 @@ def main():
             ),
         )
     )
-    parser.add_option(
-        Option(
-            "-v",
-            "--verbose",
-            action="store_true",
-            help="Show libraries copied during fix",
-        )
-    )
     (opts, wheels) = parser.parse_args()
+    verbosity_config(opts)
     if len(wheels) != 2:
         parser.print_help()
         sys.exit(1)

@@ -6,7 +6,6 @@ Overwrites the wheel in-place by default
 # vim: ft=python
 from __future__ import absolute_import, division, print_function
 
-import logging
 import os
 import sys
 from optparse import Option, OptionParser
@@ -15,9 +14,12 @@ from os.path import join as pjoin
 from typing import List, Optional, Text
 
 from delocate import __version__, delocate_wheel
-from delocate.delocating import filter_system_libs
-
-logger = logging.getLogger(__name__)
+from delocate.cmd.common import (
+    delocate_args,
+    delocate_values,
+    verbosity_args,
+    verbosity_config,
+)
 
 
 def main() -> None:
@@ -25,6 +27,8 @@ def main() -> None:
         usage="%s WHEEL_FILENAME\n\n" % sys.argv[0] + __doc__,
         version="%prog " + __version__,
     )
+    verbosity_args(parser)
+    delocate_args(parser)
     parser.add_options(
         [
             Option(
@@ -46,36 +50,10 @@ def main() -> None:
                 ),
             ),
             Option(
-                "-v",
-                "--verbose",
-                action="count",
-                help=(
-                    "Show a more verbose report of progress and failure."
-                    "  Additional flags show even more info, up to -vv."
-                ),
-                default=0,
-            ),
-            Option(
                 "-k",
                 "--check-archs",
                 action="store_true",
                 help="Check architectures of depended libraries",
-            ),
-            Option(
-                "-d",
-                "--dylibs-only",
-                action="store_true",
-                help="Only analyze files with known dynamic library extensions",
-            ),
-            Option(
-                "-e",
-                "--exclude",
-                action="append",
-                default=[],
-                type="string",
-                help=(
-                    "Exclude any libraries where path includes the given string"
-                ),
             ),
             Option(
                 "--require-archs",
@@ -87,34 +65,13 @@ def main() -> None:
                     "'universal2', 'x86_64,arm64')"
                 ),
             ),
-            Option(
-                "--executable-path",
-                action="store",
-                type="string",
-                default=os.path.dirname(sys.executable),
-                help=(
-                    "The path used to resolve @executable_path in dependencies"
-                ),
-            ),
-            Option(
-                "--ignore-missing-dependencies",
-                action="store_true",
-                help=(
-                    "Skip dependencies which couldn't be found and delocate "
-                    "as much as possible"
-                ),
-            ),
         ]
     )
     (opts, wheels) = parser.parse_args()
+    verbosity_config(opts)
     if len(wheels) < 1:
         parser.print_help()
         sys.exit(1)
-    logging.basicConfig(
-        level={0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}.get(
-            opts.verbose, logging.DEBUG
-        )
-    )
     multi = len(wheels) > 1
     if opts.wheel_dir:
         wheel_dir = expanduser(opts.wheel_dir)
@@ -129,21 +86,6 @@ def main() -> None:
         require_archs = [s.strip() for s in opts.require_archs.split(",")]
     else:
         require_archs = opts.require_archs
-    lib_filt_func = "dylibs-only" if opts.dylibs_only else None
-
-    exclude_files: List[str] = opts.exclude
-
-    def copy_filter_exclude(name: str) -> bool:
-        """Returns False if name is excluded, uses normal rules otherwise."""
-        for exclude_str in exclude_files:
-            if exclude_str in name:
-                logger.info(
-                    "%s excluded because of exclude %r rule.",
-                    name,
-                    exclude_str,
-                )
-                return False
-        return filter_system_libs(name)
 
     for wheel in wheels:
         if multi or opts.verbose:
@@ -155,12 +97,9 @@ def main() -> None:
         copied = delocate_wheel(
             wheel,
             out_wheel,
-            lib_filt_func=lib_filt_func,
             lib_sdir=opts.lib_sdir,
-            copy_filt_func=copy_filter_exclude,
             require_archs=require_archs,
-            executable_path=opts.executable_path,
-            ignore_missing=opts.ignore_missing_dependencies,
+            **delocate_values(opts),
         )
         if opts.verbose and len(copied):
             print("Copied to package {0} directory:".format(opts.lib_sdir))

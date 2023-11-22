@@ -22,7 +22,7 @@ import pytest
 from pytest_console_scripts import ScriptRunner
 
 from ..tmpdirs import InGivenDirectory, InTemporaryDirectory
-from ..tools import dir2zip, set_install_name, zip2dir
+from ..tools import dir2zip, get_rpaths, set_install_name, zip2dir
 from ..wheeltools import InWheel
 from .test_delocating import _copy_to, _make_bare_depends, _make_libtree
 from .test_fuse import assert_same_tree
@@ -30,6 +30,7 @@ from .test_install_names import EXT_LIBS
 from .test_wheelies import (
     PLAT_WHEEL,
     PURE_WHEEL,
+    RPATH_WHEEL,
     WHEEL_PATCH,
     WHEEL_PATCH_BAD,
     PlatWheel,
@@ -594,3 +595,33 @@ def test_fix_wheel_with_excluded_dylibs(script_runner: ScriptRunner):
             ["delocate-wheel", "-e", "doesnotexist", "test2.whl"], check=True
         )
         _check_wheel("test2.whl", ".dylibs")
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_sanitize_command(tmp_path: Path, script_runner: ScriptRunner) -> None:
+    unpack_dir = tmp_path / "unpack"
+    zip2dir(RPATH_WHEEL, unpack_dir)
+    assert "libs/" in set(
+        get_rpaths(str(unpack_dir / "fakepkg/subpkg/module2.abi3.so"))
+    )
+
+    rpath_wheel = tmp_path / "example.whl"
+    shutil.copyfile(RPATH_WHEEL, rpath_wheel)
+    libs_path = tmp_path / "libs"
+    libs_path.mkdir()
+    shutil.copy(DATA_PATH / "libextfunc_rpath.dylib", libs_path)
+    shutil.copy(DATA_PATH / "libextfunc2_rpath.dylib", libs_path)
+    result = script_runner.run(
+        ["delocate-wheel", "-vv", "--sanitize-rpaths", rpath_wheel],
+        check=True,
+        cwd=tmp_path,
+    )
+    assert "Sanitize: Deleting rpath 'libs/' from" in result.stderr
+
+    unpack_dir = tmp_path / "unpack"
+    zip2dir(rpath_wheel, unpack_dir)
+    assert "libs/" not in set(
+        get_rpaths(str(unpack_dir / "fakepkg/subpkg/module2.abi3.so"))
+    )

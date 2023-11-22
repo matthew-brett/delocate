@@ -608,8 +608,8 @@ def delocate_wheel(
     lib_sdir : str, optional
         Subdirectory name in wheel package directory (or directories) to store
         needed libraries.
-       Ignored if the wheel has no package directories, and only contains
-       stand-alone modules.
+        Ignored if the wheel has no package directories, and only contains
+        stand-alone modules.
     lib_filt_func : None or str or callable, optional
         If None, inspect all files for dependencies on dynamic libraries. If
         callable, accepts filename as argument, returns True if we should

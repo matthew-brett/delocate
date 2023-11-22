@@ -21,6 +21,8 @@ Releases
 
 * [Unreleased]
 
+* [0.10.6] - 2023-11-21
+
   * Dependencies can be manually excluded with the ``--exclude <name>`` flag.
     [#106](https://github.com/matthew-brett/delocate/pull/106)
   * Non-portable rpaths can be cleaned up using the ``--sanitize-rpaths`` flag.

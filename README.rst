@@ -1,7 +1,5 @@
 .. image:: https://img.shields.io/pypi/v/delocate
     :target: https://pypi.org/project/delocate/
-.. image:: https://travis-ci.org/matthew-brett/delocate.svg?branch=master
-    :target: https://travis-ci.org/matthew-brett/delocate
 .. image:: https://codecov.io/gh/matthew-brett/delocate/branch/master/graph/badge.svg?token=wvAWRBK5Di
     :target: https://codecov.io/gh/matthew-brett/delocate
 
@@ -189,7 +187,7 @@ That is what the ``delocate-fuse`` command does.
 
 Let's say you have built an ARM and Intel wheel, called, respectively:
 
-* ``scipy-1.9.3-cp311-cp311-macosx_11_0_arm64.whl``
+* ``scipy-1.9.3-cp311-cp311-macosx_12_0_arm64.whl``
 * ``scipy-1.9.3-cp311-cp311-macosx_10_9_x86_64.whl``
 
 Then you could create a new fused (``universal2``) wheel in the `tmp`

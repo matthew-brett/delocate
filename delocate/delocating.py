@@ -8,9 +8,8 @@ import logging
 import os
 import shutil
 import warnings
-from os.path import abspath, basename, dirname, exists
+from os.path import abspath, basename, dirname, exists, realpath, relpath
 from os.path import join as pjoin
-from os.path import realpath, relpath
 from subprocess import PIPE, Popen
 from typing import (
     Callable,

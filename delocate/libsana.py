@@ -7,9 +7,8 @@ import logging
 import os
 import sys
 import warnings
-from os.path import basename, dirname
+from os.path import basename, dirname, realpath
 from os.path import join as pjoin
-from os.path import realpath
 from typing import (
     Callable,
     Dict,
@@ -427,7 +426,7 @@ def tree_libs(
 
     See:
 
-    * https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/dyld.1.html  # noqa: E501
+    * https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/dyld.1.html
     * http://matthew-brett.github.io/pydagogue/mac_runtime_link.html
 
     .. deprecated:: 0.9

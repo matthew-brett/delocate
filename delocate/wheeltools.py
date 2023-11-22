@@ -10,15 +10,14 @@ import hashlib
 import os
 import sys
 from itertools import product
-from os.path import abspath, basename, dirname, exists
+from os.path import abspath, basename, dirname, exists, relpath, splitext
 from os.path import join as pjoin
-from os.path import relpath
 from os.path import sep as psep
-from os.path import splitext
 from typing import Iterable, Optional, Union, overload
 
-from delocate.pkginfo import read_pkg_info, write_pkg_info
 from packaging.utils import parse_wheel_filename
+
+from delocate.pkginfo import read_pkg_info, write_pkg_info
 
 from .tmpdirs import InTemporaryDirectory
 from .tools import dir2zip, open_rw, unique_by_index, zip2dir

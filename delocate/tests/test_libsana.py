@@ -7,9 +7,8 @@ import os
 import shutil
 import subprocess
 import sys
-from os.path import dirname
+from os.path import dirname, realpath, relpath, split
 from os.path import join as pjoin
-from os.path import realpath, relpath, split
 from typing import Dict, Iterable, Text
 from unittest import mock
 

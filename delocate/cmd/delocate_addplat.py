@@ -19,9 +19,8 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 from optparse import Option, OptionParser
-from os.path import expanduser
+from os.path import expanduser, realpath
 from os.path import join as exists
-from os.path import realpath
 
 from delocate import __version__
 from delocate.cmd.common import verbosity_args, verbosity_config

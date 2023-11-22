@@ -5,15 +5,15 @@ import os
 import re
 import shutil
 from email.message import Message
-from os.path import basename, exists, isfile
+from os.path import basename, exists, isfile, realpath, splitext
 from os.path import join as pjoin
-from os.path import realpath, splitext
 from typing import AnyStr, List, Tuple
 from zipfile import ZipFile
 
 import pytest
-from delocate.pkginfo import read_pkg_info_bytes
 from packaging.utils import parse_wheel_filename
+
+from delocate.pkginfo import read_pkg_info_bytes
 
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import open_readable, zip2dir

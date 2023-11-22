@@ -7,9 +7,8 @@ import shutil
 import subprocess
 import sys
 from collections import namedtuple
-from os.path import basename, dirname
+from os.path import basename, dirname, realpath, relpath, splitext
 from os.path import join as pjoin
-from os.path import realpath, relpath, splitext
 from typing import Any, Callable, Dict, Iterable, List, Set, Text, Tuple
 
 import pytest

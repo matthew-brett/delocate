@@ -8,9 +8,8 @@ import subprocess
 import sys
 import zipfile
 from glob import glob
-from os.path import abspath, basename, exists, isdir
+from os.path import abspath, basename, exists, isdir, realpath
 from os.path import join as pjoin
-from os.path import realpath
 from pathlib import Path
 from subprocess import check_call
 from typing import NamedTuple

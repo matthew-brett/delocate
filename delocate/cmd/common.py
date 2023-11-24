@@ -10,8 +10,9 @@ import sys
 from optparse import Option, OptionParser, Values
 from typing import Callable, List
 
-from delocate.delocating import filter_system_libs
 from typing_extensions import Literal, TypedDict
+
+from delocate.delocating import filter_system_libs
 
 logger = logging.getLogger(__name__)
 

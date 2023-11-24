@@ -15,9 +15,8 @@ libraries.
 
 import os
 import shutil
-from os.path import abspath, exists
+from os.path import abspath, exists, relpath, splitext
 from os.path import join as pjoin
-from os.path import relpath, splitext
 
 from .tmpdirs import InTemporaryDirectory
 from .tools import (

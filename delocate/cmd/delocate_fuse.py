@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python3
 """ Fuse two (probably delocated) wheels
 
 Overwrites the first wheel in-place by default

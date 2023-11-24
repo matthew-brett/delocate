@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ setup script for delocate package """
 from os.path import join as pjoin
 

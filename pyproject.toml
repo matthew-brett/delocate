@@ -44,20 +44,26 @@ Homepage = "http://github.com/matthew-brett/delocate"
 [tool.setuptools_scm]
 write_to = "delocate/_version.py"
 
-[tool.black]
-line-length = 80
-target-version = ['py37']
-extend-exclude = '''delocate/_version.py'''
-
-[tool.isort]
-profile = "black"
-py_version = 37
-src_paths = ["isort", "test"]
-line_length = 80
-
 [tool.pytest.ini_options]
 minversion = "6.0"
 required_plugins = ["pytest-console-scripts>=1.4.0", "pytest-cov"]
 testpaths = ["delocate/"]
 addopts = ["--doctest-modules", "--cov=delocate", "--cov-config=.coveragerc"]
 log_file_level = "DEBUG"
+
+[tool.ruff]
+# https://beta.ruff.rs/docs/rules/
+select = [
+    "E", # pycodestyle
+    "W", # pycodestyle
+    "F", # Pyflakes
+    "I", # isort
+]
+ignore = [
+    "ANN101", # missing-type-self
+    "ANN102", # missing-type-cls
+]
+line-length = 80
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Iterator
 
 import pytest
+
 from delocate.tools import set_install_name
 from delocate.wheeltools import InWheelCtx
 

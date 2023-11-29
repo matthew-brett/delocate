@@ -424,7 +424,7 @@ def test_patch_wheel(script_runner: ScriptRunner) -> None:
         shutil.copyfile(PURE_WHEEL, "example.whl")
         # Default is to overwrite input
         script_runner.run(
-            ["delocate-patch", "example.whl", WHEEL_PATCH], check=True
+            ["delocate-patch", "-v", "example.whl", WHEEL_PATCH], check=True
         )
         zip2dir("example.whl", "wheel1")
         assert (

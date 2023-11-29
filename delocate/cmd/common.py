@@ -7,86 +7,76 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from optparse import Option, OptionParser, Values
+from argparse import ArgumentParser, Namespace
 from typing import Callable, List
 
 from typing_extensions import Literal, TypedDict
 
+from delocate import __version__
 from delocate.delocating import filter_system_libs
 
 logger = logging.getLogger(__name__)
 
 
-def verbosity_args(parser: OptionParser) -> None:
-    """Logging arguments shared by all commands."""
-    parser.add_options(
-        [
-            Option(
-                "-v",
-                "--verbose",
-                action="count",
-                help=(
-                    "Show a more verbose report of progress and failure."
-                    "  Additional flags show even more info, up to -vv."
-                ),
-                default=0,
-            ),
-        ]
-    )
+common_parser = ArgumentParser(add_help=False)
+"""Version and logging arguments shared by all commands."""
+
+common_parser.add_argument(
+    "--version", action="version", version=f"%(prog)s {__version__}"
+)
+common_parser.add_argument(
+    "-v",
+    "--verbose",
+    action="count",
+    help="Show a more verbose report of progress and failure,"
+    " additional flags show even more info, up to -vv",
+    default=0,
+)
 
 
-def verbosity_config(opts: Values) -> None:
+delocate_parser = ArgumentParser(add_help=False)
+"""Arguments shared by delocate-path and delocate-wheel commands."""
+
+delocate_parser.add_argument(
+    "-d",
+    "--dylibs-only",
+    action="store_true",
+    help="Only analyze files with known dynamic library extensions",
+)
+delocate_parser.add_argument(
+    "-e",
+    "--exclude",
+    action="append",
+    default=[],
+    type=str,
+    help="Exclude any libraries where path includes the given string",
+)
+delocate_parser.add_argument(
+    "--executable-path",
+    action="store",
+    type=str,
+    default=os.path.dirname(sys.executable),
+    help="The path used to resolve @executable_path in dependencies",
+)
+delocate_parser.add_argument(
+    "--ignore-missing-dependencies",
+    action="store_true",
+    help="Skip dependencies which couldn't be found and delocate"
+    " as much as possible",
+)
+delocate_parser.add_argument(
+    "--sanitize-rpaths",
+    action="store_true",
+    help="Remove absolute and relative rpaths from binaries",
+)
+
+
+def verbosity_config(args: Namespace) -> None:
     """Configure logging from parsed verbosity arguments."""
     logging.basicConfig(
         level={0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}.get(
-            opts.verbose, logging.DEBUG
+            args.verbose, logging.DEBUG
         )
-    )
-
-
-def delocate_args(parser: OptionParser):
-    """Arguments shared by delocate-path and delocate-wheel commands."""
-    parser.add_options(
-        [
-            Option(
-                "-d",
-                "--dylibs-only",
-                action="store_true",
-                help="Only analyze files with known dynamic library extensions",
-            ),
-            Option(
-                "-e",
-                "--exclude",
-                action="append",
-                default=[],
-                type="string",
-                help=(
-                    "Exclude any libraries where path includes the given string"
-                ),
-            ),
-            Option(
-                "--executable-path",
-                action="store",
-                type="string",
-                default=os.path.dirname(sys.executable),
-                help=(
-                    "The path used to resolve @executable_path in dependencies"
-                ),
-            ),
-            Option(
-                "--ignore-missing-dependencies",
-                action="store_true",
-                help=(
-                    "Skip dependencies which couldn't be found and delocate "
-                    "as much as possible"
-                ),
-            ),
-            Option(
-                "--sanitize-rpaths",
-                action="store_true",
-                help="Remove absolute and relative rpaths from binaries",
-            ),
-        ]
     )
 
 
@@ -100,10 +90,10 @@ class DelocateArgs(TypedDict):
     sanitize_rpaths: bool
 
 
-def delocate_values(opts: Values) -> DelocateArgs:
+def delocate_values(args: Namespace) -> DelocateArgs:
     """Return the common kwargs for delocate_path and delocate_wheel."""
 
-    exclude_files: List[str] = opts.exclude
+    exclude_files: List[str] = args.exclude
 
     def copy_filter_exclude(name: str) -> bool:
         """Returns False if name is excluded, uses normal rules otherwise."""
@@ -119,8 +109,8 @@ def delocate_values(opts: Values) -> DelocateArgs:
 
     return {
         "copy_filt_func": copy_filter_exclude,
-        "executable_path": opts.executable_path,
-        "lib_filt_func": "dylibs-only" if opts.dylibs_only else None,
-        "ignore_missing": opts.ignore_missing_dependencies,
-        "sanitize_rpaths": opts.sanitize_rpaths,
+        "executable_path": args.executable_path,
+        "lib_filt_func": "dylibs-only" if args.dylibs_only else None,
+        "ignore_missing": args.ignore_missing_dependencies,
+        "sanitize_rpaths": args.sanitize_rpaths,
     }

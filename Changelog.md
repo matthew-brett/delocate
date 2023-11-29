@@ -10,6 +10,12 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+### Changed
+
+- Handle glob paths in more cases for `delocate-wheel`, `delocate-path`,
+  `delocate-listdeps`, and `delocate-addplat`.
+  [#71](https://github.com/matthew-brett/delocate/issues/71)
+
 ### Fixed
 
 - No longer picks a random directory when multiple directories end with the

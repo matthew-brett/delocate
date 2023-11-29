@@ -10,7 +10,7 @@ from os.path import isdir, realpath
 from os.path import sep as psep
 
 from delocate import wheel_libs
-from delocate.cmd.common import common_parser, verbosity_config
+from delocate.cmd.common import common_parser, glob_paths, verbosity_config
 from delocate.delocating import filter_system_libs
 from delocate.libsana import stripped_lib_dict, tree_libs_from_directory
 
@@ -40,8 +40,9 @@ parser.add_argument(
 def main() -> None:
     args = parser.parse_args()
     verbosity_config(args)
-    multi = len(args.paths) > 1
-    for path in args.paths:
+    paths = list(glob_paths(args.paths))
+    multi = len(paths) > 1
+    for path in paths:
         if multi:
             print(path + ":")
             indent = "   "

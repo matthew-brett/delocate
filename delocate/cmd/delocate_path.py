@@ -12,6 +12,7 @@ from delocate.cmd.common import (
     common_parser,
     delocate_parser,
     delocate_values,
+    glob_paths,
     verbosity_config,
 )
 
@@ -38,8 +39,9 @@ parser.add_argument(
 def main() -> None:
     args = parser.parse_args()
     verbosity_config(args)
-    multi = len(args.paths) > 1
-    for path in args.paths:
+    paths = list(glob_paths(args.paths))
+    multi = len(paths) > 1
+    for path in paths:
         if multi:
             print(path)
         # evaluate paths relative to the path we are working on

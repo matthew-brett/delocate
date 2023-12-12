@@ -97,7 +97,7 @@ def without_system_libs(obj):
     "tree_libs_func", [tree_libs, tree_libs_from_directory]
 )
 def test_delocate_tree_libs(
-    tree_libs_func: Callable[[str], Dict[Text, Dict[Text, Text]]]
+    tree_libs_func: Callable[[str], Dict[Text, Dict[Text, Text]]],
 ) -> None:
     # Test routine to copy library dependencies into a local directory
     with InTemporaryDirectory() as tmpdir:

@@ -501,7 +501,7 @@ def delocate_path(
 
 
 def _copy_lib_dict(
-    lib_dict: Mapping[Text, Mapping[Text, Text]]
+    lib_dict: Mapping[Text, Mapping[Text, Text]],
 ) -> Dict[Text, Dict[Text, Text]]:
     """Returns a copy of lib_dict."""
     return {  # Convert nested Mapping types into nested Dict types.

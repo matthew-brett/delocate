@@ -10,6 +10,7 @@ import shutil
 import warnings
 from os.path import abspath, basename, dirname, exists, realpath, relpath
 from os.path import join as pjoin
+from pathlib import Path
 from subprocess import PIPE, Popen
 from typing import (
     Callable,
@@ -531,7 +532,7 @@ def _decide_dylib_bundle_directory(
     """
     package_dirs = find_package_dirs(wheel_dir)
     for directory in package_dirs:
-        if directory.endswith(package_name):
+        if Path(directory).name == package_name:
             # Prefer using the directory with the same name as the package.
             return pjoin(directory, lib_sdir)
     if package_dirs:

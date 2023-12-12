@@ -10,6 +10,11 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+### Fixed
+
+- No longer picks a random directory when multiple directories end with the
+  package name. [#192](https://github.com/matthew-brett/delocate/issues/192)
+
 ## [0.10.6] - 2023-11-21
 
 ### Added

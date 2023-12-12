@@ -21,7 +21,7 @@ from argparse import ArgumentParser
 from os.path import expanduser, realpath
 from os.path import join as exists
 
-from delocate.cmd.common import common_parser, verbosity_config
+from delocate.cmd.common import common_parser, glob_paths, verbosity_config
 from delocate.wheeltools import WheelToolsError, add_platforms
 
 parser = ArgumentParser(description=__doc__, parents=[common_parser])
@@ -94,7 +94,8 @@ parser.add_argument(
 def main() -> None:
     args = parser.parse_args()
     verbosity_config(args)
-    multi = len(args.wheels) > 1
+    wheels = list(glob_paths(args.wheels))
+    multi = len(wheels) > 1
     if args.wheel_dir:
         wheel_dir = expanduser(args.wheel_dir)
         if not exists(wheel_dir):
@@ -110,7 +111,7 @@ def main() -> None:
             ]
     if len(plat_tags) == 0:
         raise RuntimeError("Need at least one --osx-ver or --plat-tag")
-    for wheel in args.wheels:
+    for wheel in wheels:
         if multi or args.verbose:
             print(
                 "Setting platform tags {0} for wheel {1}".format(

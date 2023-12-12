@@ -4,7 +4,7 @@
 Overwrites the wheel in-place by default
 """
 # vim: ft=python
-from __future__ import absolute_import, division, print_function
+from __future__ import annotations
 
 import os
 from argparse import ArgumentParser
@@ -17,6 +17,7 @@ from delocate.cmd.common import (
     common_parser,
     delocate_parser,
     delocate_values,
+    glob_paths,
     verbosity_config,
 )
 
@@ -65,7 +66,8 @@ parser.add_argument(
 def main() -> None:
     args = parser.parse_args()
     verbosity_config(args)
-    multi = len(args.wheels) > 1
+    wheels = list(glob_paths(args.wheels))
+    multi = len(wheels) > 1
     if args.wheel_dir:
         wheel_dir = expanduser(args.wheel_dir)
         if not exists(wheel_dir):
@@ -80,7 +82,7 @@ def main() -> None:
     else:
         require_archs = args.require_archs
 
-    for wheel in args.wheels:
+    for wheel in wheels:
         if multi or args.verbose:
             print("Fixing: " + wheel)
         if wheel_dir:

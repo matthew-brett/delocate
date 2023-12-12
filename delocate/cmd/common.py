@@ -4,11 +4,13 @@ All functions in this module are private.
 """
 from __future__ import annotations
 
+import glob
 import logging
 import os
 import sys
 from argparse import ArgumentParser, Namespace
-from typing import Callable, List
+from pathlib import Path
+from typing import Callable, Iterable, Iterator, List
 
 from typing_extensions import Literal, TypedDict
 
@@ -114,3 +116,18 @@ def delocate_values(args: Namespace) -> DelocateArgs:
         "ignore_missing": args.ignore_missing_dependencies,
         "sanitize_rpaths": args.sanitize_rpaths,
     }
+
+
+def glob_paths(paths: Iterable[str]) -> Iterator[str]:
+    """Iterate over the expanded paths of potential glob paths.
+
+    Does not try to glob paths which match existing files.
+    """
+    for path in paths:
+        if Path(path).exists():
+            yield path  # Don't try to expand paths when their target exists
+            continue
+        expanded_paths = glob.glob(path)
+        if not expanded_paths:
+            raise FileNotFoundError(path)
+        yield from expanded_paths

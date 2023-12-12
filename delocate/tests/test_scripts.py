@@ -624,3 +624,37 @@ def test_sanitize_command(tmp_path: Path, script_runner: ScriptRunner) -> None:
     assert "libs/" not in set(
         get_rpaths(str(unpack_dir / "fakepkg/subpkg/module2.abi3.so"))
     )
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_glob(
+    tmp_path: Path, plat_wheel: PlatWheel, script_runner: ScriptRunner
+) -> None:
+    # Test implicit globbing by passing "*.whl" without shell=True
+    script_runner.run(["delocate-listdeps", "*.whl"], check=True, cwd=tmp_path)
+    zip2dir(plat_wheel.whl, tmp_path / "plat")
+
+    result = script_runner.run(
+        ["delocate-wheel", "*.whl", "-v"], check=True, cwd=tmp_path
+    )
+    assert Path(plat_wheel.whl).name in result.stdout
+    assert "*.whl" not in result.stdout
+    assert not Path(tmp_path, "*.whl").exists()
+
+    # Delocate literal file "*.whl" instead of expanding glob
+    shutil.copyfile(plat_wheel.whl, tmp_path / "*.whl")
+    result = script_runner.run(
+        ["delocate-wheel", "*.whl", "-v"], check=True, cwd=tmp_path
+    )
+    assert Path(plat_wheel.whl).name not in result.stdout
+    assert "*.whl" in result.stdout
+
+    Path(plat_wheel.whl).unlink()
+    Path(tmp_path, "*.whl").unlink()
+    result = script_runner.run(["delocate-wheel", "*.whl"], cwd=tmp_path)
+    assert result.returncode == 1
+    assert "FileNotFoundError:" in result.stderr
+
+    script_runner.run(["delocate-path", "*/"], check=True, cwd=tmp_path)

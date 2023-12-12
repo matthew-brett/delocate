@@ -10,6 +10,8 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+## [0.10.7] - 2023-12-12
+
 ### Changed
 
 - Handle glob paths in more cases for `delocate-wheel`, `delocate-path`,

@@ -4,7 +4,7 @@
     ],
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-        "source.fixAll": true,
+        "source.fixAll": "always"
     },
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff"

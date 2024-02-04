@@ -61,6 +61,14 @@ parser.add_argument(
     " (from 'intel', 'i386', 'x86_64', 'i386,x86_64', 'universal2',"
     " 'x86_64,arm64')",
 )
+parser.add_argument(
+    "--verify-name",
+    action="store_true",
+    help="Verify if platform tag in wheel name is proper",
+)
+parser.add_argument(
+    "--fix-name", action="store_true", help="Fix platform tag in wheel name"
+)
 
 
 def main() -> None:
@@ -94,6 +102,8 @@ def main() -> None:
             out_wheel,
             lib_sdir=args.lib_sdir,
             require_archs=require_archs,
+            check_wheel_name=args.verify_name,
+            fix_wheel_name=args.fix_name,
             **delocate_values(args),
         )
         if args.verbose and len(copied):

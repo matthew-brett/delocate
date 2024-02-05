@@ -4,7 +4,6 @@
 from __future__ import division, print_function
 
 import functools
-import glob
 import logging
 import os
 import re
@@ -28,12 +27,12 @@ from typing import (
     Union,
 )
 
-from macholib.mach_o import (
+from macholib.mach_o import (  # type: ignore[import-untyped]
     CPU_TYPE_NAMES,
     LC_BUILD_VERSION,
     LC_VERSION_MIN_MACOSX,
 )
-from macholib.MachO import MachO
+from macholib.MachO import MachO  # type: ignore[import-untyped]
 from packaging.utils import parse_wheel_filename
 from packaging.version import Version
 
@@ -591,12 +590,12 @@ def _make_install_name_ids_unique(
         validate_signature(lib)
 
 
-def _get_macos_min_version(dylib_path) -> List[Tuple[str, Version]]:
+def _get_macos_min_version(dylib_path: Path) -> List[Tuple[str, Version]]:
     """Get the minimum macOS version from a dylib file.
 
     Parameters
     ----------
-    dylib_path : str
+    dylib_path : Path
         The path to the dylib file.
 
     Returns
@@ -638,7 +637,7 @@ def _get_archs_and_version_from_wheel_name(
     return res
 
 
-def _update_wheel_name(wheel_name: str, wheel_dir: str) -> str:
+def _update_wheel_name(wheel_name: str, wheel_dir: Path) -> str:
     """
     Update wheel name platform tag, based on the architecture
     of the libraries in the wheel and actual platform tag.
@@ -647,7 +646,7 @@ def _update_wheel_name(wheel_name: str, wheel_dir: str) -> str:
     ----------
     wheel_name : str
         The name of the wheel.
-    wheel_dir : str
+    wheel_dir : Path
         The directory of the unpacked wheel.
 
     Returns
@@ -660,13 +659,9 @@ def _update_wheel_name(wheel_name: str, wheel_dir: str) -> str:
     # get the architecture and minimum macOS version from the libraries
     # in the wheel
     version_set = set()
-    for lib in glob.glob(
-        pjoin(wheel_dir, "**", "*.dylib"), recursive=True, include_hidden=True
-    ):
+    for lib in wheel_dir.glob("**/*.dylib"):
         version_set.update(_get_macos_min_version(lib))
-    for lib in glob.glob(
-        pjoin(wheel_dir, "**", "*.so"), recursive=True, include_hidden=True
-    ):
+    for lib in wheel_dir.glob("**/*.so"):
         version_set.update(_get_macos_min_version(lib))
     version_dkt = {}
     for platform, version in version_set:
@@ -832,7 +827,7 @@ def delocate_wheel(
         rewrite_record(wheel_dir)
         if check_wheel_name or fix_wheel_name:
             wheel_name = os.path.basename(in_wheel)
-            new_name = _update_wheel_name(wheel_name, wheel_dir)
+            new_name = _update_wheel_name(wheel_name, Path(wheel_dir))
             if check_wheel_name and new_name != wheel_name:
                 raise DelocationError(
                     "Wheel name does not satisfy minimal package requirements"

@@ -4,6 +4,7 @@
 from __future__ import division, print_function
 
 import functools
+import itertools
 import logging
 import os
 import re
@@ -626,6 +627,20 @@ def _get_macos_min_version(dylib_path: Path) -> Iterable[Tuple[str, Version]]:
 def _get_archs_and_version_from_wheel_name(
     wheel_name: str,
 ) -> Dict[str, Version]:
+    """
+    Get the architecture and minimum macOS version from the wheel name.
+
+    Parameters
+    ----------
+    wheel_name : str
+        The name of the wheel.
+
+    Returns
+    -------
+    Dict[str, Version]
+        A dictionary containing the architecture and minimum macOS version
+        for each architecture in the wheel name.
+    """
     platform_tag_set = parse_wheel_filename(wheel_name)[-1]
     res = {}
     for platform_tag in platform_tag_set:
@@ -637,7 +652,37 @@ def _get_archs_and_version_from_wheel_name(
     return res
 
 
-def _update_wheel_name(wheel_name: str, wheel_dir: Path) -> str:
+def _get_problematic_libs(
+    version: Version, version_lib_dict: Dict[Version, List[Path]]
+) -> Set[Path]:
+    """
+    Filter libraries that require more modern macOS
+    version than the provided one.
+
+    Parameters
+    ----------
+    version : Version
+        The expected minimum macOS version
+    version_lib_dict : Dict[Version, List[Path]]
+        A dictionary containing mapping from minimum macOS version to libraries
+        that require that version.
+
+    Returns
+    -------
+    Set[Path]
+        A set of libraries that require a more modern macOS version than the
+        provided one.
+    """
+    result = set()
+    for v, lib in version_lib_dict.items():
+        if v > version:
+            result.update(lib)
+    return result
+
+
+def _calculate_minimum_wheel_name(
+    wheel_name: str, wheel_dir: Path
+) -> Tuple[str, set[Path]]:
     """
     Update wheel name platform tag, based on the architecture
     of the libraries in the wheel and actual platform tag.
@@ -658,19 +703,21 @@ def _update_wheel_name(wheel_name: str, wheel_dir: Path) -> str:
     arch_version = _get_archs_and_version_from_wheel_name(wheel_name)
     # get the architecture and minimum macOS version from the libraries
     # in the wheel
-    version_set: Set[Tuple[str, Version]] = set()
-    for lib in wheel_dir.glob("**/*.dylib"):
-        version_set.update(_get_macos_min_version(lib))
-    for lib in wheel_dir.glob("**/*.so"):
-        version_set.update(_get_macos_min_version(lib))
-    version_dkt = {}
-    for platform, version in version_set:
-        if platform not in version_dkt:
-            version_dkt[platform.lower()] = version
-        else:
-            version_dkt[platform.lower()] = max(
-                version_dkt[platform.lower()], version
-            )
+    version_info_dict: Dict[str, Dict[Version, List[Path]]] = {}
+
+    for lib in itertools.chain(
+        wheel_dir.glob("**/*.dylib"), wheel_dir.glob("**/*.so")
+    ):
+        for arch, version in _get_macos_min_version(lib):
+            version_info_dict.setdefault(arch.lower(), {}).setdefault(
+                version, []
+            ).append(lib)
+    version_dkt = {
+        arch: max(version) for arch, version in version_info_dict.items()
+    }
+
+    problematic_libs: Set[Path] = set()
+
     for arch, version in list(arch_version.items()):
         if arch == "universal2":
             if version_dkt["arm64"] == Version("11.0"):
@@ -679,18 +726,54 @@ def _update_wheel_name(wheel_name: str, wheel_dir: Path) -> str:
                 arch_version["universal2"] = max(
                     version, version_dkt["arm64"], version_dkt["x86_64"]
                 )
+                problematic_libs.update(
+                    _get_problematic_libs(version, version_info_dict["arm64"])
+                )
+            problematic_libs.update(
+                _get_problematic_libs(version, version_info_dict["x86_64"])
+            )
         elif arch == "universal":
             arch_version["universal"] = max(
                 version, version_dkt["i386"], version_dkt["x86_64"]
             )
+            problematic_libs.update(
+                _get_problematic_libs(version, version_info_dict["i386"])
+            )
+            problematic_libs.update(
+                _get_problematic_libs(version, version_info_dict["x86_64"])
+            )
         else:
             arch_version[arch] = max(version, version_dkt[arch])
+            problematic_libs.update(
+                _get_problematic_libs(version, version_info_dict[arch])
+            )
     prefix = wheel_name.rsplit("-", 1)[0]
     platform_tag = ".".join(
         f"macosx_{version.major}_0_{arch}"
         for arch, version in arch_version.items()
     )
-    return f"{prefix}-{platform_tag}.whl"
+    return f"{prefix}-{platform_tag}.whl", problematic_libs
+
+
+def _check_and_update_wheel_name(
+    wheel_path: str, wheel_dir: Path, check_wheel_name: bool
+) -> str:
+    wheel_name = os.path.basename(wheel_path)
+
+    new_name, problematic_files = _calculate_minimum_wheel_name(
+        wheel_name, Path(wheel_dir)
+    )
+    if check_wheel_name and new_name != wheel_name:
+        problematic_files_str = "\n".join(str(x) for x in problematic_files)
+        raise DelocationError(
+            "Wheel name does not satisfy minimal package requirements. "
+            "Provided name is {wheel_name}, "
+            "but the minimal name should be {new_name}. "
+            f"Problematic files are:\n{problematic_files_str}."
+        )
+    if new_name != wheel_name:
+        wheel_path = os.path.join(os.path.basename(wheel_path), new_name)
+    return wheel_path
 
 
 def delocate_wheel(
@@ -826,15 +909,12 @@ def delocate_wheel(
         )
         rewrite_record(wheel_dir)
         if check_wheel_name or fix_wheel_name:
-            wheel_name = os.path.basename(in_wheel)
-            new_name = _update_wheel_name(wheel_name, Path(wheel_dir))
-            if check_wheel_name and new_name != wheel_name:
-                raise DelocationError(
-                    "Wheel name does not satisfy minimal package requirements"
-                )
-            if new_name != wheel_name:
-                in_place = False  # maybe something better
-                out_wheel = os.path.join(os.path.basename(out_wheel), new_name)
+            out_wheel_fixed = _check_and_update_wheel_name(
+                out_wheel, Path(wheel_dir), check_wheel_name
+            )
+            if out_wheel_fixed != out_wheel:
+                out_wheel = out_wheel_fixed
+                in_place = False
         if len(copied_libs) or not in_place:
             dir2zip(wheel_dir, out_wheel)
     return stripped_lib_dict(copied_libs, wheel_dir + os.path.sep)

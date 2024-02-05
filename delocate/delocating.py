@@ -658,7 +658,7 @@ def _update_wheel_name(wheel_name: str, wheel_dir: Path) -> str:
     arch_version = _get_archs_and_version_from_wheel_name(wheel_name)
     # get the architecture and minimum macOS version from the libraries
     # in the wheel
-    version_set = set()
+    version_set: Set[Tuple[str, Version]] = set()
     for lib in wheel_dir.glob("**/*.dylib"):
         version_set.update(_get_macos_min_version(lib))
     for lib in wheel_dir.glob("**/*.so"):

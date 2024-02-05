@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
 # Prefix for install_name_id of copied libraries
 DLC_PREFIX = "/DLC/"
 
-platform_regexp = re.compile(r"macosx_(\d+)_(\d+)_(\w+)")
+_PLATFORM_REGEXP = re.compile(r"macosx_(\d+)_(\d+)_(\w+)")
 
 
 class DelocationError(Exception):
@@ -590,7 +590,7 @@ def _make_install_name_ids_unique(
         validate_signature(lib)
 
 
-def _get_macos_min_version(dylib_path: Path) -> List[Tuple[str, Version]]:
+def _get_macos_min_version(dylib_path: Path) -> Iterable[Tuple[str, Version]]:
     """Get the minimum macOS version from a dylib file.
 
     Parameters
@@ -629,7 +629,7 @@ def _get_archs_and_version_from_wheel_name(
     platform_tag_set = parse_wheel_filename(wheel_name)[-1]
     res = {}
     for platform_tag in platform_tag_set:
-        match = platform_regexp.match(platform_tag.platform)
+        match = _PLATFORM_REGEXP.match(platform_tag.platform)
         if match is None:
             raise ValueError(f"Invalid platform tag: {platform_tag.platform}")
         major, minor, arch = match.groups()

@@ -749,7 +749,7 @@ def _calculate_minimum_wheel_name(
             )
     prefix = wheel_name.rsplit("-", 1)[0]
     platform_tag = ".".join(
-        f"macosx_{version.major}_0_{arch}"
+        f"macosx_{version.major}_{version.minor}_{arch}"
         for arch, version in arch_version.items()
     )
     return f"{prefix}-{platform_tag}.whl", problematic_libs
@@ -772,7 +772,7 @@ def _check_and_update_wheel_name(
             f"Problematic files are:\n{problematic_files_str}."
         )
     if new_name != wheel_name:
-        wheel_path = os.path.join(os.path.basename(wheel_path), new_name)
+        wheel_path = os.path.join(os.path.dirname(wheel_path), new_name)
     return wheel_path
 
 

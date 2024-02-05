@@ -658,3 +658,37 @@ def test_glob(
     assert "FileNotFoundError:" in result.stderr
 
     script_runner.run(["delocate-path", "*/"], check=True, cwd=tmp_path)
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_delocate_wheel_fix_name(
+    plat_wheel: PlatWheel, script_runner: ScriptRunner, tmp_path: Path
+) -> None:
+    zip2dir(plat_wheel.whl, tmp_path / "plat")
+    whl_10_6 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_6_x86_64.whl"
+    dir2zip(tmp_path / "plat", whl_10_6)
+    script_runner.run(
+        ["delocate-wheel", whl_10_6, "--fix-name"], check=True, cwd=tmp_path
+    )
+    assert (tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_x86_64.whl").exists()
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_delocate_wheel_verify_name(
+    plat_wheel: PlatWheel, script_runner: ScriptRunner, tmp_path: Path
+) -> None:
+    zip2dir(plat_wheel.whl, tmp_path / "plat")
+    whl_10_6 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_6_x86_64.whl"
+    dir2zip(tmp_path / "plat", whl_10_6)
+    result = script_runner.run(
+        ["delocate-wheel", whl_10_6, "--verify-name"], check=False, cwd=tmp_path
+    )
+    assert result.returncode != 0
+    assert (
+        "Wheel name does not satisfy minimal package requirements"
+        in result.stderr
+    )

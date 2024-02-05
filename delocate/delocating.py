@@ -767,8 +767,8 @@ def _check_and_update_wheel_name(
         problematic_files_str = "\n".join(str(x) for x in problematic_files)
         raise DelocationError(
             "Wheel name does not satisfy minimal package requirements. "
-            "Provided name is {wheel_name}, "
-            "but the minimal name should be {new_name}. "
+            f"Provided name is {os.path.basename(wheel_name)}, "
+            f"but the minimal name should be {os.path.basename(new_name)}. "
             f"Problematic files are:\n{problematic_files_str}."
         )
     if new_name != wheel_name:

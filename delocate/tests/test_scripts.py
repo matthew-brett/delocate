@@ -685,10 +685,59 @@ def test_delocate_wheel_verify_name(
     whl_10_6 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_6_x86_64.whl"
     dir2zip(tmp_path / "plat", whl_10_6)
     result = script_runner.run(
-        ["delocate-wheel", whl_10_6, "--verify-name"], check=False, cwd=tmp_path
+        ["delocate-wheel", whl_10_6, "--verify-name"],
+        check=False,
+        cwd=tmp_path,
+        print_result=False,
     )
     assert result.returncode != 0
     assert (
         "Wheel name does not satisfy minimal package requirements"
         in result.stderr
     )
+    assert "is plat-1.0-cp311-cp311-macosx_10_6_x86_64.whl" in result.stderr
+    assert "be plat-1.0-cp311-cp311-macosx_10_9_x86_64.whl" in result.stderr
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_delocate_wheel_verify_name_universal2_ok(
+    plat_wheel: PlatWheel, script_runner: ScriptRunner, tmp_path: Path
+) -> None:
+    zip2dir(plat_wheel.whl, tmp_path / "plat")
+    shutil.copy(
+        DATA_PATH / "libam1.dylib", tmp_path / "plat/fakepkg1/libam1.dylib"
+    )
+    whl_10_9 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_universal2.whl"
+    dir2zip(tmp_path / "plat", whl_10_9)
+    script_runner.run(
+        ["delocate-wheel", whl_10_9, "--verify-name"], check=True, cwd=tmp_path
+    )
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_delocate_wheel_verify_name_universal2_verify_crash(
+    plat_wheel: PlatWheel, script_runner: ScriptRunner, tmp_path: Path
+) -> None:
+    zip2dir(plat_wheel.whl, tmp_path / "plat")
+    shutil.copy(
+        DATA_PATH / "libam1_12.dylib", tmp_path / "plat/fakepkg1/libam1.dylib"
+    )
+    whl_10_9 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_universal2.whl"
+    dir2zip(tmp_path / "plat", whl_10_9)
+    result = script_runner.run(
+        ["delocate-wheel", whl_10_9, "--verify-name"],
+        check=False,
+        cwd=tmp_path,
+        print_result=False,
+    )
+    assert result.returncode != 0
+    assert (
+        "Wheel name does not satisfy minimal package requirements"
+        in result.stderr
+    )
+    assert "is plat-1.0-cp311-cp311-macosx_10_9_universal2.whl" in result.stderr
+    assert "be plat-1.0-cp311-cp311-macosx_12_0_universal2.whl" in result.stderr

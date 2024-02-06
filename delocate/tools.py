@@ -168,7 +168,7 @@ MACHO_MAGIC = frozenset(
 )
 
 
-def _is_macho_file(filename: str) -> bool:
+def _is_macho_file(filename: Union[str, Path]) -> bool:
     """Return True if file at `filename` begins with Mach-O magic number."""
     try:
         with open(filename, "rb") as f:

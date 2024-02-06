@@ -733,7 +733,6 @@ def test_delocate_wheel_verify_name_universal2_verify_crash(
         ["delocate-wheel", whl_10_9],
         check=False,
         cwd=tmp_path,
-        print_result=False,
     )
     assert result.returncode != 0
     assert "Library dependencies do not satisfy target MacOS" in result.stderr

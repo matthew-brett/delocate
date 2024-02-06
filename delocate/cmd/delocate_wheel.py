@@ -12,6 +12,8 @@ from os.path import basename, exists, expanduser
 from os.path import join as pjoin
 from typing import List, Optional, Text
 
+from packaging.version import Version
+
 from delocate import delocate_wheel
 from delocate.cmd.common import (
     common_parser,
@@ -62,12 +64,12 @@ parser.add_argument(
     " 'x86_64,arm64')",
 )
 parser.add_argument(
-    "--verify-name",
-    action="store_true",
+    "--require-target-macos-version",
+    type=Version,
     help="Verify if platform tag in wheel name is proper",
-)
-parser.add_argument(
-    "--fix-name", action="store_true", help="Fix platform tag in wheel name"
+    default=Version(os.environ["MACOSX_DEPLOYMENT_TARGET"])
+    if os.environ.get("MACOSX_DEPLOYMENT_TARGET")
+    else None,
 )
 
 
@@ -102,8 +104,7 @@ def main() -> None:
             out_wheel,
             lib_sdir=args.lib_sdir,
             require_archs=require_archs,
-            check_wheel_name=args.verify_name,
-            fix_wheel_name=args.fix_name,
+            require_target_macos_version=args.require_target_macos_version,
             **delocate_values(args),
         )
         if args.verbose and len(copied):

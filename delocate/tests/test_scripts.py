@@ -669,9 +669,7 @@ def test_delocate_wheel_fix_name(
     zip2dir(plat_wheel.whl, tmp_path / "plat")
     whl_10_6 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_6_x86_64.whl"
     dir2zip(tmp_path / "plat", whl_10_6)
-    script_runner.run(
-        ["delocate-wheel", whl_10_6, "--fix-name"], check=True, cwd=tmp_path
-    )
+    script_runner.run(["delocate-wheel", whl_10_6], check=True, cwd=tmp_path)
     assert (tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_x86_64.whl").exists()
 
 
@@ -685,18 +683,14 @@ def test_delocate_wheel_verify_name(
     whl_10_6 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_6_x86_64.whl"
     dir2zip(tmp_path / "plat", whl_10_6)
     result = script_runner.run(
-        ["delocate-wheel", whl_10_6, "--verify-name"],
+        ["delocate-wheel", whl_10_6, "--require-target-macos-version", "10.6"],
         check=False,
         cwd=tmp_path,
         print_result=False,
     )
     assert result.returncode != 0
-    assert (
-        "Wheel name does not satisfy minimal package requirements"
-        in result.stderr
-    )
-    assert "is plat-1.0-cp311-cp311-macosx_10_6_x86_64.whl" in result.stderr
-    assert "be plat-1.0-cp311-cp311-macosx_10_9_x86_64.whl" in result.stderr
+    assert "Library dependencies do not satisfy target MacOS" in result.stderr
+    assert "module2.abi3.so has a minimum target of 10.9" in result.stderr
 
 
 @pytest.mark.xfail(  # type: ignore[misc]
@@ -712,7 +706,9 @@ def test_delocate_wheel_verify_name_universal2_ok(
     whl_10_9 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_universal2.whl"
     dir2zip(tmp_path / "plat", whl_10_9)
     script_runner.run(
-        ["delocate-wheel", whl_10_9, "--verify-name"], check=True, cwd=tmp_path
+        ["delocate-wheel", whl_10_9, "--require-target-macos-version", "10.9"],
+        check=True,
+        cwd=tmp_path,
     )
 
 
@@ -720,7 +716,10 @@ def test_delocate_wheel_verify_name_universal2_ok(
     sys.platform != "darwin", reason="Needs macOS linkage."
 )
 def test_delocate_wheel_verify_name_universal2_verify_crash(
-    plat_wheel: PlatWheel, script_runner: ScriptRunner, tmp_path: Path
+    plat_wheel: PlatWheel,
+    script_runner: ScriptRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     zip2dir(plat_wheel.whl, tmp_path / "plat")
     shutil.copy(
@@ -728,16 +727,13 @@ def test_delocate_wheel_verify_name_universal2_verify_crash(
     )
     whl_10_9 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_universal2.whl"
     dir2zip(tmp_path / "plat", whl_10_9)
+    monkeypatch.setenv("MACOSX_DEPLOYMENT_TARGET", "10.9")
     result = script_runner.run(
-        ["delocate-wheel", whl_10_9, "--verify-name"],
+        ["delocate-wheel", whl_10_9],
         check=False,
         cwd=tmp_path,
         print_result=False,
     )
     assert result.returncode != 0
-    assert (
-        "Wheel name does not satisfy minimal package requirements"
-        in result.stderr
-    )
-    assert "is plat-1.0-cp311-cp311-macosx_10_9_universal2.whl" in result.stderr
-    assert "be plat-1.0-cp311-cp311-macosx_12_0_universal2.whl" in result.stderr
+    assert "Library dependencies do not satisfy target MacOS" in result.stderr
+    assert "libam1.dylib has a minimum target of 12.0" in result.stderr

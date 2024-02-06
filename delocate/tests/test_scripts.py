@@ -253,16 +253,17 @@ def test_wheel(script_runner: ScriptRunner) -> None:
         )
         _check_wheel(Path("fixed", basename(fixed_wheel)), ".dylibs")
         # More than one wheel
-        shutil.copy2(fixed_wheel, "wheel_copy.ext")
+        copy_name = "fakepkg1_copy-1.0-cp36-abi3-macosx_10_9_universal2.whl"
+        shutil.copy2(fixed_wheel, copy_name)
         result = script_runner.run(
-            ["delocate-wheel", "-w", "fixed2", fixed_wheel, "wheel_copy.ext"],
+            ["delocate-wheel", "-w", "fixed2", fixed_wheel, copy_name],
             check=True,
         )
         assert _proc_lines(result.stdout) == [
-            "Fixing: " + name for name in (fixed_wheel, "wheel_copy.ext")
+            "Fixing: " + name for name in (fixed_wheel, copy_name)
         ]
         _check_wheel(Path("fixed2", basename(fixed_wheel)), ".dylibs")
-        _check_wheel(Path("fixed2", "wheel_copy.ext"), ".dylibs")
+        _check_wheel(Path("fixed2", copy_name), ".dylibs")
 
         # Verbose - single wheel
         result = script_runner.run(
@@ -283,12 +284,12 @@ def test_wheel(script_runner: ScriptRunner) -> None:
                 "--wheel-dir",
                 "fixed4",
                 fixed_wheel,
-                "wheel_copy.ext",
+                copy_name,
             ],
             check=True,
         )
         wheel_lines2 = [
-            "Fixing: wheel_copy.ext",
+            f"Fixing: {copy_name}",
             "Copied to package .dylibs directory:",
             stray_lib,
         ]
@@ -298,20 +299,24 @@ def test_wheel(script_runner: ScriptRunner) -> None:
 @pytest.mark.xfail(  # type: ignore[misc]
     sys.platform != "darwin", reason="Needs macOS linkage."
 )
-def test_fix_wheel_dylibs(script_runner: ScriptRunner) -> None:
+def test_fix_wheel_dylibs(script_runner: ScriptRunner, tmp_path: Path) -> None:
     # Check default and non-default search for dynamic libraries
-    with InTemporaryDirectory() as tmpdir:
-        # Default in-place fix
-        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        _rename_module(fixed_wheel, "module.other", "test.whl")
-        shutil.copyfile("test.whl", "test2.whl")
-        # Default is to look in all files and therefore fix
-        script_runner.run(["delocate-wheel", "test.whl"], check=True)
-        _check_wheel("test.whl", ".dylibs")
-        # Can turn this off to only look in dynamic lib exts
-        script_runner.run(["delocate-wheel", "test2.whl", "-d"], check=True)
-        with InWheel("test2.whl"):  # No fix
-            assert not Path("fakepkg1", ".dylibs").exists()
+    fixed_wheel, stray_lib = _fixed_wheel(tmp_path)
+    test1_name = (
+        tmp_path / "fakepkg1_test-1.0-cp36-abi3-macosx_10_9_universal2.whl"
+    )
+    test2_name = (
+        tmp_path / "fakepkg1_test2-1.0-cp36-abi3-macosx_10_9_universal2.whl"
+    )
+    _rename_module(fixed_wheel, "module.other", test1_name)
+    shutil.copyfile(test1_name, test2_name)
+    # Default is to look in all files and therefore fix
+    script_runner.run(["delocate-wheel", test1_name], check=True)
+    _check_wheel(test1_name, ".dylibs")
+    # Can turn this off to only look in dynamic lib exts
+    script_runner.run(["delocate-wheel", test2_name, "-d"], check=True)
+    with InWheel(test2_name):  # No fix
+        assert not Path("fakepkg1", ".dylibs").exists()
 
 
 @pytest.mark.xfail(  # type: ignore[misc]
@@ -577,23 +582,29 @@ def test_add_platforms(script_runner: ScriptRunner) -> None:
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
-def test_fix_wheel_with_excluded_dylibs(script_runner: ScriptRunner):
-    with InTemporaryDirectory() as tmpdir:
-        fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        _rename_module(fixed_wheel, "module.other", "test.whl")
-        shutil.copyfile("test.whl", "test2.whl")
-        # We exclude the stray library so it shouldn't be present in the wheel
-        result = script_runner.run(
-            ["delocate-wheel", "-vv", "-e", "extfunc", "test.whl"], check=True
-        )
-        assert "libextfunc.dylib excluded" in result.stderr
-        with InWheel("test.whl"):
-            assert not Path("plat_pkg/fakepkg1/.dylibs").exists()
-        # We exclude a library that does not exist so we should behave normally
-        script_runner.run(
-            ["delocate-wheel", "-e", "doesnotexist", "test2.whl"], check=True
-        )
-        _check_wheel("test2.whl", ".dylibs")
+def test_fix_wheel_with_excluded_dylibs(script_runner: ScriptRunner, tmp_path):
+    fixed_wheel, stray_lib = _fixed_wheel(tmp_path)
+    test1_name = (
+        tmp_path / "fakepkg1_test-1.0-cp36-abi3-macosx_10_9_universal2.whl"
+    )
+    test2_name = (
+        tmp_path / "fakepkg1_test2-1.0-cp36-abi3-macosx_10_9_universal2.whl"
+    )
+
+    _rename_module(fixed_wheel, "module.other", test1_name)
+    shutil.copyfile(test1_name, test2_name)
+    # We exclude the stray library so it shouldn't be present in the wheel
+    result = script_runner.run(
+        ["delocate-wheel", "-vv", "-e", "extfunc", test1_name], check=True
+    )
+    assert "libextfunc.dylib excluded" in result.stderr
+    with InWheel(test1_name):
+        assert not Path("plat_pkg/fakepkg1/.dylibs").exists()
+    # We exclude a library that does not exist so we should behave normally
+    script_runner.run(
+        ["delocate-wheel", "-e", "doesnotexist", test2_name], check=True
+    )
+    _check_wheel(test1_name, ".dylibs")
 
 
 @pytest.mark.xfail(  # type: ignore[misc]

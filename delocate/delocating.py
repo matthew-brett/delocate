@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import functools
-import itertools
 import logging
 import os
 import re
@@ -46,6 +45,7 @@ from .libsana import (
 )
 from .tmpdirs import TemporaryDirectory
 from .tools import (
+    _is_macho_file,
     _remove_absolute_rpaths,
     dir2zip,
     find_package_dirs,
@@ -604,6 +604,8 @@ def _get_macos_min_version(dylib_path: Path) -> Iterable[tuple[str, Version]]:
     Iterable[tuple[str, Version]]
         A list of tuples containing the CPU type and the minimum macOS version.
     """
+    if dylib_path.is_dir() or not _is_macho_file(dylib_path):
+        return []
     m = MachO(dylib_path)
     res = []
     for header in m.headers:
@@ -710,14 +712,15 @@ def _calculate_minimum_wheel_name(
         provided one.
     """
     # get platform tag from wheel name using packaging
+    if wheel_name.endswith("any.whl"):
+        # universal wheel, no need to update the platform tag
+        return wheel_name, set()
     arch_version = _get_archs_and_version_from_wheel_name(wheel_name)
     # get the architecture and minimum macOS version from the libraries
     # in the wheel
     version_info_dict: Dict[str, Dict[Version, List[Path]]] = {}
 
-    for lib in itertools.chain(
-        wheel_dir.glob("**/*.dylib"), wheel_dir.glob("**/*.so")
-    ):
+    for lib in wheel_dir.glob("**/*"):
         for arch, version in _get_macos_min_version(lib):
             version_info_dict.setdefault(arch.lower(), {}).setdefault(
                 version, []

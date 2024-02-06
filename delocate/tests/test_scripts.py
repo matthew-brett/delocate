@@ -731,7 +731,7 @@ def test_delocate_wheel_verify_name_universal2_verify_crash(
     dir2zip(tmp_path / "plat", whl_10_9)
     monkeypatch.setenv("MACOSX_DEPLOYMENT_TARGET", "10.9")
     result = script_runner.run(
-        ["delocate-wheel", whl_10_9],
+        ["delocate-wheel", whl_10_9, "--require-target-macos-version", "10.9"],
         check=False,
         cwd=tmp_path,
     )

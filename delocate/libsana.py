@@ -21,7 +21,7 @@ from typing import (
     Tuple,
 )
 
-from . import delocating
+from .delocating import DelocationError
 from .tmpdirs import TemporaryDirectory
 from .tools import (
     get_environment_variable_paths,
@@ -316,7 +316,7 @@ def _tree_libs_from_libraries(
     if missing_libs and not ignore_missing:
         # get_dependencies will already have logged details of missing
         # libraries.
-        raise delocating.DelocationError("Could not find all dependencies.")
+        raise DelocationError("Could not find all dependencies.")
 
     return lib_dict
 

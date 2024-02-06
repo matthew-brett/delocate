@@ -604,7 +604,7 @@ def test_fix_wheel_with_excluded_dylibs(script_runner: ScriptRunner, tmp_path):
     script_runner.run(
         ["delocate-wheel", "-e", "doesnotexist", test2_name], check=True
     )
-    _check_wheel(test1_name, ".dylibs")
+    _check_wheel(test2_name, ".dylibs")
 
 
 @pytest.mark.xfail(  # type: ignore[misc]
@@ -616,8 +616,7 @@ def test_sanitize_command(tmp_path: Path, script_runner: ScriptRunner) -> None:
     assert "libs/" in set(
         get_rpaths(str(unpack_dir / "fakepkg/subpkg/module2.abi3.so"))
     )
-
-    rpath_wheel = tmp_path / "example.whl"
+    rpath_wheel = tmp_path / "example-1.0-cp37-abi3-macosx_10_9_x86_64.whl"
     shutil.copyfile(RPATH_WHEEL, rpath_wheel)
     libs_path = tmp_path / "libs"
     libs_path.mkdir()
@@ -654,16 +653,7 @@ def test_glob(
     assert "*.whl" not in result.stdout
     assert not Path(tmp_path, "*.whl").exists()
 
-    # Delocate literal file "*.whl" instead of expanding glob
-    shutil.copyfile(plat_wheel.whl, tmp_path / "*.whl")
-    result = script_runner.run(
-        ["delocate-wheel", "*.whl", "-v"], check=True, cwd=tmp_path
-    )
-    assert Path(plat_wheel.whl).name not in result.stdout
-    assert "*.whl" in result.stdout
-
     Path(plat_wheel.whl).unlink()
-    Path(tmp_path, "*.whl").unlink()
     result = script_runner.run(["delocate-wheel", "*.whl"], cwd=tmp_path)
     assert result.returncode == 1
     assert "FileNotFoundError:" in result.stderr

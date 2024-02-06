@@ -724,9 +724,10 @@ def test_delocate_wheel_verify_name_universal2_verify_crash(
 ) -> None:
     zip2dir(plat_wheel.whl, tmp_path / "plat")
     shutil.copy(
-        DATA_PATH / "libam1_12.dylib", tmp_path / "plat/fakepkg1/libam1.dylib"
+        DATA_PATH / "libam1_12.dylib",
+        tmp_path / "plat" / "fakepkg1" / "libam1.dylib",
     )
-    whl_10_9 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_universal2.whl"
+    whl_10_9 = tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_universal2.whl"
     dir2zip(tmp_path / "plat", whl_10_9)
     monkeypatch.setenv("MACOSX_DEPLOYMENT_TARGET", "10.9")
     result = script_runner.run(

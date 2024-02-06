@@ -21,7 +21,6 @@ from typing import (
     Tuple,
 )
 
-from .delocating import DelocationError
 from .tmpdirs import TemporaryDirectory
 from .tools import (
     get_environment_variable_paths,
@@ -31,6 +30,10 @@ from .tools import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class DelocationError(Exception):
+    pass
 
 
 class DependencyNotFound(Exception):

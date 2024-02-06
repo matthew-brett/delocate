@@ -27,6 +27,7 @@ from typing import (
 )
 
 from .libsana import (
+    DelocationError,
     _allow_all,
     get_rp_stripper,
     stripped_lib_dict,
@@ -50,10 +51,6 @@ logger = logging.getLogger(__name__)
 
 # Prefix for install_name_id of copied libraries
 DLC_PREFIX = "/DLC/"
-
-
-class DelocationError(Exception):
-    pass
 
 
 def delocate_tree_libs(

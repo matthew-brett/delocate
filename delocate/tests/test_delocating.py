@@ -14,7 +14,6 @@ from typing import Any, Callable, Dict, Iterable, List, Set, Text, Tuple
 import pytest
 
 from ..delocating import (
-    DelocationError,
     bads_report,
     check_archs,
     copy_recurse,
@@ -23,6 +22,7 @@ from ..delocating import (
     filter_system_libs,
 )
 from ..libsana import (
+    DelocationError,
     search_environment_for_lib,
     tree_libs,
     tree_libs_from_directory,

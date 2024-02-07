@@ -738,3 +738,35 @@ def test_delocate_wheel_verify_name_universal2_verify_crash(
     assert result.returncode != 0
     assert "Library dependencies do not satisfy target MacOS" in result.stderr
     assert "libam1.dylib has a minimum target of 12.0" in result.stderr
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+@pytest.mark.script_launch_mode("subprocess")
+def test_delocate_wheel_verify_name_universal2_verify_crash_env_var(
+    plat_wheel: PlatWheel,
+    script_runner: ScriptRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    zip2dir(plat_wheel.whl, tmp_path / "plat")
+    shutil.copy(
+        DATA_PATH / "libam1_12.dylib",
+        tmp_path / "plat" / "fakepkg1" / "libam1.dylib",
+    )
+    whl_10_9 = tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_universal2.whl"
+    dir2zip(tmp_path / "plat", whl_10_9)
+    result = script_runner.run(
+        [
+            "delocate-wheel",
+            whl_10_9,
+        ],
+        check=False,
+        cwd=tmp_path,
+        env={"MACOSX_DEPLOYMENT_TARGET": "10.9"},
+        shell=True,
+    )
+    assert result.returncode != 0
+    assert "Library dependencies do not satisfy target MacOS" in result.stderr
+    assert "libam1.dylib has a minimum target of 12.0" in result.stderr

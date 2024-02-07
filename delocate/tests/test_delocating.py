@@ -12,9 +12,12 @@ from os.path import join as pjoin
 from typing import Any, Callable, Dict, Iterable, List, Set, Text, Tuple
 
 import pytest
+from packaging.utils import InvalidWheelFilename
+from packaging.version import Version
 
 from ..delocating import (
     DelocationError,
+    _get_archs_and_version_from_wheel_name,
     bads_report,
     check_archs,
     copy_recurse,
@@ -705,3 +708,24 @@ def test_dyld_fallback_library_path_loses_to_basename() -> None:
         # tmpdir can end up in /var, and that can be symlinked to
         # /private/var, so we'll use realpath to resolve the two
         assert_equal(predicted_lib_location, os.path.realpath(libb))
+
+
+def test_get_archs_and_version_from_wheel_name() -> None:
+    # Test getting archs and version from wheel name
+    assert _get_archs_and_version_from_wheel_name(
+        "foo-1.0-py310-abi3-macosx_10_9_universal2.whl"
+    ) == {
+        "universal2": Version("10.9"),
+    }
+    assert _get_archs_and_version_from_wheel_name(
+        "foo-1.0-py310-abi3-macosx_12_0_arm64.whl"
+    ) == {
+        "arm64": Version("12.0"),
+    }
+    with pytest.raises(InvalidWheelFilename, match="Invalid wheel filename"):
+        _get_archs_and_version_from_wheel_name("foo.whl")
+
+    with pytest.raises(ValueError, match="Invalid platform tag"):
+        _get_archs_and_version_from_wheel_name(
+            "foo-1.0-py310-abi3-manylinux1.whl"
+        )

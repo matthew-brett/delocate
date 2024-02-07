@@ -1001,7 +1001,7 @@ def delocate_wheel(
         if len(copied_libs) or not in_place:
             if remove_old:
                 os.remove(in_wheel)
-            dir2zip(wheel_dir, out_wheel)
+            dir2zip(wheel_dir, out_wheel_)
     return stripped_lib_dict(copied_libs, wheel_dir + os.path.sep)
 
 

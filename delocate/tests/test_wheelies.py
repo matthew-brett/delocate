@@ -287,6 +287,9 @@ def test_check_plat_archs():
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch_)
             _thin_mod(fixed_wheel, arch_)
+            new_name = fixed_wheel.replace("universal2", arch_)
+            shutil.move(fixed_wheel, new_name)
+            return new_name
 
         for arch in ("x86_64", "arm64"):
             # OK unless we check
@@ -301,9 +304,9 @@ def test_check_plat_archs():
                 DelocationError, delocate_wheel, fixed_wheel, require_archs=()
             )
             # We can fix again by thinning the module too
-            _fix_break_fix(arch)
+            fixed_wheel2 = _fix_break_fix(arch)
             assert_equal(
-                delocate_wheel(fixed_wheel, require_archs=()),
+                delocate_wheel(fixed_wheel2, require_archs=()),
                 {realpath(stray_lib): {dep_mod: stray_lib}},
             )
             # But if we require the arch we don't have, it breaks
@@ -312,11 +315,11 @@ def test_check_plat_archs():
                 ARCH_BOTH,
                 ARCH_BOTH.difference([arch]),
             ):
-                _fix_break_fix(arch)
+                fixed_wheel3 = _fix_break_fix(arch)
                 assert_raises(
                     DelocationError,
                     delocate_wheel,
-                    fixed_wheel,
+                    fixed_wheel3,
                     require_archs=req_arch,
                 )
         # Can be verbose (we won't check output though)

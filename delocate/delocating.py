@@ -990,14 +990,14 @@ def delocate_wheel(
             install_id_prefix=DLC_PREFIX + relpath(lib_sdir, wheel_dir),
         )
         rewrite_record(wheel_dir)
-        out_wheel = Path(out_wheel)
+        out_wheel_ = Path(out_wheel)
         out_wheel_fixed = _check_and_update_wheel_name(
-            out_wheel, Path(wheel_dir), require_target_macos_version
+            out_wheel_, Path(wheel_dir), require_target_macos_version
         )
-        if out_wheel_fixed != out_wheel:
-            out_wheel = out_wheel_fixed
+        if out_wheel_fixed != out_wheel_:
+            out_wheel_ = out_wheel_fixed
             in_place = False
-            _update_wheelfile(Path(wheel_dir), out_wheel.name)
+            _update_wheelfile(Path(wheel_dir), out_wheel_.name)
         if len(copied_libs) or not in_place:
             if remove_old:
                 os.remove(in_wheel)

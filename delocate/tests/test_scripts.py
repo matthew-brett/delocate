@@ -716,6 +716,60 @@ def test_delocate_wheel_verify_name_universal2_ok(
 @pytest.mark.xfail(  # type: ignore[misc]
     sys.platform != "darwin", reason="Needs macOS linkage."
 )
+def test_delocate_wheel_verify_name_universal_ok(
+    plat_wheel: PlatWheel, script_runner: ScriptRunner, tmp_path: Path
+) -> None:
+    zip2dir(plat_wheel.whl, tmp_path / "plat")
+    shutil.copy(
+        DATA_PATH / "np-1.6.0_intel_lib__compiled_base.so",
+        tmp_path / "plat/fakepkg1/np-1.6.0_intel_lib__compiled_base.so",
+    )
+    whl_10_9 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_universal.whl"
+    dir2zip(tmp_path / "plat", whl_10_9)
+    script_runner.run(
+        [
+            "delocate-wheel",
+            whl_10_9,
+            "--require-target-macos-version",
+            "10.9",
+            "--ignore-missing-dependencies",
+        ],
+        check=True,
+        cwd=tmp_path,
+    )
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_delocate_wheel_missing_architecture(
+    plat_wheel: PlatWheel,
+    script_runner: ScriptRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    shutil.copy(
+        plat_wheel.whl,
+        tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_universal.whl",
+    )
+    result = script_runner.run(
+        [
+            "delocate-wheel",
+            tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_universal.whl",
+        ],
+        check=False,
+        cwd=tmp_path,
+    )
+    assert result.returncode != 0
+    assert (
+        "Failed to find any binary with the required architecture: 'i386'"
+        in result.stderr
+    )
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
 def test_delocate_wheel_verify_name_universal2_verify_crash(
     plat_wheel: PlatWheel,
     script_runner: ScriptRunner,
@@ -729,7 +783,6 @@ def test_delocate_wheel_verify_name_universal2_verify_crash(
     )
     whl_10_9 = tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_universal2.whl"
     dir2zip(tmp_path / "plat", whl_10_9)
-    monkeypatch.setenv("MACOSX_DEPLOYMENT_TARGET", "10.9")
     result = script_runner.run(
         ["delocate-wheel", whl_10_9, "--require-target-macos-version", "10.9"],
         check=False,

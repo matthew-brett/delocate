@@ -7,6 +7,7 @@ import functools
 import logging
 import os
 import shutil
+import stat
 import warnings
 from os.path import abspath, basename, dirname, exists, realpath, relpath
 from os.path import join as pjoin
@@ -28,7 +29,9 @@ from typing import (
 
 from .libsana import (
     _allow_all,
+    filter_system_libs,
     get_rp_stripper,
+    is_resolved_subpath,
     stripped_lib_dict,
     tree_libs,
     tree_libs_from_directory,
@@ -54,6 +57,18 @@ DLC_PREFIX = "/DLC/"
 
 class DelocationError(Exception):
     pass
+
+
+def posix_relpath(
+    path: Union[str, os.PathLike],
+    start: Union[str, os.PathLike],
+) -> str:
+    """Return path relative to start using posix separators (/)."""
+    # We use os.path.relpath here since Path.relative_to doesn't support
+    # relative sibling paths. E.g., relpath("foo", "bar") == "../foo",
+    # but Path("foo").relative_to(Path("bar")) raises an error.
+    rel = relpath(path, start)
+    return Path(rel).as_posix()
 
 
 def delocate_tree_libs(
@@ -157,7 +172,7 @@ def _analyze_tree_libs(
             # @rpath, etc, at this point should never happen.
             raise DelocationError("%s was expected to be resolved." % required)
         r_ed_base = basename(required)
-        if relpath(required, rp_root_path).startswith(".."):
+        if not is_resolved_subpath(required, rp_root_path):
             # Not local, plan to copy
             if r_ed_base in copied_basenames:
                 raise DelocationError(
@@ -202,6 +217,10 @@ def _copy_required_libs(
             "Copying library %s to %s", old_path, relpath(new_path, root_path)
         )
         shutil.copy(old_path, new_path)
+        # Make copied file writeable if necessary.
+        statinfo = os.stat(new_path)
+        if not statinfo.st_mode & stat.S_IWRITE:
+            os.chmod(new_path, statinfo.st_mode | stat.S_IWRITE)
         # Delocate this file now that it is stored locally.
         needs_delocating.add(new_path)
         # Update out_lib_dict with the new file paths.
@@ -224,7 +243,7 @@ def _update_install_names(
     for required in files_to_delocate:
         # Set relative path for local library
         for requiring, orig_install_name in lib_dict[required].items():
-            req_rel = relpath(required, dirname(requiring))
+            req_rel = posix_relpath(required, dirname(requiring))
             new_install_name = "@loader_path/" + req_rel
             if orig_install_name == new_install_name:
                 logger.info(
@@ -399,10 +418,6 @@ def _copy_required(
 
 def _dylibs_only(filename: str) -> bool:
     return filename.endswith(".so") or filename.endswith(".dylib")
-
-
-def filter_system_libs(libname: str) -> bool:
-    return not (libname.startswith("/usr/lib") or libname.startswith("/System"))
 
 
 def _delocate_filter_function(
@@ -701,7 +716,7 @@ def delocate_wheel(
         ]
         _make_install_name_ids_unique(
             libraries=libraries_in_lib_path,
-            install_id_prefix=DLC_PREFIX + relpath(lib_sdir, wheel_dir),
+            install_id_prefix=DLC_PREFIX + posix_relpath(lib_sdir, wheel_dir),
         )
         rewrite_record(wheel_dir)
         if len(copied_libs) or not in_place:

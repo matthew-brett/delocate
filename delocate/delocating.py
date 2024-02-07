@@ -790,6 +790,21 @@ def _check_and_update_wheel_name(
     wheel_dir: Path,
     require_target_macos_version: Optional[Version],
 ) -> Path:
+    """
+    Based on curren wheel name and binary files in the wheel,
+    determine the minimum platform tag and update the wheel name if needed.
+
+    Parameters
+    ----------
+    wheel_path : Path
+        The path to the wheel.
+    wheel_dir : Path
+        The directory of the unpacked wheel.
+    require_target_macos_version : Version or None
+        The target macOS version that the wheel should be compatible with.
+        If provided and the wheel does not satisfy the target MacOS version,
+        raise an error.
+    """
     wheel_name = os.path.basename(wheel_path)
 
     new_name, problematic_files = _calculate_minimum_wheel_name(
@@ -811,6 +826,22 @@ def _check_and_update_wheel_name(
 
 
 def _update_wheelfile(wheel_dir: Path, wheel_name: str):
+    """
+    Update the WHEEL file in the wheel directory with the new platform tag.
+
+    Parameters
+    ----------
+    wheel_dir : Path
+        The directory of the unpacked wheel.
+    wheel_name : str
+        The name of the wheel.
+        Used for determining the new platform tag.
+
+    Raises
+    ------
+    DelocationError
+        If there is more than one WHEEL file in the wheel directory.
+    """
     platform_tag_set = parse_wheel_filename(wheel_name)[-1]
     wheel_files = list(wheel_dir.glob("*.dist-info/WHEEL"))
     if len(wheel_files) != 1:

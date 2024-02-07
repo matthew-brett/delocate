@@ -31,6 +31,7 @@ from .libsana import (
     _allow_all,
     filter_system_libs,
     get_rp_stripper,
+    is_resolved_subpath,
     stripped_lib_dict,
     tree_libs,
     tree_libs_from_directory,
@@ -58,8 +59,14 @@ class DelocationError(Exception):
     pass
 
 
-def posix_relpath(path: str, start: str = None) -> str:
+def posix_relpath(
+    path: Union[str, os.PathLike],
+    start: Union[str, os.PathLike],
+) -> str:
     """Return path relative to start using posix separators (/)."""
+    # We use os.path.relpath here since Path.relative_to doesn't support
+    # relative sibling paths. E.g., relpath("foo", "bar") == "../foo",
+    # but Path("foo").relative_to(Path("bar")) raises an error.
     rel = relpath(path, start)
     return Path(rel).as_posix()
 
@@ -165,7 +172,7 @@ def _analyze_tree_libs(
             # @rpath, etc, at this point should never happen.
             raise DelocationError("%s was expected to be resolved." % required)
         r_ed_base = basename(required)
-        if Path(rp_root_path) not in Path(required).parents:
+        if not is_resolved_subpath(required, rp_root_path):
             # Not local, plan to copy
             if r_ed_base in copied_basenames:
                 raise DelocationError(

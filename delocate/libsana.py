@@ -20,6 +20,7 @@ from typing import (
     Set,
     Text,
     Tuple,
+    Union,
 )
 
 import delocate.delocating
@@ -41,12 +42,18 @@ class DependencyNotFound(Exception):
     """
 
 
-def filter_system_libs(libname: Text) -> bool:
+def is_resolved_subpath(
+    path: Union[str, os.PathLike],
+    base: Union[str, os.PathLike],
+) -> bool:
+    return Path(base).resolve() in Path(path).resolve().parents
+
+
+def filter_system_libs(libname: Union[str, os.PathLike]) -> bool:
     """Return True if libname starts with /System or /usr/lib."""
-    # If libname has a drive letter, we need to strip it off first.
-    _, libname = os.path.splitdrive(libname)
-    libname = Path(libname).as_posix()
-    return not (libname.startswith("/usr/lib") or libname.startswith("/System"))
+    return not any(
+        is_resolved_subpath(libname, base) for base in ["/usr/lib", "/System"]
+    )
 
 
 def get_dependencies(
@@ -772,4 +779,4 @@ def _paths_from_var(varname: str, lib_basename: str) -> List[str]:
     var = os.environ.get(varname)
     if var is None:
         return []
-    return [pjoin(path, lib_basename) for path in var.split(":")]
+    return [pjoin(path, lib_basename) for path in var.split(os.pathsep)]

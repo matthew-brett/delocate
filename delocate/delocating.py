@@ -810,6 +810,25 @@ def _check_and_update_wheel_name(
     return wheel_path
 
 
+def _update_wheelfile(wheel_dir: Path, wheel_name: str):
+    platform_tag_set = parse_wheel_filename(wheel_name)[-1]
+    wheel_files = list(wheel_dir.glob("*.dist-info/WHEEL"))
+    if len(wheel_files) != 1:
+        raise DelocationError(  # pragma: no cover
+            "Expected exactly one WHEEL file, "
+            f"found {len(wheel_files)}: {wheel_files}"
+        )
+    file_path = wheel_files[0]
+    with file_path.open() as f:
+        lines = f.readlines()
+    with file_path.open("w") as f:
+        for line in lines:
+            if line.startswith("Tag:"):
+                f.write(f"Tag: {'.'.join(str(x) for x in platform_tag_set)}\n")
+            else:
+                f.write(line)
+
+
 def delocate_wheel(
     in_wheel: str,
     out_wheel: Optional[str] = None,
@@ -947,6 +966,7 @@ def delocate_wheel(
         if out_wheel_fixed != out_wheel:
             out_wheel = out_wheel_fixed
             in_place = False
+            _update_wheelfile(Path(wheel_dir), out_wheel.name)
         if len(copied_libs) or not in_place:
             if remove_old:
                 os.remove(in_wheel)

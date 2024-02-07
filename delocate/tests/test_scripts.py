@@ -668,11 +668,20 @@ def test_delocate_wheel_fix_name(
     plat_wheel: PlatWheel, script_runner: ScriptRunner, tmp_path: Path
 ) -> None:
     zip2dir(plat_wheel.whl, tmp_path / "plat")
-    whl_10_6 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_6_x86_64.whl"
-    dir2zip(tmp_path / "plat", whl_10_6)
-    script_runner.run(["delocate-wheel", whl_10_6], check=True, cwd=tmp_path)
-    assert (tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_x86_64.whl").exists()
-    assert not whl_10_6.exists()
+    shutil.copy(
+        DATA_PATH / "liba_12.dylib", tmp_path / "plat/fakepkg1/liba_12.dylib"
+    )
+    dir2zip(tmp_path / "plat", plat_wheel.whl)
+    script_runner.run(
+        ["delocate-wheel", plat_wheel.whl], check=True, cwd=tmp_path
+    )
+    assert (tmp_path / "plat-1.0-cp311-cp311-macosx_12_0_x86_64.whl").exists()
+    assert not Path(plat_wheel.whl).exists()
+    with InWheel(
+        tmp_path / "plat-1.0-cp311-cp311-macosx_12_0_x86_64.whl"
+    ) as wheel:
+        with open(pjoin(wheel, "fakepkg1-1.0.dist-info", "WHEEL")) as f:
+            assert "macosx_12_0_x86_64" in f.read()
 
 
 @pytest.mark.xfail(  # type: ignore[misc]

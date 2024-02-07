@@ -786,10 +786,10 @@ def _calculate_minimum_wheel_name(
 
 
 def _check_and_update_wheel_name(
-    wheel_path: str,
+    wheel_path: Path,
     wheel_dir: Path,
     require_target_macos_version: Optional[Version],
-) -> str:
+) -> Path:
     wheel_name = os.path.basename(wheel_path)
 
     new_name, problematic_files = _calculate_minimum_wheel_name(
@@ -806,7 +806,7 @@ def _check_and_update_wheel_name(
             f"{problematic_files_str}"
         )
     if new_name != wheel_name:
-        wheel_path = os.path.join(os.path.dirname(wheel_path), new_name)
+        wheel_path = wheel_path.parent / new_name
     return wheel_path
 
 
@@ -897,6 +897,7 @@ def delocate_wheel(
     else:
         out_wheel = abspath(out_wheel)
     in_place = in_wheel == out_wheel
+    remove_old = in_place
     with TemporaryDirectory() as tmpdir:
         wheel_dir = realpath(pjoin(tmpdir, "wheel"))
         zip2dir(in_wheel, wheel_dir)
@@ -939,6 +940,7 @@ def delocate_wheel(
             install_id_prefix=DLC_PREFIX + relpath(lib_sdir, wheel_dir),
         )
         rewrite_record(wheel_dir)
+        out_wheel = Path(out_wheel)
         out_wheel_fixed = _check_and_update_wheel_name(
             out_wheel, Path(wheel_dir), require_target_macos_version
         )
@@ -946,6 +948,8 @@ def delocate_wheel(
             out_wheel = out_wheel_fixed
             in_place = False
         if len(copied_libs) or not in_place:
+            if remove_old:
+                os.remove(in_wheel)
             dir2zip(wheel_dir, out_wheel)
     return stripped_lib_dict(copied_libs, wheel_dir + os.path.sep)
 

@@ -672,6 +672,7 @@ def test_delocate_wheel_fix_name(
     dir2zip(tmp_path / "plat", whl_10_6)
     script_runner.run(["delocate-wheel", whl_10_6], check=True, cwd=tmp_path)
     assert (tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_x86_64.whl").exists()
+    assert not whl_10_6.exists()
 
 
 @pytest.mark.xfail(  # type: ignore[misc]

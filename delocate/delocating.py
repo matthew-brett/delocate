@@ -591,7 +591,7 @@ def _make_install_name_ids_unique(
         validate_signature(lib)
 
 
-def _get_macos_min_version(dylib_path: Path) -> Iterable[tuple[str, Version]]:
+def _get_macos_min_version(dylib_path: Path) -> Iterator[tuple[str, Version]]:
     """Get the minimum macOS version from a dylib file.
 
     Parameters
@@ -599,15 +599,16 @@ def _get_macos_min_version(dylib_path: Path) -> Iterable[tuple[str, Version]]:
     dylib_path : Path
         The path to the dylib file.
 
-    Returns
-    -------
-    Iterable[tuple[str, Version]]
-        A list of tuples containing the CPU type and the minimum macOS version.
+    Yields
+    ------
+    str
+        The CPU type.
+    Version
+        The minimum macOS version.
     """
     if dylib_path.is_dir() or not _is_macho_file(dylib_path):
-        return []
+        return
     m = MachO(dylib_path)
-    res = []
     for header in m.headers:
         for cmd in header.commands:
             if cmd[0].cmd == LC_BUILD_VERSION:
@@ -616,14 +617,11 @@ def _get_macos_min_version(dylib_path: Path) -> Iterable[tuple[str, Version]]:
                 version = cmd[1].version
             else:
                 continue
-            res.append(
-                (
-                    CPU_TYPE_NAMES.get(header.header.cputype, "unknown"),
-                    Version(f"{version >> 16 & 0xFF}.{version >> 8 & 0xFF}"),
-                )
+            yield (
+                CPU_TYPE_NAMES.get(header.header.cputype, "unknown"),
+                Version(f"{version >> 16 & 0xFF}.{version >> 8 & 0xFF}"),
             )
             break
-    return res
 
 
 def _get_archs_and_version_from_wheel_name(
@@ -761,13 +759,11 @@ def _calculate_minimum_wheel_name(
                 problematic_libs.update(
                     _get_problematic_libs(
                         require_target_macos_version, version_info_dict["i386"]
-                    )
-                )
-                problematic_libs.update(
+                    ),
                     _get_problematic_libs(
                         require_target_macos_version,
                         version_info_dict["x86_64"],
-                    )
+                    ),
                 )
             else:
                 arch_version[arch] = max(version, version_dkt[arch])

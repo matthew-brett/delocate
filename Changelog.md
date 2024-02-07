@@ -10,17 +10,18 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
-### Breaking
-- Starting from this release, the 'delocate' tool will use the content
-  of the wheel file to determine the platform tag, which will be included in the wheel's name.
-  This change is intended to prevent confusion related to the platform tag.
-  The 'delocate-wheel' tool is now required to adjust the wheel's name appropriately.
-  If the `--require-target-macos-version` option is used or if the `MACOSX_DEPLOYMENT_TARGET`
-  environment variable is set, 'delocate-wheel' will enforce that the wheel
-  is built for the specified macOS version.
-  If the wheel is not compatible with the specified macOS version,
-  `delocate-wheel` will terminate with an error.
-  This change is part of pull request #198.
+### Added
+
+- Use `--require-target-macos-version` or the `MACOSX_DEPLOYMENT_TARGET`
+  environment variable to ensure that wheels are
+  compatible with the specified macOS version. #198
+
+### Changed
+
+- Delocate now uses the binaries of the wheel file to determine a more accurate
+  platform tag, this will rename wheels accordingly. #198
+- `delocate-wheel` is now more strict with platform tags and will no longer allow
+  a wheel to be incompatible with its own tags. #198
 
 ## [0.10.7] - 2023-12-12
 

@@ -731,45 +731,55 @@ def _calculate_minimum_wheel_name(
 
     problematic_libs: set[tuple[Path, Version]] = set()
 
-    for arch, version in list(arch_version.items()):
-        if arch == "universal2":
-            if version_dkt["arm64"] == Version("11.0"):
-                arch_version["universal2"] = max(version, version_dkt["x86_64"])
-            else:
-                arch_version["universal2"] = max(
-                    version, version_dkt["arm64"], version_dkt["x86_64"]
+    try:
+        for arch, version in list(arch_version.items()):
+            if arch == "universal2":
+                if version_dkt["arm64"] == Version("11.0"):
+                    arch_version["universal2"] = max(
+                        version, version_dkt["x86_64"]
+                    )
+                else:
+                    arch_version["universal2"] = max(
+                        version, version_dkt["arm64"], version_dkt["x86_64"]
+                    )
+                    problematic_libs.update(
+                        _get_problematic_libs(
+                            require_target_macos_version,
+                            version_info_dict["arm64"],
+                        )
+                    )
+                problematic_libs.update(
+                    _get_problematic_libs(
+                        require_target_macos_version,
+                        version_info_dict["x86_64"],
+                    )
+                )
+            elif arch == "universal":
+                arch_version["universal"] = max(
+                    version, version_dkt["i386"], version_dkt["x86_64"]
                 )
                 problematic_libs.update(
                     _get_problematic_libs(
-                        require_target_macos_version, version_info_dict["arm64"]
+                        require_target_macos_version, version_info_dict["i386"]
                     )
                 )
-            problematic_libs.update(
-                _get_problematic_libs(
-                    require_target_macos_version, version_info_dict["x86_64"]
+                problematic_libs.update(
+                    _get_problematic_libs(
+                        require_target_macos_version,
+                        version_info_dict["x86_64"],
+                    )
                 )
-            )
-        elif arch == "universal":
-            arch_version["universal"] = max(
-                version, version_dkt["i386"], version_dkt["x86_64"]
-            )
-            problematic_libs.update(
-                _get_problematic_libs(
-                    require_target_macos_version, version_info_dict["i386"]
+            else:
+                arch_version[arch] = max(version, version_dkt[arch])
+                problematic_libs.update(
+                    _get_problematic_libs(
+                        require_target_macos_version, version_info_dict[arch]
+                    )
                 )
-            )
-            problematic_libs.update(
-                _get_problematic_libs(
-                    require_target_macos_version, version_info_dict["x86_64"]
-                )
-            )
-        else:
-            arch_version[arch] = max(version, version_dkt[arch])
-            problematic_libs.update(
-                _get_problematic_libs(
-                    require_target_macos_version, version_info_dict[arch]
-                )
-            )
+    except KeyError as e:
+        raise DelocationError(
+            f"Failed to find any binary with the required architecture: {e}"
+        ) from e
     prefix = wheel_name.rsplit("-", 1)[0]
     platform_tag = ".".join(
         f"macosx_{version.major}_{version.minor}_{arch}"

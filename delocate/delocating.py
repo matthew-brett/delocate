@@ -607,10 +607,9 @@ def _get_macos_min_version(dylib_path: Path) -> Iterator[tuple[str, Version]]:
     Version
         The minimum macOS version.
     """
-    if dylib_path.is_dir() or not _is_macho_file(dylib_path):
+    if not _is_macho_file(dylib_path):
         return
-    m = MachO(dylib_path)
-    for header in m.headers:
+    for header in MachO(dylib_path).headers:
         for cmd in header.commands:
             if cmd[0].cmd == LC_BUILD_VERSION:
                 version = cmd[1].minos

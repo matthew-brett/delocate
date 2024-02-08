@@ -643,18 +643,18 @@ def _get_archs_and_version_from_wheel_name(
         for each architecture in the wheel name.
     """
     platform_tag_set = parse_wheel_filename(wheel_name)[-1]
-    res = {}
+    platform_requirements = {}
     for platform_tag in platform_tag_set:
         match = _PLATFORM_REGEXP.match(platform_tag.platform)
         if match is None:
             raise ValueError(f"Invalid platform tag: {platform_tag.platform}")
         major, minor, arch = match.groups()
-        res[arch] = Version(f"{major}.{minor}")
-    return res
+        platform_requirements[arch] = Version(f"{major}.{minor}")
+    return platform_requirements
 
 
 def _get_problematic_libs(
-    version: Optional[Version], version_lib_dict: Dict[Version, List[Path]]
+    required_version: Optional[Version], version_lib_dict: Dict[Version, List[Path]]
 ) -> set[tuple[Path, Version]]:
     """
     Filter libraries that require more modern macOS
@@ -662,7 +662,7 @@ def _get_problematic_libs(
 
     Parameters
     ----------
-    version : Version or None
+    required_version : Version or None
         The expected minimum macOS version.
         If None, return an empty set.
     version_lib_dict : Dict[Version, List[Path]]
@@ -675,13 +675,13 @@ def _get_problematic_libs(
         A set of libraries that require a more modern macOS version than the
         provided one.
     """
-    if version is None:
+    if required_version is None:
         return set()
-    result: set[tuple[Path, Version]] = set()
-    for v, lib in version_lib_dict.items():
-        if v > version:
-            result.update((x, v) for x in lib)
-    return result
+    bad_libraries: set[tuple[Path, Version]] = set()
+    for library_version, libraries in version_lib_dict.items():
+        if library_version > required_version:
+            bad_libraries.update((path, library_version) for path in libraries)
+    return bad_libraries
 
 
 def _calculate_minimum_wheel_name(
@@ -825,7 +825,7 @@ def _check_and_update_wheel_name(
     return wheel_path
 
 
-def _update_wheelfile(wheel_dir: Path, wheel_name: str):
+def _update_wheelfile(wheel_dir: Path, wheel_name: str) -> None:
     """
     Update the WHEEL file in the wheel directory with the new platform tag.
 
@@ -836,23 +836,12 @@ def _update_wheelfile(wheel_dir: Path, wheel_name: str):
     wheel_name : str
         The name of the wheel.
         Used for determining the new platform tag.
-
-    Raises
-    ------
-    DelocationError
-        If there is more than one WHEEL file in the wheel directory.
     """
     platform_tag_set = parse_wheel_filename(wheel_name)[-1]
-    wheel_files = list(wheel_dir.glob("*.dist-info/WHEEL"))
-    if len(wheel_files) != 1:
-        raise DelocationError(  # pragma: no cover
-            "Expected exactly one WHEEL file, "
-            f"found {len(wheel_files)}: {wheel_files}"
-        )
-    file_path = wheel_files[0]
-    with file_path.open() as f:
+    (file_path,) = wheel_dir.glob("*.dist-info/WHEEL")
+    with file_path.open(encoding="utf-8") as f:
         lines = f.readlines()
-    with file_path.open("w") as f:
+    with file_path.open("w", encoding="utf-8") as f:
         for line in lines:
             if line.startswith("Tag:"):
                 f.write(f"Tag: {'.'.join(str(x) for x in platform_tag_set)}\n")

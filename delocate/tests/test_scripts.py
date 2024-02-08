@@ -806,7 +806,6 @@ def test_delocate_wheel_verify_name_universal2_verify_crash(
 @pytest.mark.xfail(  # type: ignore[misc]
     sys.platform != "darwin", reason="Needs macOS linkage."
 )
-@pytest.mark.script_launch_mode("subprocess")
 def test_delocate_wheel_verify_name_universal2_verify_crash_env_var(
     plat_wheel: PlatWheel,
     script_runner: ScriptRunner,
@@ -820,15 +819,9 @@ def test_delocate_wheel_verify_name_universal2_verify_crash_env_var(
     )
     whl_10_9 = tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_universal2.whl"
     dir2zip(tmp_path / "plat", whl_10_9)
-    delocate_wheel_path = pjoin(
-        os.path.dirname(sys.executable), "delocate-wheel"
-    )
 
     result = script_runner.run(
-        [
-            delocate_wheel_path,
-            whl_10_9,
-        ],
+        ["delocate-wheel", whl_10_9],
         check=False,
         cwd=tmp_path,
         env={"MACOSX_DEPLOYMENT_TARGET": "10.9"},

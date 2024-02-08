@@ -178,6 +178,8 @@ def _is_macho_file(filename: str | os.PathLike[str]) -> bool:
         return False
     except FileNotFoundError:
         return False
+    except IsADirectoryError:
+        return False
 
 
 def unique_by_index(sequence):

@@ -653,7 +653,8 @@ def _get_archs_and_version_from_wheel_name(
 
 
 def _get_problematic_libs(
-    required_version: Optional[Version], version_lib_dict: Dict[Version, List[Path]]
+    required_version: Optional[Version],
+    version_lib_dict: Dict[Version, List[Path]],
 ) -> set[tuple[Path, Version]]:
     """
     Filter libraries that require more modern macOS

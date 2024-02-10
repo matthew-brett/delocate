@@ -582,7 +582,9 @@ def test_add_platforms(script_runner: ScriptRunner) -> None:
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="Needs macOS linkage.")
-def test_fix_wheel_with_excluded_dylibs(script_runner: ScriptRunner, tmp_path: Path) -> None:
+def test_fix_wheel_with_excluded_dylibs(
+    script_runner: ScriptRunner, tmp_path: Path
+) -> None:
     fixed_wheel, stray_lib = _fixed_wheel(tmp_path)
     test1_name = (
         tmp_path / "fakepkg1_test-1.0-cp36-abi3-macosx_10_9_universal2.whl"

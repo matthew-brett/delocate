@@ -681,6 +681,12 @@ def _get_problematic_libs(
     if required_version is None:
         return set()
     if arch == "arm64" and required_version < Version("11.0"):
+        # All arm64 libraries require macOS at least 11.0,
+        # So even if user provide lower deployment target,
+        # for example, by setting environment variable
+        # MACOSX_DEPLOYMENT_TARGET=10.15
+        # the binaries still will be compatible with 11.0+ only.
+        # So there is no need to check for compatible with older macOS versions
         required_version = Version("11.0")
     bad_libraries: set[tuple[Path, Version]] = set()
     for library_version, libraries in version_lib_dict.items():

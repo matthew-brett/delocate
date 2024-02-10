@@ -655,6 +655,7 @@ def _get_archs_and_version_from_wheel_name(
 def _get_problematic_libs(
     required_version: Optional[Version],
     version_lib_dict: Dict[Version, List[Path]],
+    arch: str,
 ) -> set[tuple[Path, Version]]:
     """
     Filter libraries that require more modern macOS
@@ -668,6 +669,8 @@ def _get_problematic_libs(
     version_lib_dict : Dict[Version, List[Path]]
         A dictionary containing mapping from minimum macOS version to libraries
         that require that version.
+    arch : str
+        The architecture of the libraries. For proper handle arm64 case
 
     Returns
     -------
@@ -677,6 +680,8 @@ def _get_problematic_libs(
     """
     if required_version is None:
         return set()
+    if arch == "arm64" and required_version < Version("11.0"):
+        required_version = Version("11.0")
     bad_libraries: set[tuple[Path, Version]] = set()
     for library_version, libraries in version_lib_dict.items():
         if library_version > required_version:
@@ -745,12 +750,14 @@ def _calculate_minimum_wheel_name(
                         _get_problematic_libs(
                             require_target_macos_version,
                             version_info_dict["arm64"],
+                            "arm64",
                         )
                     )
                 problematic_libs.update(
                     _get_problematic_libs(
                         require_target_macos_version,
                         version_info_dict["x86_64"],
+                        "x86_64",
                     )
                 )
             elif arch == "universal":
@@ -759,18 +766,23 @@ def _calculate_minimum_wheel_name(
                 )
                 problematic_libs.update(
                     _get_problematic_libs(
-                        require_target_macos_version, version_info_dict["i386"]
+                        require_target_macos_version,
+                        version_info_dict["i386"],
+                        "i386",
                     ),
                     _get_problematic_libs(
                         require_target_macos_version,
                         version_info_dict["x86_64"],
+                        "x86_64",
                     ),
                 )
             else:
                 arch_version[arch] = max(version, version_dkt[arch])
                 problematic_libs.update(
                     _get_problematic_libs(
-                        require_target_macos_version, version_info_dict[arch]
+                        require_target_macos_version,
+                        version_info_dict[arch],
+                        arch,
                     )
                 )
     except KeyError as e:

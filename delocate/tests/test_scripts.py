@@ -831,3 +831,4 @@ def test_delocate_wheel_verify_name_universal2_verify_crash_env_var(
     assert result.returncode != 0
     assert "Library dependencies do not satisfy target MacOS" in result.stderr
     assert "libam1.dylib has a minimum target of 12.0" in result.stderr
+    assert "module2.abi3.so has a minimum target of 11.0" not in result.stderr

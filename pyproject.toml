@@ -16,7 +16,7 @@ dependencies = [
     "machomachomangler; sys_platform == 'win32'",
     "packaging>=20.9",
     "typing_extensions",
-    "macholib"
+    "macholib",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -53,18 +53,23 @@ addopts = ["--doctest-modules", "--cov=delocate", "--cov-config=.coveragerc"]
 log_file_level = "DEBUG"
 
 [tool.ruff]
-# https://beta.ruff.rs/docs/rules/
+line-length = 80
+
+[tool.ruff.lint] # https://docs.astral.sh/ruff/rules/
 select = [
     "E", # pycodestyle
     "W", # pycodestyle
     "F", # Pyflakes
     "I", # isort
+    "D", # pydocstyle
 ]
 ignore = [
     "ANN101", # missing-type-self
     "ANN102", # missing-type-cls
 ]
-line-length = 80
+
+[tool.ruff.lint.per-file-ignores]
+"test_*.py" = ["D103"] # Docstrings not required for test functions
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

@@ -796,7 +796,7 @@ def get_environment_variable_paths():
     for pathname in extra_paths:
         path_contents = os.environ.get(pathname)
         if path_contents is not None:
-            for path in path_contents.split(":"):
+            for path in path_contents.split(os.pathsep):
                 env_var_paths.append(path)
     return tuple(env_var_paths)
 

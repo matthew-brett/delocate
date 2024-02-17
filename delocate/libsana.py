@@ -767,4 +767,4 @@ def _paths_from_var(varname: str, lib_basename: str) -> List[str]:
     var = os.environ.get(varname)
     if var is None:
         return []
-    return [pjoin(path, lib_basename) for path in var.split(":")]
+    return [pjoin(path, lib_basename) for path in var.split(os.pathsep)]

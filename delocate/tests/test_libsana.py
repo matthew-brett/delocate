@@ -14,8 +14,9 @@ from unittest import mock
 
 import pytest
 
-from ..delocating import DelocationError, filter_system_libs
+from ..delocating import filter_system_libs
 from ..libsana import (
+    DelocationError,
     DependencyNotFound,
     get_dependencies,
     get_prefix_stripper,

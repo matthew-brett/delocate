@@ -39,6 +39,7 @@ from packaging.utils import parse_wheel_filename
 from packaging.version import Version
 
 from .libsana import (
+    DelocationError,
     _allow_all,
     get_rp_stripper,
     stripped_lib_dict,
@@ -65,10 +66,6 @@ logger = logging.getLogger(__name__)
 DLC_PREFIX = "/DLC/"
 
 _PLATFORM_REGEXP = re.compile(r"macosx_(\d+)_(\d+)_(\w+)")
-
-
-class DelocationError(Exception):
-    pass
 
 
 def delocate_tree_libs(

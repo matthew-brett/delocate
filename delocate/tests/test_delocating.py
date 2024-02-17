@@ -16,7 +16,6 @@ from packaging.utils import InvalidWheelFilename
 from packaging.version import Version
 
 from ..delocating import (
-    DelocationError,
     _get_archs_and_version_from_wheel_name,
     bads_report,
     check_archs,
@@ -26,6 +25,7 @@ from ..delocating import (
     filter_system_libs,
 )
 from ..libsana import (
+    DelocationError,
     search_environment_for_lib,
     tree_libs,
     tree_libs_from_directory,

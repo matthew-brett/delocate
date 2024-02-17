@@ -18,10 +18,10 @@ import pytest
 
 from ..delocating import (
     DLC_PREFIX,
-    DelocationError,
     delocate_wheel,
     patch_wheel,
 )
+from ..libsana import DelocationError
 from ..tmpdirs import InGivenDirectory, InTemporaryDirectory
 from ..tools import (
     dir2zip,

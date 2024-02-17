@@ -16,6 +16,7 @@ dependencies = [
     "machomachomangler; sys_platform == 'win32'",
     "packaging>=20.9",
     "typing_extensions",
+    "macholib"
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",

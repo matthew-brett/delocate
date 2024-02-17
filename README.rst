@@ -152,7 +152,7 @@ only. To check this you can use the ``--require-archs`` flag::
 Notice that this command was using an earlier version of Delocate that
 supported Python 2; we now support Python 3 only.
 
-The ``intel`` argument to ``--require-arch`` above requires dual 32- and 64-
+The ``intel`` argument to ``--require-archs`` above requires dual 32- and 64-
 bit architecture extensions and libraries. You can see which extensions are at
 fault by adding the ``-v`` (verbose) flag::
 

@@ -130,19 +130,23 @@ def test_fix_plat() -> None:
         assert os.listdir(dylibs) == ["libextfunc.dylib"]
         # New output name
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        assert delocate_wheel(fixed_wheel, "fixed_wheel.ext") == {
-            _rp(stray_lib): {dep_mod: stray_lib}
-        }
-        zip2dir("fixed_wheel.ext", "plat_pkg1")
+        assert delocate_wheel(
+            fixed_wheel, "fixed_wheel-1.0-cp39-cp39-macosx_10_9_x86_64.whl"
+        ) == {_rp(stray_lib): {dep_mod: stray_lib}}
+        zip2dir("fixed_wheel-1.0-cp39-cp39-macosx_10_9_x86_64.whl", "plat_pkg1")
         assert exists(pjoin("plat_pkg1", "fakepkg1"))
         dylibs = pjoin("plat_pkg1", "fakepkg1", ".dylibs")
         assert exists(dylibs)
         assert os.listdir(dylibs) == ["libextfunc.dylib"]
         # Test another lib output directory
         assert delocate_wheel(
-            fixed_wheel, "fixed_wheel2.ext", "dylibs_dir"
+            fixed_wheel,
+            "fixed_wheel2-1.0-cp39-cp39-macosx_10_9_x86_64.whl",
+            "dylibs_dir",
         ) == {_rp(stray_lib): {dep_mod: stray_lib}}
-        zip2dir("fixed_wheel2.ext", "plat_pkg2")
+        zip2dir(
+            "fixed_wheel2-1.0-cp39-cp39-macosx_10_9_x86_64.whl", "plat_pkg2"
+        )
         assert exists(pjoin("plat_pkg2", "fakepkg1"))
         dylibs = pjoin("plat_pkg2", "fakepkg1", "dylibs_dir")
         assert exists(dylibs)
@@ -202,21 +206,35 @@ def test_fix_plat_dylibs():
     # Check default and non-default searches for dylibs
     with InTemporaryDirectory() as tmpdir:
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
-        _rename_module(fixed_wheel, "module.other", "test.whl")
+        _rename_module(
+            fixed_wheel,
+            "module.other",
+            "fixed_wheel-1.0-cp39-cp39-macosx_10_9_x86_64.whl",
+        )
         # With dylibs-only - only analyze files with exts '.dylib', '.so'
         assert_equal(
-            delocate_wheel("test.whl", lib_filt_func="dylibs-only"), {}
+            delocate_wheel(
+                "fixed_wheel-1.0-cp39-cp39-macosx_10_9_x86_64.whl",
+                lib_filt_func="dylibs-only",
+            ),
+            {},
         )
         # With func that doesn't find the module
 
         def func(fn):
             return fn.endswith(".so")
 
-        assert_equal(delocate_wheel("test.whl", lib_filt_func=func), {})
+        assert_equal(
+            delocate_wheel(
+                "fixed_wheel-1.0-cp39-cp39-macosx_10_9_x86_64.whl",
+                lib_filt_func=func,
+            ),
+            {},
+        )
         # Default - looks in every file
         dep_mod = pjoin("fakepkg1", "subpkg", "module.other")
         assert_equal(
-            delocate_wheel("test.whl"),
+            delocate_wheel("fixed_wheel-1.0-cp39-cp39-macosx_10_9_x86_64.whl"),
             {realpath(stray_lib): {dep_mod: stray_lib}},
         )
 
@@ -269,6 +287,9 @@ def test_check_plat_archs():
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch_)
             _thin_mod(fixed_wheel, arch_)
+            new_name = fixed_wheel.replace("universal2", arch_)
+            shutil.move(fixed_wheel, new_name)
+            return new_name
 
         for arch in ("x86_64", "arm64"):
             # OK unless we check
@@ -283,9 +304,9 @@ def test_check_plat_archs():
                 DelocationError, delocate_wheel, fixed_wheel, require_archs=()
             )
             # We can fix again by thinning the module too
-            _fix_break_fix(arch)
+            fixed_wheel2 = _fix_break_fix(arch)
             assert_equal(
-                delocate_wheel(fixed_wheel, require_archs=()),
+                delocate_wheel(fixed_wheel2, require_archs=()),
                 {realpath(stray_lib): {dep_mod: stray_lib}},
             )
             # But if we require the arch we don't have, it breaks
@@ -294,11 +315,11 @@ def test_check_plat_archs():
                 ARCH_BOTH,
                 ARCH_BOTH.difference([arch]),
             ):
-                _fix_break_fix(arch)
+                fixed_wheel3 = _fix_break_fix(arch)
                 assert_raises(
                     DelocationError,
                     delocate_wheel,
-                    fixed_wheel,
+                    fixed_wheel3,
                     require_archs=req_arch,
                 )
         # Can be verbose (we won't check output though)
@@ -366,9 +387,14 @@ def test_fix_rpath():
             },
         }
 
-        assert delocate_wheel(RPATH_WHEEL, "tmp.whl") == stray_libs
+        assert (
+            delocate_wheel(
+                RPATH_WHEEL, "out-1.0-cp39-cp39-macosx_10_9_x86_64.whl"
+            )
+            == stray_libs
+        )
 
-        with InWheel("tmp.whl"):
+        with InWheel("out-1.0-cp39-cp39-macosx_10_9_x86_64.whl"):
             check_call(
                 [
                     "codesign",
@@ -386,7 +412,9 @@ def test_fix_rpath():
 
         assert (
             delocate_wheel(
-                RPATH_WHEEL, "tmp.whl", lib_filt_func=ignore_libextfunc
+                RPATH_WHEEL,
+                "tmp-1.0-cp39-cp39-macosx_10_9_x86_64.whl",
+                lib_filt_func=ignore_libextfunc,
             )
             == {}
         )
@@ -402,7 +430,9 @@ def test_fix_rpath():
 
         assert (
             delocate_wheel(
-                RPATH_WHEEL, "tmp.whl", lib_filt_func=ignore_libextfunc2
+                RPATH_WHEEL,
+                "tmp-1.0-cp39-cp39-macosx_10_9_x86_64.whl",
+                lib_filt_func=ignore_libextfunc2,
             )
             == stray_libs_only_direct
         )
@@ -424,8 +454,13 @@ def test_fix_toplevel() -> None:
             realpath("libs/libextfunc2_rpath.dylib"): {dep_mod: dep_path},
         }
 
-        assert delocate_wheel(TOPLEVEL_WHEEL, "out.whl") == stray_libs
-        with InWheel("out.whl") as wheel_path:
+        assert (
+            delocate_wheel(
+                TOPLEVEL_WHEEL, "out-1.0-cp39-cp39-macosx_10_9_x86_64.whl"
+            )
+            == stray_libs
+        )
+        with InWheel("out-1.0-cp39-cp39-macosx_10_9_x86_64.whl") as wheel_path:
             assert "fakepkg_toplevel.dylibs" in os.listdir(wheel_path)
 
 
@@ -443,7 +478,12 @@ def test_fix_namespace() -> None:
             realpath("libs/libextfunc2_rpath.dylib"): {dep_mod: dep_path},
         }
 
-        assert delocate_wheel(NAMESPACE_WHEEL, "out.whl") == stray_libs
+        assert (
+            delocate_wheel(
+                NAMESPACE_WHEEL, "out-1.0-cp39-cp39-macosx_10_9_x86_64.whl"
+            )
+            == stray_libs
+        )
 
 
 def test_source_date_epoch() -> None:

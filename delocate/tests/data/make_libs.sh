@@ -30,6 +30,7 @@ void c();
 int main(int, char**) { c(); return 0; }
 EOF
 
+
 CXX_64="$CXX -arch x86_64"
 CXX_M1="$CXX -arch arm64"
 
@@ -45,12 +46,15 @@ fi
 
 $CXX_64 -o liba.dylib -dynamiclib a.cc
 $CXX_M1 -o libam1.dylib -dynamiclib a.cc
+MACOSX_DEPLOYMENT_TARGET=12.0 $CXX_M1 -o libam1_12.dylib -dynamiclib a.cc
 $CXX_64 -o a.o -c a.cc
 ar rcs liba.a a.o
 $CXX_64 -o libb.dylib -dynamiclib b.cc -L. -la
 $CXX_64 -o libb.dylib -dynamiclib b.cc -L. -la
 $CXX_64 -o libc.dylib -dynamiclib c.cc -L. -la -lb
 $CXX_64 -o test-lib d.cc -L. -lc
+
+MACOSX_DEPLOYMENT_TARGET=12.0 $CXX_64 -o libc_12.dylib -dynamiclib c.cc -L. -la -lb
 
 # Make a dual-arch library
 lipo -create liba.dylib libam1.dylib -output liba_both.dylib

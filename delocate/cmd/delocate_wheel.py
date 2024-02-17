@@ -12,6 +12,8 @@ from os.path import basename, exists, expanduser
 from os.path import join as pjoin
 from typing import List, Optional, Text
 
+from packaging.version import Version
+
 from delocate import delocate_wheel
 from delocate.cmd.common import (
     common_parser,
@@ -61,6 +63,12 @@ parser.add_argument(
     " (from 'intel', 'i386', 'x86_64', 'i386,x86_64', 'universal2',"
     " 'x86_64,arm64')",
 )
+parser.add_argument(
+    "--require-target-macos-version",
+    type=Version,
+    help="Verify if platform tag in wheel name is proper",
+    default=None,
+)
 
 
 def main() -> None:
@@ -82,6 +90,15 @@ def main() -> None:
     else:
         require_archs = args.require_archs
 
+    require_target_macos_version = args.require_target_macos_version
+    if (
+        require_target_macos_version is None
+        and "MACOSX_DEPLOYMENT_TARGET" in os.environ
+    ):
+        require_target_macos_version = Version(
+            os.environ["MACOSX_DEPLOYMENT_TARGET"]
+        )
+
     for wheel in wheels:
         if multi or args.verbose:
             print("Fixing: " + wheel)
@@ -94,6 +111,7 @@ def main() -> None:
             out_wheel,
             lib_sdir=args.lib_sdir,
             require_archs=require_archs,
+            require_target_macos_version=require_target_macos_version,
             **delocate_values(args),
         )
         if args.verbose and len(copied):

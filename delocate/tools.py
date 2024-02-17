@@ -168,7 +168,7 @@ MACHO_MAGIC = frozenset(
 )
 
 
-def _is_macho_file(filename: str) -> bool:
+def _is_macho_file(filename: str | os.PathLike[str]) -> bool:
     """Return True if file at `filename` begins with Mach-O magic number."""
     try:
         with open(filename, "rb") as f:
@@ -177,6 +177,8 @@ def _is_macho_file(filename: str) -> bool:
     except PermissionError:
         return False
     except FileNotFoundError:
+        return False
+    except IsADirectoryError:
         return False
 
 

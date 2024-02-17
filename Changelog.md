@@ -10,6 +10,19 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+### Added
+
+- Use `--require-target-macos-version` or the `MACOSX_DEPLOYMENT_TARGET`
+  environment variable to ensure that wheels are
+  compatible with the specified macOS version. #198
+
+### Changed
+
+- Delocate now uses the binaries of the wheel file to determine a more accurate
+  platform tag, this will rename wheels accordingly. #198
+- `delocate-wheel` is now more strict with platform tags and will no longer allow
+  a wheel to be incompatible with its own tags. #198
+
 ## [0.10.7] - 2023-12-12
 
 ### Changed

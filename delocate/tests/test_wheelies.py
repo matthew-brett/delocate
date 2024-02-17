@@ -350,7 +350,7 @@ def test_patch_wheel() -> None:
         shutil.copyfile(PURE_WHEEL, "copied.whl")
         zip2dir("copied.whl", "wheel2")
         with open(pjoin("wheel2", "fakepkg2", "__init__.py"), "rt") as fobj:
-            assert fobj.read() == ""
+            assert fobj.read() == '"""Fake package."""\n'
         # Overwrite input wheel (the default)
         patch_wheel("copied.whl", WHEEL_PATCH)
         # Patched

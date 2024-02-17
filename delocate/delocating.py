@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import shutil
+import stat
 import warnings
 from os.path import abspath, basename, dirname, exists, realpath, relpath
 from os.path import join as pjoin
@@ -216,6 +217,11 @@ def _copy_required_libs(
             "Copying library %s to %s", old_path, relpath(new_path, root_path)
         )
         shutil.copy(old_path, new_path)
+        # Make copied file writeable if necessary.
+        statinfo = os.stat(new_path)
+        if not statinfo.st_mode & stat.S_IWRITE:
+            os.chmod(new_path, statinfo.st_mode | stat.S_IWRITE)
+
         # Delocate this file now that it is stored locally.
         needs_delocating.add(new_path)
         # Update out_lib_dict with the new file paths.

@@ -1,6 +1,6 @@
-""" Tests for libsana module
+"""Tests for libsana module.
 
-Utilities for analyzing library dependencies in trees and wheels
+Utilities for analyzing library dependencies in trees and wheels.
 """
 
 import os

@@ -1,4 +1,4 @@
-""" Setup for fakepkg_rpath
+"""Setup for fakepkg_rpath.
 
 This fake package has an extension which links against a library using @rpath
 in its install name.  The library will also be signed with an ad-hoc signature.

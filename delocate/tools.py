@@ -1,4 +1,4 @@
-""" Tools for getting and setting install names """
+"""Tools for getting and setting install names."""
 from __future__ import annotations
 
 import logging
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class InstallNameError(Exception):
-    pass
+    """Errors reading or modifying macOS install name identifiers."""
 
 
 def back_tick(
@@ -42,9 +42,9 @@ def back_tick(
     as_str: bool = True,
     raise_err: Optional[bool] = None,
 ) -> Any:
-    """Run command `cmd`, return stdout, or stdout, stderr if `ret_err`
+    """Run command `cmd`, return stdout, or stdout, stderr if `ret_err`.
 
-    Roughly equivalent to ``check_output`` in Python 2.7
+    Roughly equivalent to ``check_output`` in Python 2.7.
 
     Parameters
     ----------
@@ -105,7 +105,7 @@ def back_tick(
 def _run(
     cmd: Sequence[str], *, check: bool
 ) -> subprocess.CompletedProcess[str]:
-    """Run ``cmd`` capturing output and handling non-zero exit codes by default.
+    r"""Run ``cmd`` capturing output and handling non-zero exit codes by default.
 
     Parameters
     ----------
@@ -129,7 +129,7 @@ def _run(
     Examples
     --------
     >>> _run(["python", "-c", "print('hello')"], check=True)
-    CompletedProcess(args=['python', '-c', "print('hello')"], returncode=0, stdout='hello\\n', stderr='')
+    CompletedProcess(args=['python', '-c', "print('hello')"], returncode=0, stdout='hello\n', stderr='')
     >>> _run(["python", "-c", "print('hello'); raise SystemExit('world')"], check=True)
     Traceback (most recent call last):
         ...
@@ -183,7 +183,7 @@ def _is_macho_file(filename: str | os.PathLike[str]) -> bool:
 
 
 def unique_by_index(sequence):
-    """unique elements in `sequence` in the order in which they occur
+    """Return unique elements in `sequence` in the order in which they occur.
 
     Parameters
     ----------
@@ -203,12 +203,12 @@ def unique_by_index(sequence):
 
 
 def chmod_perms(fname):
-    # Permissions relevant to chmod
+    """Return permissions relevant to chmod."""
     return stat.S_IMODE(os.stat(fname).st_mode)
 
 
 def ensure_permissions(mode_flags=stat.S_IWUSR):
-    """decorator to ensure a filename has given permissions.
+    """Decorate a function to ensure a filename has given permissions.
 
     If changed, original permissions are restored after the decorated
     modification.
@@ -248,7 +248,7 @@ IN_RE = re.compile(
 
 
 def parse_install_name(line: str) -> Tuple[str, str, str]:
-    """Parse a line of install name output
+    """Parse a line of install name output.
 
     Parameters
     ----------
@@ -344,7 +344,7 @@ def _parse_otool_listing(stdout: str) -> Dict[str, List[str]]:
     Traceback (most recent call last):
         ...
     RuntimeError: Input has duplicate architectures for ...
-    '''
+    '''  # noqa: D301
     stdout = stdout.strip()
     out: Dict[str, List[str]] = {}
     lines = stdout.split("\n")
@@ -418,7 +418,7 @@ def _check_ignore_archs(input: Dict[str, T]) -> T:
 def _parse_otool_install_names(
     stdout: str,
 ) -> Dict[str, List[Tuple[str, str, str]]]:
-    '''Parse the stdout of 'otool -L' and return
+    '''Parse the stdout of 'otool -L' and return.
 
     Parameters
     ----------
@@ -449,7 +449,7 @@ def _parse_otool_install_names(
     ... \t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
     ... """)
     {'': [('/usr/lib/libc++.1.dylib', '1.0.0', '905.6.0'), ('/usr/lib/libSystem.B.dylib', '1.0.0', '1292.100.5')]}
-    '''  # noqa: E501
+    '''  # noqa: E501, D301
     out: Dict[str, List[Tuple[str, str, str]]] = {}
     for arch, install_names in _parse_otool_listing(stdout).items():
         out[arch] = [parse_install_name(name) for name in install_names]
@@ -525,9 +525,9 @@ def _line0_says_object(stdout_stderr: str, filename: str) -> bool:
 
 
 def get_install_names(filename: str) -> Tuple[str, ...]:
-    """Return install names from library named in `filename`
+    """Return install names from library named in `filename`.
 
-    Returns tuple of install names
+    Returns tuple of install names.
 
     tuple will be empty if no install names, or if this is not an object file.
 
@@ -566,7 +566,7 @@ def get_install_names(filename: str) -> Tuple[str, ...]:
 
 
 def get_install_id(filename: str) -> Optional[str]:
-    """Return install id from library named in `filename`
+    """Return install id from library named in `filename`.
 
     Returns None if no install id, or if this is not an object file.
 
@@ -634,7 +634,7 @@ def _get_install_ids(filename: str) -> Dict[str, str]:
 def set_install_name(
     filename: str, oldname: str, newname: str, ad_hoc_sign: bool = True
 ) -> None:
-    """Set install name `oldname` to `newname` in library filename
+    """Set install name `oldname` to `newname` in library filename.
 
     Parameters
     ----------
@@ -663,7 +663,7 @@ def set_install_name(
 
 @ensure_writable
 def set_install_id(filename: str, install_id: str, ad_hoc_sign: bool = True):
-    """Set install id for library named in `filename`
+    """Set install id for library named in `filename`.
 
     Parameters
     ----------
@@ -778,8 +778,7 @@ def get_rpaths(filename: str) -> Tuple[str, ...]:
 
 
 def get_environment_variable_paths():
-    """Return a tuple of entries in `DYLD_LIBRARY_PATH` and
-    `DYLD_FALLBACK_LIBRARY_PATH`.
+    """Return a tuple of entries in `DYLD_LIBRARY_PATH` and `DYLD_FALLBACK_LIBRARY_PATH`.
 
     This will allow us to search those locations for dependencies of libraries
     as well as `@rpath` entries.
@@ -788,7 +787,7 @@ def get_environment_variable_paths():
     -------
     env_var_paths : tuple
         path entries in environment variables
-    """
+    """  # noqa: E501
     # We'll search the extra library paths in a specific order:
     # DYLD_LIBRARY_PATH and then DYLD_FALLBACK_LIBRARY_PATH
     env_var_paths = []
@@ -803,7 +802,7 @@ def get_environment_variable_paths():
 
 @ensure_writable
 def add_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
-    """Add rpath `newpath` to library `filename`
+    """Add rpath `newpath` to library `filename`.
 
     Parameters
     ----------
@@ -824,7 +823,7 @@ _SANITARY_RPATH = re.compile(r"^@loader_path/|^@executable_path/")
 
 
 def _is_rpath_sanitary(rpath: str) -> bool:
-    """Returns True if `rpath` is considered sanitary.
+    """Return True if `rpath` is considered sanitary.
 
     Includes only paths relative to `@executable_path` or `@loader_path`.
 
@@ -850,7 +849,7 @@ def _is_rpath_sanitary(rpath: str) -> bool:
 
 @ensure_writable
 def _remove_absolute_rpaths(filename: str, ad_hoc_sign: bool = True) -> None:
-    """Remove absolute filename rpaths in `filename`
+    """Remove absolute filename rpaths in `filename`.
 
     Parameters
     ----------
@@ -874,7 +873,7 @@ def _remove_absolute_rpaths(filename: str, ad_hoc_sign: bool = True) -> None:
 def zip2dir(
     zip_fname: str | PathLike[str], out_dir: str | PathLike[str]
 ) -> None:
-    """Extract `zip_fname` into output directory `out_dir`
+    """Extract `zip_fname` into output directory `out_dir`.
 
     Parameters
     ----------
@@ -909,7 +908,7 @@ _DateTuple = Tuple[int, int, int, int, int, int]
 def _get_zip_datetime(
     date_time: Optional[_DateTuple] = None,
 ) -> Optional[_DateTuple]:
-    """Utility function to support reproducible builds
+    """Return ``SOURCE_DATE_EPOCH`` if set, otherwise return `date_time`.
 
     https://reproducible-builds.org/docs/source-date-epoch/
 
@@ -939,7 +938,7 @@ def dir2zip(
     compress_level: int = -1,
     date_time: Optional[_DateTuple] = None,
 ) -> None:
-    """Make a zip file `zip_fname` with contents of directory `in_dir`
+    """Make a zip file `zip_fname` with contents of directory `in_dir`.
 
     The recorded filenames are relative to `in_dir`, so doing a standard zip
     unpack of the resulting `zip_fname` in an empty directory will result in
@@ -985,7 +984,7 @@ def dir2zip(
 
 
 def find_package_dirs(root_path: str) -> Set[str]:
-    """Find python package directories in directory `root_path`
+    """Find python package directories in directory `root_path`.
 
     Parameters
     ----------
@@ -1007,7 +1006,7 @@ def find_package_dirs(root_path: str) -> Set[str]:
 
 
 def cmp_contents(filename1, filename2):
-    """Returns True if contents of the files are the same
+    """Return True if contents of the files are the same.
 
     Parameters
     ----------
@@ -1030,7 +1029,7 @@ def cmp_contents(filename1, filename2):
 
 
 def get_archs(libname: str) -> FrozenSet[str]:
-    """Return architecture types from library `libname`
+    """Return architecture types from library `libname`.
 
     Parameters
     ----------
@@ -1072,7 +1071,7 @@ def get_archs(libname: str) -> FrozenSet[str]:
 def lipo_fuse(
     in_fname1: str, in_fname2: str, out_fname: str, ad_hoc_sign: bool = True
 ) -> str:
-    """Use lipo to merge libs `filename1`, `filename2`, store in `out_fname`
+    """Use lipo to merge libs `filename1`, `filename2`, store in `out_fname`.
 
     Parameters
     ----------
@@ -1101,9 +1100,9 @@ def lipo_fuse(
 
 @ensure_writable
 def replace_signature(filename: str, identity: str) -> None:
-    """Replace the signature of a binary file using `identity`
+    """Replace the signature of a binary file using `identity`.
 
-    See the codesign documentation for more info
+    See the codesign documentation for more info.
 
     Parameters
     ----------
@@ -1116,12 +1115,12 @@ def replace_signature(filename: str, identity: str) -> None:
 
 
 def validate_signature(filename: str) -> None:
-    """Remove invalid signatures from a binary file
+    """Remove invalid signatures from a binary file.
 
-    If the file signature is missing or valid then it will be ignored
+    If the file signature is missing or valid then it will be ignored.
 
-    Invalid signatures are replaced with an ad-hoc signature.  This is the
-    closest you can get to removing a signature on MacOS
+    Invalid signatures are replaced with an ad-hoc signature.
+    This is the closest you can get to removing a signature on MacOS.
 
     Parameters
     ----------

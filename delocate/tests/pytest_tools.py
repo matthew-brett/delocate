@@ -2,6 +2,10 @@ import os
 
 import pytest
 
+# ruff: noqa
+# I recommend removing this module entirely. -@HexDecimal
+# Assert functions confuse pytest, in_tmp_path is not used.
+
 
 def assert_true(condition):
     __tracebackhide__ = True

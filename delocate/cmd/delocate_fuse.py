@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-""" Fuse two (probably delocated) wheels
+"""Fuse two (probably delocated) wheels.
 
-Overwrites the first wheel in-place by default
+Overwrites the first wheel in-place by default.
 """
 # vim: ft=python
 from __future__ import absolute_import, division, print_function
@@ -27,7 +27,7 @@ parser.add_argument(
 )
 
 
-def main() -> None:
+def main() -> None:  # noqa: D103
     args = parser.parse_args()
     verbosity_config(args)
     wheel1, wheel2 = [abspath(expanduser(wheel)) for wheel in args.wheels]

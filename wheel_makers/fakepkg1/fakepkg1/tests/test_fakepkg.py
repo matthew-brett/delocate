@@ -1,3 +1,4 @@
+"""Local package tests."""
 from delocate.tests.pytest_tools import assert_equal
 
 from ..module1 import func1

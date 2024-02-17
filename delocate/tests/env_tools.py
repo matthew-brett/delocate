@@ -1,3 +1,4 @@
+"""Context managers for working with environment variables."""
 import os
 from contextlib import contextmanager
 from typing import Iterator
@@ -7,9 +8,7 @@ from ..tmpdirs import InTemporaryDirectory
 
 @contextmanager
 def TempDirWithoutEnvVars(*env_vars):
-    """Remove `env_vars` from the environment and restore them after
-    testing is complete.
-    """
+    """Remove `env_vars` from the environment and restore them after testing is complete."""  # noqa: E501
     old_vars = {}
     for var in env_vars:
         old_vars[var] = os.environ.get(var, None)
@@ -29,9 +28,7 @@ def TempDirWithoutEnvVars(*env_vars):
 
 @contextmanager
 def _scope_env(**env: str) -> Iterator[None]:
-    """Add `env` to the environment and remove them after testing
-    is complete.
-    """
+    """Add `env` to the environment and remove them after testing is complete."""  # noqa: E501
     env_save = {key: os.environ.get(key) for key in env}
     try:
         os.environ.update(env)

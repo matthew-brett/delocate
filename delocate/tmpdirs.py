@@ -6,9 +6,7 @@
 #   copyright and license terms.
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
-"""
-Contexts for *with* statement providing temporary directories
-"""
+"""Contexts for *with* statement providing temporary directories."""
 from __future__ import absolute_import, division, print_function
 
 import os
@@ -17,8 +15,9 @@ from tempfile import mkdtemp, template
 
 
 class TemporaryDirectory(object):
-    """Create and return a temporary directory.  This has the same
-    behavior as mkdtemp but can be used as a context manager.
+    r"""Create and return a temporary directory.
+
+    This has the same behavior as mkdtemp but can be used as a context manager.
 
     Upon exiting the context, the directory and everything contained
     in it are removed.
@@ -29,7 +28,7 @@ class TemporaryDirectory(object):
     >>> with TemporaryDirectory() as tmpdir:
     ...     fname = os.path.join(tmpdir, 'example_file.txt')
     ...     with open(fname, 'wt') as fobj:
-    ...         _ = fobj.write('a string\\n')
+    ...         _ = fobj.write('a string\n')
     >>> os.path.exists(tmpdir)
     False
     """
@@ -39,20 +38,23 @@ class TemporaryDirectory(object):
         self._closed = False
 
     def __enter__(self):
+        """Return the directory managed by this context."""
         return self.name
 
     def cleanup(self):
+        """Delete the directory managed by this context if it exists."""
         if not self._closed:
             shutil.rmtree(self.name)
             self._closed = True
 
     def __exit__(self, exc, value, tb):
+        """Clean up the directory on exit."""
         self.cleanup()
         return False
 
 
 class InTemporaryDirectory(TemporaryDirectory):
-    """Create, return, and change directory to a temporary directory
+    """Create, return, and change directory to a temporary directory.
 
     Examples
     --------
@@ -69,17 +71,19 @@ class InTemporaryDirectory(TemporaryDirectory):
     """
 
     def __enter__(self):
+        """Chdir to the managed directory and then return its path."""
         self._pwd = os.getcwd()
         os.chdir(self.name)
         return super(InTemporaryDirectory, self).__enter__()
 
     def __exit__(self, exc, value, tb):
+        """Revert the working directory then delete the managed directory."""
         os.chdir(self._pwd)
         return super(InTemporaryDirectory, self).__exit__(exc, value, tb)
 
 
 class InGivenDirectory(object):
-    """Change directory to given directory for duration of ``with`` block
+    """Change directory to given directory for duration of ``with`` block.
 
     Useful when you want to use `InTemporaryDirectory` for the final test, but
     you are still debugging.  For example, you may want to do this in the end:
@@ -103,7 +107,7 @@ class InGivenDirectory(object):
     """
 
     def __init__(self, path=None):
-        """Initialize directory context manager
+        """Initialize directory context manager.
 
         Parameters
         ----------
@@ -116,6 +120,7 @@ class InGivenDirectory(object):
         self.path = os.path.abspath(path)
 
     def __enter__(self):
+        """Chdir to the managed directory, creating it if needed."""
         self._pwd = os.path.abspath(os.getcwd())
         if not os.path.isdir(self.path):
             os.mkdir(self.path)
@@ -123,4 +128,5 @@ class InGivenDirectory(object):
         return self.path
 
     def __exit__(self, exc, value, tb):
+        """Revert the working directory."""
         os.chdir(self._pwd)

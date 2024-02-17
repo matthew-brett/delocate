@@ -1,5 +1,4 @@
-""" Routines to copy / relink library dependencies in trees and wheels
-"""
+"""Routines to copy / relink library dependencies in trees and wheels."""
 
 from __future__ import annotations
 
@@ -75,7 +74,7 @@ def delocate_tree_libs(
     *,
     sanitize_rpaths: bool = False,
 ) -> Dict[Text, Dict[Text, Text]]:
-    """Move needed libraries in `lib_dict` into `lib_path`
+    """Move needed libraries in `lib_dict` into `lib_path`.
 
     `lib_dict` has keys naming libraries required by the files in the
     corresponding value.  Call the keys, "required libs".  Call the values
@@ -265,7 +264,7 @@ def copy_recurse(
     copy_filt_func: Optional[Callable[[Text], bool]] = None,
     copied_libs: Optional[Dict[Text, Dict[Text, Text]]] = None,
 ) -> Dict[Text, Dict[Text, Text]]:
-    """Analyze `lib_path` for library dependencies and copy libraries
+    """Analyze `lib_path` for library dependencies and copy libraries.
 
     `lib_path` is a directory containing libraries.  The libraries might
     themselves have dependencies.  This function analyzes the dependencies and
@@ -324,7 +323,7 @@ def _copy_required(
     copy_filt_func: Optional[Callable[[Text], bool]],
     copied_libs: Dict[Text, Dict[Text, Text]],
 ) -> None:
-    """Copy libraries required for files in `lib_path` to `copied_libs`
+    """Copy libraries required for files in `lib_path` to `copied_libs`.
 
     Augment `copied_libs` dictionary with any newly copied libraries, modifying
     `copied_libs` in-place - see Notes.
@@ -419,6 +418,7 @@ def _dylibs_only(filename: str) -> bool:
 
 
 def filter_system_libs(libname: str) -> bool:
+    """Return False for system libraries."""
     return not (libname.startswith("/usr/lib") or libname.startswith("/System"))
 
 
@@ -428,8 +428,10 @@ def _delocate_filter_function(
     lib_filt_func: Callable[[str], bool],
     copy_filt_func: Callable[[str], bool],
 ) -> bool:
-    """Combines the library inspection and copy filters so that libraries
-    which won't be copied will not be followed."""
+    """Combine the library inspection and copy filters into one function.
+
+    So that libraries which won't be copied will not be followed.
+    """
     return lib_filt_func(path) and copy_filt_func(path)
 
 
@@ -443,7 +445,7 @@ def delocate_path(
     *,
     sanitize_rpaths: bool = False,
 ) -> Dict[Text, Dict[Text, Text]]:
-    """Copy required libraries for files in `tree_path` into `lib_path`
+    """Copy required libraries for files in `tree_path` into `lib_path`.
 
     Parameters
     ----------
@@ -520,7 +522,7 @@ def delocate_path(
 def _copy_lib_dict(
     lib_dict: Mapping[Text, Mapping[Text, Text]],
 ) -> Dict[Text, Dict[Text, Text]]:
-    """Returns a copy of lib_dict."""
+    """Return a copy of lib_dict."""
     return {  # Convert nested Mapping types into nested Dict types.
         required: dict(requiring) for required, requiring in lib_dict.items()
     }
@@ -630,8 +632,7 @@ def _get_macos_min_version(dylib_path: Path) -> Iterator[tuple[str, Version]]:
 def _get_archs_and_version_from_wheel_name(
     wheel_name: str,
 ) -> dict[str, Version]:
-    """
-    Get the architecture and minimum macOS version from the wheel name.
+    """Get the architecture and minimum macOS version from the wheel name.
 
     Parameters
     ----------
@@ -660,9 +661,7 @@ def _get_problematic_libs(
     version_lib_dict: Dict[Version, List[Path]],
     arch: str,
 ) -> set[tuple[Path, Version]]:
-    """
-    Filter libraries that require more modern macOS
-    version than the provided one.
+    """Find libraries which require a more modern macOS version.
 
     Parameters
     ----------
@@ -703,9 +702,10 @@ def _calculate_minimum_wheel_name(
     wheel_dir: Path,
     require_target_macos_version: Optional[Version],
 ) -> tuple[str, set[tuple[Path, Version]]]:
-    """
-    Update wheel name platform tag, based on the architecture
-    of the libraries in the wheel and actual platform tag.
+    """Return a wheel name with an updated platform tag.
+
+    Based on the architecture of the libraries in the wheel and actual platform
+    tag.
 
     Parameters
     ----------
@@ -811,9 +811,9 @@ def _check_and_update_wheel_name(
     wheel_dir: Path,
     require_target_macos_version: Optional[Version],
 ) -> Path:
-    """
-    Based on curren wheel name and binary files in the wheel,
-    determine the minimum platform tag and update the wheel name if needed.
+    """Determine the minimum platform tag and update the wheel name if needed.
+
+    Based on current wheel name and binary files in the wheel.
 
     Parameters
     ----------
@@ -884,7 +884,7 @@ def delocate_wheel(
     sanitize_rpaths: bool = False,
     require_target_macos_version: Optional[Version] = None,
 ) -> Dict[str, Dict[str, str]]:
-    """Update wheel by copying required libraries to `lib_sdir` in wheel
+    """Update wheel by copying required libraries to `lib_sdir` in wheel.
 
     Create `lib_sdir` in wheel tree only if we are copying one or more
     libraries.
@@ -1018,7 +1018,7 @@ def delocate_wheel(
 def patch_wheel(
     in_wheel: Text, patch_fname: Text, out_wheel: Optional[Text] = None
 ) -> None:
-    """Apply ``-p1`` style patch in `patch_fname` to contents of `in_wheel`
+    """Apply ``-p1`` style patch in `patch_fname` to contents of `in_wheel`.
 
     If `out_wheel` is None (the default), overwrite the wheel `in_wheel`
     in-place.
@@ -1063,7 +1063,7 @@ def check_archs(
 ) -> Set[
     Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]
 ]:
-    """Check compatibility of archs in `copied_libs` dict
+    """Check compatibility of archs in `copied_libs` dict.
 
     Parameters
     ----------
@@ -1127,7 +1127,7 @@ def check_archs(
 
 
 def bads_report(bads, path_prefix=None):
-    """Return a nice report of bad architectures in `bads`
+    """Return a nice report of bad architectures in `bads`.
 
     Parameters
     ----------

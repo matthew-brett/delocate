@@ -1,4 +1,4 @@
-""" Direct tests of fixes to wheels """
+"""Direct tests of fixes to wheels."""
 from __future__ import annotations
 
 import os
@@ -405,9 +405,7 @@ def test_fix_rpath():
 
         # Now test filters with recursive dependencies.
         def ignore_libextfunc(path: str) -> bool:
-            """Ignore libextfunc which will also ignore its dependency and
-            include no files.
-            """
+            """Ignore libextfunc which will also ignore its dependency and include no files."""  # noqa: E501
             return "libextfunc_rpath.dylib" not in path
 
         assert (

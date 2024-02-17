@@ -1,4 +1,4 @@
-""" Tests for relocating libraries """
+"""Tests for relocating libraries."""
 
 from __future__ import division, print_function
 

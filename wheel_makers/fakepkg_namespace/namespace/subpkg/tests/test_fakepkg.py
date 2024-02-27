@@ -1,3 +1,4 @@
+"""Local package tests."""
 from namespace.subpkg.module2 import func2, func3  # type: ignore
 
 

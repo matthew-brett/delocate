@@ -1,4 +1,4 @@
-""" Tests for install name utilities """
+"""Tests for install name utilities."""
 
 import contextlib
 import os
@@ -199,7 +199,7 @@ def _copy_libs(lib_files, out_path):
 def assert_raises_if_exception(
     exception: object,
 ) -> ContextManager[object]:
-    """Returns a pytest.raises context if `exception` is an Exception type."""
+    """Return a pytest.raises context if `exception` is an Exception type."""
     if isinstance(exception, type) and issubclass(exception, Exception):
         return pytest.raises(exception)
     return contextlib.nullcontext()
@@ -218,7 +218,7 @@ class ToolArchMock(NamedTuple):
     def mock_subprocess_run(
         self, cmd: Sequence[str], *args: object, **kwargs: object
     ) -> CompletedProcess:
-        """A function to mock subprocess.run with this objects commands."""
+        """Mock subprocess.run with this objects commands."""
         return CompletedProcess(cmd, 0, stdout=self.commands[tuple(cmd)])
 
 

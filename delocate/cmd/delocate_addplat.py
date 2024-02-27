@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" Add platform tags to wheel filename(s) and WHEEL file in wheel
+"""Add platform tags to wheel filename(s) and WHEEL file in wheel.
 
 Example:
 
@@ -91,7 +91,7 @@ parser.add_argument(
 )
 
 
-def main() -> None:
+def main() -> None:  # noqa: D103
     args = parser.parse_args()
     verbosity_config(args)
     wheels = list(glob_paths(args.wheels))

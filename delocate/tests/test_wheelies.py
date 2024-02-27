@@ -1,4 +1,4 @@
-""" Direct tests of fixes to wheels """
+"""Direct tests of fixes to wheels."""
 from __future__ import annotations
 
 import os
@@ -350,7 +350,7 @@ def test_patch_wheel() -> None:
         shutil.copyfile(PURE_WHEEL, "copied.whl")
         zip2dir("copied.whl", "wheel2")
         with open(pjoin("wheel2", "fakepkg2", "__init__.py"), "rt") as fobj:
-            assert fobj.read() == ""
+            assert fobj.read() == '"""Fake package."""\n'
         # Overwrite input wheel (the default)
         patch_wheel("copied.whl", WHEEL_PATCH)
         # Patched
@@ -405,9 +405,7 @@ def test_fix_rpath():
 
         # Now test filters with recursive dependencies.
         def ignore_libextfunc(path: str) -> bool:
-            """Ignore libextfunc which will also ignore its dependency and
-            include no files.
-            """
+            """Ignore libextfunc which will also ignore its dependency and include no files."""  # noqa: E501
             return "libextfunc_rpath.dylib" not in path
 
         assert (

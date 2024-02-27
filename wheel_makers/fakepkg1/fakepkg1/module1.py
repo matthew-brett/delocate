@@ -1,5 +1,6 @@
-""" First module """
+"""First module."""
 
 
-def func1():
+def func1() -> int:
+    """Return 1."""
     return 1

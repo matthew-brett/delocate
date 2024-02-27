@@ -1,6 +1,6 @@
-""" General tools for working with wheels
+"""General tools for working with wheels.
 
-Tools that aren't specific to delocation
+Tools that aren't specific to delocation.
 """
 
 import base64
@@ -24,22 +24,22 @@ from .tools import dir2zip, open_rw, unique_by_index, zip2dir
 
 
 class WheelToolsError(Exception):
-    pass
+    """Errors raised when reading or writing wheel files."""
 
 
 def _open_for_csv(name, mode):
-    """Deal with Python 2/3 open API differences"""
+    """Deal with Python 2/3 open API differences."""
     if sys.version_info[0] < 3:
         return open_rw(name, mode + "b")
     return open_rw(name, mode, newline="", encoding="utf-8")
 
 
 def rewrite_record(bdist_dir: str) -> None:
-    """Rewrite RECORD file with hashes for all files in `wheel_sdir`
+    """Rewrite RECORD file with hashes for all files in `wheel_sdir`.
 
-    Copied from :method:`wheel.bdist_wheel.bdist_wheel.write_record`
+    Copied from :method:`wheel.bdist_wheel.bdist_wheel.write_record`.
 
-    Will also unsign wheel
+    Will also unsign wheel.
 
     Parameters
     ----------
@@ -85,7 +85,7 @@ def rewrite_record(bdist_dir: str) -> None:
 
 
 class InWheel(InTemporaryDirectory):
-    """Context manager for doing things inside wheels
+    """Context manager for doing things inside wheels.
 
     On entering, you'll find yourself in the root tree of the wheel.  If you've
     asked for an output wheel, then on exit we'll rewrite the wheel record and
@@ -93,7 +93,7 @@ class InWheel(InTemporaryDirectory):
     """
 
     def __init__(self, in_wheel, out_wheel=None, ret_self=False):
-        """Initialize in-wheel context manager
+        """Initialize in-wheel context manager.
 
         Parameters
         ----------
@@ -111,10 +111,18 @@ class InWheel(InTemporaryDirectory):
         super(InWheel, self).__init__()
 
     def __enter__(self):
+        """Unpack a wheel and return the path to its temporary directly.
+
+        Will also chdir to the temporary directory.
+        """
         zip2dir(self.in_wheel, self.name)
         return super(InWheel, self).__enter__()
 
     def __exit__(self, exc, value, tb):
+        """Write out the wheel based on the value of `out_wheel`, then cleanup.
+
+        Reverts the working directory and deletes the temporary directory.
+        """
         if self.out_wheel is not None:
             rewrite_record(self.name)
             dir2zip(self.name, self.out_wheel)
@@ -122,7 +130,7 @@ class InWheel(InTemporaryDirectory):
 
 
 class InWheelCtx(InWheel):
-    """Context manager for doing things inside wheels
+    """Context manager for doing things inside wheels.
 
     On entering, you'll find yourself in the root tree of the wheel.  If you've
     asked for an output wheel, then on exit we'll rewrite the wheel record and
@@ -130,7 +138,7 @@ class InWheelCtx(InWheel):
 
     The context manager returns itself from the __enter__ method, so you can
     set things like ``out_wheel``.  This is useful when processing in the wheel
-    will dicate what the output wheel name is, or whether you want to save at
+    will dictate what the output wheel name is, or whether you want to save at
     all.
 
     The current path of the wheel contents is set in the attribute
@@ -138,7 +146,7 @@ class InWheelCtx(InWheel):
     """
 
     def __init__(self, in_wheel, out_wheel=None):
-        """Init in-wheel context manager returning self from enter
+        """Init in-wheel context manager returning self from enter.
 
         Parameters
         ----------
@@ -152,6 +160,11 @@ class InWheelCtx(InWheel):
         self.wheel_path = None
 
     def __enter__(self):
+        # NOTICE: this method breaks the Liskov substitution principle.
+        """Unpack a wheel to a temporary directory and return self.
+
+        Will also chdir to the temporary directory.
+        """
         self.wheel_path = super(InWheelCtx, self).__enter__()
         return self
 
@@ -182,7 +195,7 @@ def add_platforms(
     out_path: Optional[str] = None,
     clobber: bool = False,
 ) -> Optional[str]:
-    """Add platform tags `platforms` to `in_wheel` filename and WHEEL tags
+    """Add platform tags `platforms` to `in_wheel` filename and WHEEL tags.
 
     Add any platform tags in `platforms` that are missing from `in_wheel`
     filename.

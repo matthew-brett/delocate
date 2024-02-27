@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-""" Apply patch to tree stored in wheel
+"""Apply patch to tree stored in wheel.
 
-Overwrites the wheel in-place by default
+Overwrites the wheel in-place by default.
 """
 # vim: ft=python
 from __future__ import absolute_import, division, print_function
@@ -30,7 +30,7 @@ parser.add_argument(
 )
 
 
-def main() -> None:
+def main() -> None:  # noqa: D103
     args = parser.parse_args()
     verbosity_config(args)
     if args.wheel_dir:

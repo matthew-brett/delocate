@@ -1,4 +1,4 @@
-""" Test tools module """
+"""Test tools module."""
 from __future__ import division, print_function
 
 import os
@@ -272,7 +272,7 @@ def test_get_archs_fuse():
 def test_validate_signature() -> None:
     # Fully test the validate_signature tool
     def check_signature(filename: str) -> None:
-        """Raises CalledProcessError if the signature can not be verified."""
+        """Raise CalledProcessError if the signature can not be verified."""
         subprocess.run(["codesign", "--verify", filename], check=True)
 
     with InTemporaryDirectory():

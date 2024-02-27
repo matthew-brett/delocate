@@ -1,5 +1,4 @@
-""" Tests for wheeltools utilities
-"""
+"""Tests for wheeltools utilities."""
 
 import os
 import re

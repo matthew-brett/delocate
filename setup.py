@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" setup script for delocate package """
+"""Setup script for delocate package."""
 from os.path import join as pjoin
 
 from setuptools import find_packages, setup

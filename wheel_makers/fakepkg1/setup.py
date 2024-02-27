@@ -1,4 +1,4 @@
-""" Setup for fakepkg1
+"""Setup for fakepkg1.
 
 fakepkg1 is a - fake package - that has extensions and links against an external
 dynamic lib.  We use it to build a wheel, then test we can delocate it.

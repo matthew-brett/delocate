@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-""" Copy, relink library dependencies for wheel
+"""Copy, relink library dependencies for wheel.
 
-Overwrites the wheel in-place by default
+Overwrites the wheel in-place by default.
 """
 # vim: ft=python
 from __future__ import annotations
@@ -71,7 +71,7 @@ parser.add_argument(
 )
 
 
-def main() -> None:
+def main() -> None:  # noqa: D103
     args = parser.parse_args()
     verbosity_config(args)
     wheels = list(glob_paths(args.wheels))

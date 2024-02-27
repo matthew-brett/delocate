@@ -1,5 +1,4 @@
-""" Test fusing two directory trees / wheels
-"""
+"""Test fusing two directory trees / wheels."""
 
 import os
 import shutil

@@ -1,6 +1,6 @@
-""" Analyze libraries in trees
+"""Analyze libraries in trees.
 
-Analyze library dependencies in paths and wheel files
+Analyze library dependencies in paths and wheel files.
 """
 
 import logging
@@ -33,13 +33,11 @@ logger = logging.getLogger(__name__)
 
 
 class DelocationError(Exception):
-    pass
+    """Generic error for when a problem is encountered during delocation."""
 
 
 class DependencyNotFound(Exception):
-    """
-    Raised by tree_libs or resolve_rpath if an expected dependency is missing.
-    """
+    """Raised by tree_libs or resolve_rpath if an expected dependency is missing."""  # noqa: E501
 
 
 def _filter_system_libs(libname: Text) -> bool:
@@ -51,7 +49,7 @@ def get_dependencies(
     executable_path: Optional[Text] = None,
     filt_func: Callable[[str], bool] = lambda filepath: True,
 ) -> Iterator[Tuple[Optional[Text], Text]]:
-    """Find and yield the real paths of dependencies of the library `lib_fname`
+    """Find and yield the real paths of dependencies of the library `lib_fname`.
 
     This function is used to search for the real files that are required by
     `lib_fname`.
@@ -387,7 +385,7 @@ def tree_libs_from_directory(
 
 
 def _allow_all(path: str) -> bool:
-    """A filter which returns True for all files."""
+    """Return True for all files."""
     return True
 
 
@@ -395,7 +393,7 @@ def tree_libs(
     start_path: Text,
     filt_func: Optional[Callable[[Text], bool]] = None,
 ) -> Dict[Text, Dict[Text, Text]]:
-    """Return analysis of library dependencies within `start_path`
+    """Return analysis of library dependencies within `start_path`.
 
     Parameters
     ----------
@@ -405,6 +403,7 @@ def tree_libs(
         If None, inspect all files for library dependencies. If callable,
         accepts filename as argument, returns True if we should inspect the
         file, False otherwise.
+
     Returns
     -------
     lib_dict : dict
@@ -423,7 +422,6 @@ def tree_libs(
 
     Notes
     -----
-
     See:
 
     * https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/dyld.1.html
@@ -544,17 +542,20 @@ def resolve_dynamic_paths(
 
 
 def resolve_rpath(lib_path: Text, rpaths: Iterable[Text]) -> Text:
-    """Return `lib_path` with its `@rpath` resolved
+    """Return `lib_path` with its `@rpath` resolved.
+
     If the `lib_path` doesn't have `@rpath` then it's returned as is.
     If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
     combination found.  If the library can't be found in `rpaths` then a
     detailed warning is printed and `lib_path` is returned as is.
+
     Parameters
     ----------
     lib_path : str
         The path to a library file, which may or may not start with `@rpath`.
     rpaths : sequence of str
         A sequence of search paths, usually gotten from a call to `get_rpaths`.
+
     Returns
     -------
     lib_path : str
@@ -589,7 +590,7 @@ def resolve_rpath(lib_path: Text, rpaths: Iterable[Text]) -> Text:
 
 
 def search_environment_for_lib(lib_path: Text) -> Text:
-    """Search common environment variables for `lib_path`
+    """Search common environment variables for `lib_path`.
 
     We'll use a single approach here:
 
@@ -643,7 +644,7 @@ def search_environment_for_lib(lib_path: Text) -> Text:
 
 
 def get_prefix_stripper(strip_prefix: Text) -> Callable[[Text], Text]:
-    """Return function to strip `strip_prefix` prefix from string if present
+    """Return function to strip `strip_prefix` prefix from string if present.
 
     Parameters
     ----------
@@ -665,7 +666,7 @@ def get_prefix_stripper(strip_prefix: Text) -> Callable[[Text], Text]:
 
 
 def get_rp_stripper(strip_path: Text) -> Callable[[Text], Text]:
-    """Return function to strip ``realpath`` of `strip_path` from string
+    """Return function to strip ``realpath`` of `strip_path` from string.
 
     Parameters
     ----------
@@ -685,7 +686,7 @@ def get_rp_stripper(strip_path: Text) -> Callable[[Text], Text]:
 def stripped_lib_dict(
     lib_dict: Dict[Text, Dict[Text, Text]], strip_prefix: Text
 ) -> Dict[Text, Dict[Text, Text]]:
-    """Return `lib_dict` with `strip_prefix` removed from start of paths
+    """Return `lib_dict` with `strip_prefix` removed from start of paths.
 
     Use to give form of `lib_dict` that appears relative to some base path
     given by `strip_prefix`.  Particularly useful for analyzing wheels where we
@@ -723,7 +724,7 @@ def wheel_libs(
     *,
     ignore_missing: bool = False,
 ) -> Dict[Text, Dict[Text, Text]]:
-    """Return analysis of library dependencies with a Python wheel
+    """Return analysis of library dependencies with a Python wheel.
 
     Use this routine for a dump of the dependency tree.
 

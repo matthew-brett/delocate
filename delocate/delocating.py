@@ -543,7 +543,7 @@ def _decide_dylib_bundle_directory(
     lib_sdir : str, optional
         Default value for lib sub-directory passed in via
         :func:`delocate_wheel`.
-        Ignored if wheel has no package directories.
+        If wheel has no package directories, used as a suffix.
 
     Returns
     -------
@@ -559,7 +559,7 @@ def _decide_dylib_bundle_directory(
         # Otherwise, store dylib files in the first package alphabetically.
         return pjoin(min(package_dirs), lib_sdir)
     # Otherwise, use an auditwheel-style top-level name.
-    return pjoin(wheel_dir, f"{package_name}.dylibs")
+    return pjoin(wheel_dir, f"{package_name}{lib_sdir}")
 
 
 def _make_install_name_ids_unique(

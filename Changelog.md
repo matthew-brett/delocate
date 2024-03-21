@@ -23,6 +23,11 @@ rules on making a good Changelog.
 - `delocate-wheel` is now more strict with platform tags and will no longer allow
   a wheel to be incompatible with its own tags. #198
 
+### Fixed
+
+- Fixes deleting duplicated rpaths when sanitize-rpaths option is turned on.
+  [#208](https://github.com/matthew-brett/delocate/pull/208)
+
 ## [0.10.7] - 2023-12-12
 
 ### Changed

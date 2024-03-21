@@ -18,6 +18,7 @@ from typing import (
     Any,
     Dict,
     FrozenSet,
+    Iterable,
     List,
     Optional,
     Sequence,
@@ -750,6 +751,8 @@ def get_rpaths(filename: str) -> Tuple[str, ...]:
     """Return a tuple of rpaths from the library `filename`.
 
     If `filename` is not a library then the returned tuple will be empty.
+    Duplicate rpaths will be returned if there are duplicate rpaths in the
+    Mach-O binary.
 
     Parameters
     ----------
@@ -818,6 +821,34 @@ def add_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
         replace_signature(filename, "-")
 
 
+@ensure_writable
+def _delete_rpaths(
+    filename: str, rpaths: Iterable[str], ad_hoc_sign: bool = True
+) -> None:
+    """Remove rpath `newpath` from library `filename`.
+
+    Parameters
+    ----------
+    filename : str
+        filename of library
+    rpaths : Iterable[str]
+        rpaths to delete
+    ad_hoc_sign : {True, False}, optional
+        If True, sign file with ad-hoc signature
+    """
+    for rpath in rpaths:
+        logger.info("Sanitize: Deleting rpath %r from %r", rpath, filename)
+        # We can run these as one command to install_name_tool if there are
+        # no duplicates. When there are duplicates, we need to delete them
+        # separately.
+        _run(
+            ["install_name_tool", "-delete_rpath", rpath, filename],
+            check=True,
+        )
+    if ad_hoc_sign:
+        replace_signature(filename, "-")
+
+
 _SANITARY_RPATH = re.compile(r"^@loader_path/|^@executable_path/")
 """Matches rpaths which are considered sanitary."""
 
@@ -858,16 +889,15 @@ def _remove_absolute_rpaths(filename: str, ad_hoc_sign: bool = True) -> None:
     ad_hoc_sign : {True, False}, optional
         If True, sign file with ad-hoc signature
     """
-    commands = []  # install_name_tool commands
-    for rpath in get_rpaths(filename):
-        if not _is_rpath_sanitary(rpath):
-            commands += ["-delete_rpath", rpath]
-            logger.info("Sanitize: Deleting rpath %r from %r", rpath, filename)
-    if not commands:
-        return
-    _run(["install_name_tool", filename, *commands], check=True)
-    if ad_hoc_sign:
-        replace_signature(filename, "-")
+    _delete_rpaths(
+        filename,
+        (
+            rpath
+            for rpath in get_rpaths(filename)
+            if not _is_rpath_sanitary(rpath)
+        ),
+        ad_hoc_sign,
+    )
 
 
 def zip2dir(

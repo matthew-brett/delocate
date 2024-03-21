@@ -18,6 +18,7 @@ from typing import (
     Any,
     Dict,
     FrozenSet,
+    Iterable,
     List,
     Optional,
     Sequence,
@@ -821,8 +822,8 @@ def add_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
 
 
 @ensure_writable
-def _delete_rpath(
-    filename: str, existing_path: str, ad_hoc_sign: bool = True
+def _delete_rpaths(
+    filename: str, rpaths: Iterable[str], ad_hoc_sign: bool = True
 ) -> None:
     """Remove rpath `newpath` from library `filename`.
 
@@ -830,15 +831,20 @@ def _delete_rpath(
     ----------
     filename : str
         filename of library
-    existing_path : str
-        rpath to delete
+    rpaths : Iterable[str]
+        rpaths to delete
     ad_hoc_sign : {True, False}, optional
         If True, sign file with ad-hoc signature
     """
-    _run(
-        ["install_name_tool", "-delete_rpath", existing_path, filename],
-        check=True,
-    )
+    for rpath in rpaths:
+        logger.info("Sanitize: Deleting rpath %r from %r", rpath, filename)
+        # We can run these as one command to install_name_tool if there are
+        # no duplicates. When there are duplicates, we need to delete them
+        # separately.
+        _run(
+            ["install_name_tool", "-delete_rpath", rpath, filename],
+            check=True,
+        )
     if ad_hoc_sign:
         replace_signature(filename, "-")
 
@@ -883,13 +889,15 @@ def _remove_absolute_rpaths(filename: str, ad_hoc_sign: bool = True) -> None:
     ad_hoc_sign : {True, False}, optional
         If True, sign file with ad-hoc signature
     """
-    for rpath in get_rpaths(filename):
-        if not _is_rpath_sanitary(rpath):
-            logger.info("Sanitize: Deleting rpath %r from %r", rpath, filename)
-            # We can run these as one command to install_name_tool if there are
-            # no duplicates. When there are duplicates, we need to delete them
-            # separately.
-            _delete_rpath(filename, rpath, ad_hoc_sign=False)
+    _delete_rpaths(
+        filename,
+        (
+            rpath
+            for rpath in get_rpaths(filename)
+            if not _is_rpath_sanitary(rpath)
+        ),
+        ad_hoc_sign,
+    )
 
     if ad_hoc_sign:
         replace_signature(filename, "-")

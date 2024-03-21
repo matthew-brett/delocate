@@ -25,7 +25,7 @@ rules on making a good Changelog.
 
 ### Fixed
 
-- Fixes deleting duplicated rpaths when sanitize-rpaths option is turned on.
+- `--sanitize-rpaths` was failing with duplicate rpaths.
   [#208](https://github.com/matthew-brett/delocate/pull/208)
 
 ## [0.10.7] - 2023-12-12

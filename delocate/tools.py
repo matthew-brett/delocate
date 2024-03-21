@@ -899,9 +899,6 @@ def _remove_absolute_rpaths(filename: str, ad_hoc_sign: bool = True) -> None:
         ad_hoc_sign,
     )
 
-    if ad_hoc_sign:
-        replace_signature(filename, "-")
-
 
 def zip2dir(
     zip_fname: str | PathLike[str], out_dir: str | PathLike[str]

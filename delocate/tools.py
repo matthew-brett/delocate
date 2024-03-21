@@ -750,6 +750,8 @@ def get_rpaths(filename: str) -> Tuple[str, ...]:
     """Return a tuple of rpaths from the library `filename`.
 
     If `filename` is not a library then the returned tuple will be empty.
+    Duplicate rpaths will be returned if there are duplicate rpaths in the
+    Mach-O binary.
 
     Parameters
     ----------
@@ -819,7 +821,7 @@ def add_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
 
 
 @ensure_writable
-def delete_rpath(
+def _delete_rpath(
     filename: str, existing_path: str, ad_hoc_sign: bool = True
 ) -> None:
     """Remove rpath `newpath` from library `filename`.
@@ -887,7 +889,10 @@ def _remove_absolute_rpaths(filename: str, ad_hoc_sign: bool = True) -> None:
             # We can run these as one command to install_name_tool if there are
             # no duplicates. When there are duplicates, we need to delete them
             # separately.
-            delete_rpath(filename, rpath, ad_hoc_sign)
+            _delete_rpath(filename, rpath, ad_hoc_sign=False)
+
+    if ad_hoc_sign:
+        replace_signature(filename, "-")
 
 
 def zip2dir(

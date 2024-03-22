@@ -10,6 +10,8 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+## [0.11.0] - 2024-03-22
+
 ### Added
 
 - Use `--require-target-macos-version` or the `MACOSX_DEPLOYMENT_TARGET`

@@ -1,4 +1,5 @@
 """Setup package with an extension linked to an external library."""
+
 import subprocess
 from pathlib import Path
 

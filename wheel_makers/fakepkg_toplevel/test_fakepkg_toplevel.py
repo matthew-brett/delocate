@@ -1,4 +1,5 @@
 """Test fake package."""
+
 from module2 import func2, func3  # type: ignore
 
 

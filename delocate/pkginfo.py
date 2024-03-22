@@ -2,6 +2,7 @@
 
 This is based on a copy of the old wheel.pkginfo module.
 """  # noqa: E501
+
 from email.generator import Generator
 from email.message import Message
 from email.parser import Parser

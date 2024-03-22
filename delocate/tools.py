@@ -1,4 +1,5 @@
 """Tools for getting and setting install names."""
+
 from __future__ import annotations
 
 import logging

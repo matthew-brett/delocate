@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Copy, relink library dependencies for libraries in path."""
+
 # vim: ft=python
 from __future__ import absolute_import, division, print_function
 

@@ -6,6 +6,7 @@ If we appear to be running from the development directory, use the scripts in
 the top-level folder ``scripts``.  Otherwise try and get the scripts from the
 path.
 """
+
 from __future__ import annotations
 
 import os

@@ -2,6 +2,7 @@
 
 All functions in this module are private.
 """
+
 from __future__ import annotations
 
 import glob

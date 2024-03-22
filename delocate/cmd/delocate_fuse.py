@@ -3,6 +3,7 @@
 
 Overwrites the first wheel in-place by default.
 """
+
 # vim: ft=python
 from __future__ import absolute_import, division, print_function
 

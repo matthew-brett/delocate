@@ -3,6 +3,7 @@
 
 Overwrites the wheel in-place by default.
 """
+
 # vim: ft=python
 from __future__ import annotations
 

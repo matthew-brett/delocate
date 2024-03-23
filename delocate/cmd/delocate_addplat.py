@@ -13,6 +13,7 @@ or (adds tags for OSX 10.9 and 10.10):
 
     delocate-addplat -x 10_9 -x 10_10 *.whl
 """
+
 # vim: ft=python
 from __future__ import absolute_import, division, print_function
 

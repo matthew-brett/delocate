@@ -12,7 +12,6 @@ with the same relative path in ``to_tree``]. In this case the two files are
 libraries.
 """
 
-
 import os
 import shutil
 from os.path import abspath, exists, relpath, splitext

@@ -175,8 +175,7 @@ def add_platforms(
     platforms: Iterable[str],
     out_path: str,
     clobber: bool = False,
-) -> str:
-    ...
+) -> str: ...
 
 
 @overload
@@ -185,8 +184,7 @@ def add_platforms(
     platforms: Iterable[str],
     out_path: None = None,
     clobber: bool = False,
-) -> None:
-    ...
+) -> None: ...
 
 
 def add_platforms(

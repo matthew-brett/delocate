@@ -10,6 +10,11 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+### Changed
+
+- Improved error message for when a MacOS target version is not met.
+  [#211](https://github.com/matthew-brett/delocate/issues/211)
+
 ## [0.11.0] - 2024-03-22
 
 ### Added

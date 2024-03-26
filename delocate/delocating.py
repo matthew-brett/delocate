@@ -836,10 +836,17 @@ def _check_and_update_wheel_name(
             f"{lib_path} has a minimum target of {lib_macos_version}"
             for lib_path, lib_macos_version in problematic_files
         )
+        min_valid_version = max(
+            lib_macos_version for _, lib_macos_version in problematic_files
+        )
         raise DelocationError(
             "Library dependencies do not satisfy target MacOS"
             f" version {require_target_macos_version}:\n"
             f"{problematic_files_str}"
+            f"\nUse '--require-target-macos-version {min_valid_version}'"
+            " or set the environment variable"
+            f" 'MACOSX_DEPLOYMENT_TARGET={min_valid_version}'"
+            " to update this wheels supported version."
         )
     if new_name != wheel_name:
         wheel_path = wheel_path.parent / new_name

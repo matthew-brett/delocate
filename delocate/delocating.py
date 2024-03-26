@@ -846,7 +846,7 @@ def _check_and_update_wheel_name(
             f"\nUse '--require-target-macos-version {min_valid_version}'"
             " or set the environment variable"
             f" 'MACOSX_DEPLOYMENT_TARGET={min_valid_version}'"
-            " to update this wheels supported version."
+            " to update minimum supported macOS for this wheel."
         )
     if new_name != wheel_name:
         wheel_path = wheel_path.parent / new_name

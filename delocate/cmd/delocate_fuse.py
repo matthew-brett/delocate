@@ -30,7 +30,7 @@ parser.add_argument(
     "--retag",
     action="store_true",
     help="Retag the fused wheel. This includes updating its filename and"
-    " dist-info (Only works when fusing to make a universal2 wheel)"
+    " dist-info (Only works when fusing to make a universal2 wheel)",
 )
 
 

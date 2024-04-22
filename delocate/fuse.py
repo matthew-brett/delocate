@@ -14,9 +14,13 @@ libraries.
 
 import os
 import shutil
-from os.path import abspath, basename, dirname, exists, relpath, splitext
+from os.path import abspath, basename, exists, relpath, splitext
+from os.path import dirname as pdirname
 from os.path import join as pjoin
 
+from packaging.utils import parse_wheel_filename
+
+from .pkginfo import read_pkg_info, write_pkg_info
 from .tmpdirs import InTemporaryDirectory
 from .tools import (
     chmod_perms,
@@ -27,12 +31,11 @@ from .tools import (
     zip2dir,
 )
 from .wheeltools import rewrite_record
-from .pkginfo import read_pkg_info, write_pkg_info
 
-from packaging.utils import parse_wheel_filename
 
 class RetagWheelError(Exception):
     """Errors raised when trying to retag a wheel."""
+
 
 def _copyfile(in_fname, out_fname):
     # Copies files without read / write permission
@@ -42,6 +45,7 @@ def _copyfile(in_fname, out_fname):
     with open_rw(out_fname, "wb") as fobj:
         fobj.write(contents)
     os.chmod(out_fname, perms)
+
 
 def retag_wheel(to_wheel, from_wheel, to_tree):
     """Update the name and dist-info to reflect a univeral2 wheel.
@@ -75,9 +79,13 @@ def retag_wheel(to_wheel, from_wheel, to_tree):
         elif wheel.endswith("arm64.whl"):
             arm64_wheel = wheel
     if x86_64_wheel is None or arm64_wheel is None:
-        raise RetagWheelError("Must have an x86_64 and an arm64 wheel to retag for universal2.")
+        raise RetagWheelError(
+            "Must have an x86_64 and an arm64 wheel to retag for universal2."
+        )
 
-    name, version, _, x86_64_wheel_tags = parse_wheel_filename(basename(x86_64_wheel))
+    name, version, _, x86_64_wheel_tags = parse_wheel_filename(
+        basename(x86_64_wheel)
+    )
     _, _, _, arm64_wheel_tags = parse_wheel_filename(basename(arm64_wheel))
 
     if len(x86_64_wheel_tags) != 1 or len(arm64_wheel_tags) != 1:
@@ -88,9 +96,7 @@ def retag_wheel(to_wheel, from_wheel, to_tree):
             err_msg += f" The arm64 wheel has {len(arm64_wheel_tags)} tags."
         raise RetagWheelError(err_msg)
 
-    x86_64_wheel_tag = list(x86_64_wheel_tags)[0]
     arm64_wheel_tag = list(arm64_wheel_tags)[0]
-    x86_64_wheel_macos_version = x86_64_wheel_tag.platform.split("_")[1:3]
     arm64_wheel_macos_version = arm64_wheel_tag.platform.split("_")[1:3]
 
     # Use the x86_64 wheel's platform version when the arm64 wheel's platform
@@ -103,7 +109,9 @@ def retag_wheel(to_wheel, from_wheel, to_tree):
     retag_name += "universal2.whl"
 
     normalized_name = name.replace("-", "_")
-    info_path = pjoin(to_tree, f"{normalized_name}-{version}.dist-info", "WHEEL")
+    info_path = pjoin(
+        to_tree, f"{normalized_name}-{version}.dist-info", "WHEEL"
+    )
     _, _, _, retag_tags = parse_wheel_filename(retag_name)
     retag_tag = list(retag_tags)[0]
     info = read_pkg_info(info_path)
@@ -112,6 +120,7 @@ def retag_wheel(to_wheel, from_wheel, to_tree):
     write_pkg_info(info_path, info)
 
     return retag_name
+
 
 def fuse_trees(to_tree, from_tree, lib_exts=(".so", ".dylib", ".a")):
     """Fuse path `from_tree` into path `to_tree`.
@@ -188,7 +197,7 @@ def fuse_wheels(to_wheel, from_wheel, out_wheel, retag):
         fuse_trees("to_wheel", "from_wheel")
         if retag:
             out_wheel_name = retag_wheel(to_wheel, from_wheel, "to_wheel")
-            out_wheel = pjoin(dirname(out_wheel), out_wheel_name)
+            out_wheel = pjoin(pdirname(out_wheel), out_wheel_name)
         rewrite_record("to_wheel")
         dir2zip("to_wheel", out_wheel)
     return out_wheel

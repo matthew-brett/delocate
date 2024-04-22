@@ -26,6 +26,12 @@ parser.add_argument(
     help="Directory to store delocated wheels"
     " (default is to overwrite 1st WHEEL input with 2nd)",
 )
+parser.add_argument(
+    "--retag",
+    action="store_true",
+    help="Retag the fused wheel. This includes updating its filename and"
+    " dist-info (Only works when fusing to make a universal2 wheel)"
+)
 
 
 def main() -> None:  # noqa: D103
@@ -36,7 +42,7 @@ def main() -> None:  # noqa: D103
         out_wheel = wheel1
     else:
         out_wheel = pjoin(abspath(expanduser(args.wheel_dir)), basename(wheel1))
-    fuse_wheels(wheel1, wheel2, out_wheel)
+    fuse_wheels(wheel1, wheel2, out_wheel, retag=args.retag)
 
 
 if __name__ == "__main__":

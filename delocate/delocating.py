@@ -45,6 +45,7 @@ from .libsana import (
     tree_libs,
     tree_libs_from_directory,
 )
+from .pkginfo import read_pkg_info, write_pkg_info
 from .tmpdirs import TemporaryDirectory
 from .tools import (
     _is_macho_file,
@@ -867,14 +868,11 @@ def _update_wheelfile(wheel_dir: Path, wheel_name: str) -> None:
     """
     platform_tag_set = parse_wheel_filename(wheel_name)[-1]
     (file_path,) = wheel_dir.glob("*.dist-info/WHEEL")
-    with file_path.open(encoding="utf-8") as f:
-        lines = f.readlines()
-    with file_path.open("w", encoding="utf-8") as f:
-        for line in lines:
-            if line.startswith("Tag:"):
-                f.write(f"Tag: {'.'.join(str(x) for x in platform_tag_set)}\n")
-            else:
-                f.write(line)
+    info = read_pkg_info(file_path)
+    del info["Tag"]
+    for tag in platform_tag_set:
+        info.add_header("Tag", str(tag))
+    write_pkg_info(file_path, info)
 
 
 def delocate_wheel(

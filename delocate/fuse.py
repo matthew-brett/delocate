@@ -17,10 +17,11 @@ import shutil
 from os.path import abspath, basename, exists, relpath, splitext
 from os.path import dirname as pdirname
 from os.path import join as pjoin
+from pathlib import Path
 
 from packaging.utils import parse_wheel_filename
 
-from .pkginfo import read_pkg_info, write_pkg_info
+from .delocating import _check_and_update_wheel_name, _update_wheelfile
 from .tmpdirs import InTemporaryDirectory
 from .tools import (
     chmod_perms,
@@ -31,10 +32,6 @@ from .tools import (
     zip2dir,
 )
 from .wheeltools import rewrite_record
-
-
-class RetagWheelError(Exception):
-    """Errors raised when trying to retag a wheel."""
 
 
 def _copyfile(in_fname, out_fname):
@@ -63,61 +60,21 @@ def retag_wheel(to_wheel, from_wheel, to_tree):
     -------
     retag_name : str
         The new, retagged name the out wheel should be.
-
-    Raises
-    ------
-    RetagWheelError
-        When the wheels given don't satisfy the requirement that one is x86_64
-        and the other is arm64.
-        When either wheel has more than one tag.
     """
-    x86_64_wheel = None
-    arm64_wheel = None
-    for wheel in [to_wheel, from_wheel]:
-        if wheel.endswith("x86_64.whl"):
-            x86_64_wheel = wheel
-        elif wheel.endswith("arm64.whl"):
-            arm64_wheel = wheel
-    if x86_64_wheel is None or arm64_wheel is None:
-        raise RetagWheelError(
-            "Must have an x86_64 and an arm64 wheel to retag for universal2."
-        )
-
-    name, version, _, x86_64_wheel_tags = parse_wheel_filename(
-        basename(x86_64_wheel)
+    # Add from_wheel platform tags onto to_wheel filename, but make sure to not
+    # add a tag if it is already there
+    from_wheel_tags = parse_wheel_filename(basename(from_wheel))[-1]
+    to_wheel_tags = parse_wheel_filename(basename(to_wheel))[-1]
+    add_platform_tags = (
+        f".{tag.platform}" for tag in from_wheel_tags - to_wheel_tags
     )
-    _, _, _, arm64_wheel_tags = parse_wheel_filename(basename(arm64_wheel))
+    retag_name = Path(to_wheel).stem + "".join(add_platform_tags) + ".whl"
 
-    if len(x86_64_wheel_tags) != 1 or len(arm64_wheel_tags) != 1:
-        err_msg = "Must only have 1 tag in each wheel to retag for universal2."
-        if len(x86_64_wheel_tags) != 1:
-            err_msg += f" The x86_64 wheel has {len(x86_64_wheel_tags)} tags."
-        if len(arm64_wheel_tags) != 1:
-            err_msg += f" The arm64 wheel has {len(arm64_wheel_tags)} tags."
-        raise RetagWheelError(err_msg)
+    retag_name = _check_and_update_wheel_name(
+        Path(retag_name), to_tree, None
+    ).name
 
-    arm64_wheel_tag = list(arm64_wheel_tags)[0]
-    arm64_wheel_macos_version = arm64_wheel_tag.platform.split("_")[1:3]
-
-    # Use the x86_64 wheel's platform version when the arm64 wheel's platform
-    # version is 11.0.
-    # For context on why this is done: https://github.com/pypa/wheel/pull/390
-    if arm64_wheel_macos_version == ["11", "0"]:
-        retag_name = basename(x86_64_wheel).removesuffix("x86_64.whl")
-    else:
-        retag_name = basename(arm64_wheel).removesuffix("arm64.whl")
-    retag_name += "universal2.whl"
-
-    normalized_name = name.replace("-", "_")
-    info_path = pjoin(
-        to_tree, f"{normalized_name}-{version}.dist-info", "WHEEL"
-    )
-    _, _, _, retag_tags = parse_wheel_filename(retag_name)
-    retag_tag = list(retag_tags)[0]
-    info = read_pkg_info(info_path)
-    del info["Tag"]
-    info["Tag"] = str(retag_tag)
-    write_pkg_info(info_path, info)
+    _update_wheelfile(Path(to_tree), retag_name)
 
     return retag_name
 

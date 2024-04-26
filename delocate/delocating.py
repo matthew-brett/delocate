@@ -654,6 +654,14 @@ def _get_archs_and_version_from_wheel_name(
             raise ValueError(f"Invalid platform tag: {platform_tag.platform}")
         major, minor, arch = match.groups()
         platform_requirements[arch] = Version(f"{major}.{minor}")
+    # If we have a wheel name with arm64 and x86_64 we have to convert that to
+    # universal2
+    if set(platform_requirements.keys()) == set(("arm64", "x86_64")):
+        version = platform_requirements["arm64"]
+        if version == Version("11.0"):
+            version = platform_requirements["x86_64"]
+        platform_requirements = {"universal2": version}
+
     return platform_requirements
 
 

@@ -5,7 +5,7 @@ Writes to a new wheel with an automatically determined name by default.
 """
 
 # vim: ft=python
-from __future__ import absolute_import, division, print_function
+from __future__ import annotations
 
 from argparse import ArgumentParser
 from pathlib import Path
@@ -31,7 +31,7 @@ parser.add_argument(
 def main() -> None:  # noqa: D103
     args = parser.parse_args()
     verbosity_config(args)
-    wheel1, wheel2 = [Path(wheel).resolve() for wheel in args.wheels]
+    wheel1, wheel2 = [Path(wheel).resolve(strict=True) for wheel in args.wheels]
     if args.wheel_dir is not None:
         out_wheel = Path(args.wheel_dir).resolve()
         if not out_wheel.exists():

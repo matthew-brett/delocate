@@ -12,6 +12,8 @@ with the same relative path in ``to_tree``]. In this case the two files are
 libraries.
 """
 
+from __future__ import annotations
+
 import os
 import shutil
 from os import PathLike
@@ -150,7 +152,9 @@ def fuse_wheels(
     out_wheel : Path
         The path of the new wheel from fusion of `to_wheel` and `from_wheel`.
     """
-    to_wheel, from_wheel = [Path(w).resolve() for w in (to_wheel, from_wheel)]
+    to_wheel, from_wheel = [
+        Path(w).resolve(strict=True) for w in (to_wheel, from_wheel)
+    ]
     out_wheel = (
         to_wheel.parent if out_wheel is None else Path(out_wheel).resolve()
     )

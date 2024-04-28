@@ -14,8 +14,8 @@ libraries.
 
 import os
 import shutil
-from os.path import abspath, basename, exists, relpath, splitext
-from os.path import dirname as pdirname
+from os import PathLike
+from os.path import exists, relpath, splitext
 from os.path import join as pjoin
 from pathlib import Path
 
@@ -44,37 +44,38 @@ def _copyfile(in_fname, out_fname):
     os.chmod(out_fname, perms)
 
 
-def retag_wheel(to_wheel, from_wheel, to_tree):
+def _retag_wheel(to_wheel: Path, from_wheel: Path, to_tree: Path) -> str:
     """Update the name and dist-info to reflect a univeral2 wheel.
 
     Parameters
     ----------
-    to_wheel : str
-        filename of wheel to fuse into
-    from_wheel : str
-        filename of wheel to fuse from
-    to_tree : str
-        path of tree to fuse into (update into)
+    to_wheel : Path
+        The path of the wheel to fuse into.
+    from_wheel : Path
+        The path of the wheel to fuse from.
+    to_tree : Path
+        The path of the directory tree to fuse into (update into).
 
     Returns
     -------
     retag_name : str
         The new, retagged name the out wheel should be.
     """
+    to_tree = to_tree.resolve()
     # Add from_wheel platform tags onto to_wheel filename, but make sure to not
     # add a tag if it is already there
-    from_wheel_tags = parse_wheel_filename(basename(from_wheel))[-1]
-    to_wheel_tags = parse_wheel_filename(basename(to_wheel))[-1]
+    from_wheel_tags = parse_wheel_filename(from_wheel.name)[-1]
+    to_wheel_tags = parse_wheel_filename(to_wheel.name)[-1]
     add_platform_tags = (
         f".{tag.platform}" for tag in from_wheel_tags - to_wheel_tags
     )
-    retag_name = Path(to_wheel).stem + "".join(add_platform_tags) + ".whl"
+    retag_name = to_wheel.stem + "".join(add_platform_tags) + ".whl"
 
     retag_name = _check_and_update_wheel_name(
         Path(retag_name), to_tree, None
     ).name
 
-    _update_wheelfile(Path(to_tree), retag_name)
+    _update_wheelfile(to_tree, retag_name)
 
     return retag_name
 
@@ -123,38 +124,46 @@ def fuse_trees(to_tree, from_tree, lib_exts=(".so", ".dylib", ".a")):
                 _copyfile(from_path, to_path)
 
 
-def fuse_wheels(to_wheel, from_wheel, out_wheel, retag):
+def fuse_wheels(
+    to_wheel: str | PathLike,
+    from_wheel: str | PathLike,
+    out_wheel: str | PathLike | None = None,
+) -> Path:
     """Fuse `from_wheel` into `to_wheel`, write to `out_wheel`.
 
     Parameters
     ----------
-    to_wheel : str
-        filename of wheel to fuse into
-    from_wheel : str
-        filename of wheel to fuse from
-    out_wheel : str
-        filename of new wheel from fusion of `to_wheel` and `from_wheel`
-    retag : bool
-        update the name and dist-info of the out_wheel to reflect univeral2
+    to_wheel : str or Path-like
+        The path of the wheel to fuse into.
+    from_wheel : str or Path-like
+        The path of the wheel to fuse from.
+    out_wheel : str or Path-like, optional
+        The path of the new wheel from fusion of `to_wheel` and `from_wheel`. If
+        a full path is given, (including the filename) it will be used as is. If
+        a directory is given, the fused wheel will be stored in the directory,
+        with the name of the wheel automatically determined. If no path is
+        given, the fused wheel will be stored in the same directory as
+        `to_wheel`, with the name of the wheel automatically determined.
 
     Returns
     -------
-    out_wheel : str
-        filename of new wheel from fusion of `to_wheel` and `from_wheel` (May be
-        different than what was passed in to the function when `retag` is
-        `True`)
+    out_wheel : Path
+        The path of the new wheel from fusion of `to_wheel` and `from_wheel`.
     """
-    to_wheel, from_wheel, out_wheel = [
-        abspath(w) for w in (to_wheel, from_wheel, out_wheel)
-    ]
+    to_wheel, from_wheel = [Path(w).resolve() for w in (to_wheel, from_wheel)]
+    out_wheel = (
+        to_wheel.parent if out_wheel is None else Path(out_wheel).resolve()
+    )
 
     with InTemporaryDirectory():
         zip2dir(to_wheel, "to_wheel")
         zip2dir(from_wheel, "from_wheel")
         fuse_trees("to_wheel", "from_wheel")
-        if retag:
-            out_wheel_name = retag_wheel(to_wheel, from_wheel, "to_wheel")
-            out_wheel = pjoin(pdirname(out_wheel), out_wheel_name)
+        if out_wheel.is_dir():
+            out_wheel_name = _retag_wheel(
+                to_wheel, from_wheel, Path("to_wheel")
+            )
+            out_wheel = out_wheel / out_wheel_name
         rewrite_record("to_wheel")
         dir2zip("to_wheel", out_wheel)
     return out_wheel

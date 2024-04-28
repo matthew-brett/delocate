@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Fuse two (probably delocated) wheels.
 
-Overwrites the first wheel in-place by default.
+Writes to a new wheel with an automatically determined name by default.
 """
 
 # vim: ft=python
 from __future__ import absolute_import, division, print_function
 
 from argparse import ArgumentParser
-from os.path import abspath, basename, expanduser
-from os.path import join as pjoin
+from pathlib import Path
 
 from delocate.cmd.common import common_parser, verbosity_config
 from delocate.fuse import fuse_wheels
@@ -24,25 +23,22 @@ parser.add_argument(
     action="store",
     type=str,
     help="Directory to store delocated wheels"
-    " (default is to overwrite 1st WHEEL input with 2nd)",
-)
-parser.add_argument(
-    "--retag",
-    action="store_true",
-    help="Retag the fused wheel. This includes updating its filename and"
-    " dist-info (Only works when fusing to make a universal2 wheel)",
+    " (default is to store in the same directory as the 1st WHEEL with an"
+    " automatically determined name).",
 )
 
 
 def main() -> None:  # noqa: D103
     args = parser.parse_args()
     verbosity_config(args)
-    wheel1, wheel2 = [abspath(expanduser(wheel)) for wheel in args.wheels]
-    if args.wheel_dir is None:
-        out_wheel = wheel1
+    wheel1, wheel2 = [Path(wheel).resolve() for wheel in args.wheels]
+    if args.wheel_dir is not None:
+        out_wheel = Path(args.wheel_dir).resolve()
+        if not out_wheel.exists():
+            out_wheel.mkdir(parents=True)
     else:
-        out_wheel = pjoin(abspath(expanduser(args.wheel_dir)), basename(wheel1))
-    fuse_wheels(wheel1, wheel2, out_wheel, retag=args.retag)
+        out_wheel = None
+    fuse_wheels(wheel1, wheel2, out_wheel)
 
 
 if __name__ == "__main__":

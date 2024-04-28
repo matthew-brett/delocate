@@ -14,6 +14,9 @@ rules on making a good Changelog.
 
 - Improved error message for when a MacOS target version is not met.
   [#211](https://github.com/matthew-brett/delocate/issues/211)
+- Retag wheels automatically when fusing to ensure the wheel name and WHEEL
+  file tag data is accurate.
+  [#215](https://github.com/matthew-brett/delocate/pull/215)
 
 ## [0.11.0] - 2024-03-22
 

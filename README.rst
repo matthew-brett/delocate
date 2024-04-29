@@ -197,20 +197,10 @@ subdirectory with::
 
 The output wheel in that case would be:
 
-* ``tmp/scipy-1.9.3-cp311-cp311-macosx_12_0_arm64.whl``
-
-Note that we specified an output directory above with the ``-w`` flag.  If we
-had not done that, then we overwrite the first wheel with the fused wheel.  And
-note that the wheel written into the ``tmp`` subdirectory has the same name as
-the first-specified wheel.
+* ``tmp/scipy-1.9.3-cp311-cp311-macosx_12_0_universal2.whl``
 
 In the new wheel, you will find, using ``lipo -archs`` - that all binaries with
 the same name in each wheel are now universal (``x86_64`` and ``arm64``).
-
-To be useful, you should rename the output wheel to reflect the fact that it is
-now a universal wheel - in this case to:
-
-* ``tmp/scipy-1.9.3-cp311-cp311-macosx_12_0_universal2.whl``
 
 Troubleshooting
 ===============

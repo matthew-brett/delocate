@@ -104,7 +104,7 @@ def fuse_trees(
     lib_exts : sequence, optional
         filename extensions for libraries
     """
-    for from_dirpath, dirnames, filenames in os.walk(from_tree):
+    for from_dirpath, dirnames, filenames in os.walk(Path(from_tree)):
         to_dirpath = pjoin(to_tree, relpath(from_dirpath, from_tree))
         # Copy any missing directories in to_path
         for dirname in tuple(dirnames):

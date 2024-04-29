@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import tempfile
 from os import PathLike
 from os.path import exists, relpath, splitext
 from os.path import join as pjoin
@@ -24,7 +25,6 @@ from pathlib import Path
 from packaging.utils import parse_wheel_filename
 
 from .delocating import _check_and_update_wheel_name, _update_wheelfile
-from .tmpdirs import InTemporaryDirectory
 from .tools import (
     chmod_perms,
     cmp_contents,
@@ -82,7 +82,11 @@ def _retag_wheel(to_wheel: Path, from_wheel: Path, to_tree: Path) -> str:
     return retag_name
 
 
-def fuse_trees(to_tree, from_tree, lib_exts=(".so", ".dylib", ".a")):
+def fuse_trees(
+    to_tree: str | PathLike,
+    from_tree: str | PathLike,
+    lib_exts=(".so", ".dylib", ".a"),
+):
     """Fuse path `from_tree` into path `to_tree`.
 
     For each file in `from_tree` - check for library file extension (in
@@ -93,14 +97,14 @@ def fuse_trees(to_tree, from_tree, lib_exts=(".so", ".dylib", ".a")):
 
     Parameters
     ----------
-    to_tree : str
+    to_tree : str or Path-like
         path of tree to fuse into (update into)
-    from_tree : str
+    from_tree : str or Path-like
         path of tree to fuse from (update from)
     lib_exts : sequence, optional
         filename extensions for libraries
     """
-    for from_dirpath, dirnames, filenames in os.walk(from_tree):
+    for from_dirpath, dirnames, filenames in os.walk(str(from_tree)):
         to_dirpath = pjoin(to_tree, relpath(from_dirpath, from_tree))
         # Copy any missing directories in to_path
         for dirname in tuple(dirnames):
@@ -151,6 +155,9 @@ def fuse_wheels(
     -------
     out_wheel : Path
         The path of the new wheel from fusion of `to_wheel` and `from_wheel`.
+
+    .. versionchanged:: 0.12
+        `out_wheel` can now take a directory or None.
     """
     to_wheel, from_wheel = [
         Path(w).resolve(strict=True) for w in (to_wheel, from_wheel)
@@ -158,16 +165,15 @@ def fuse_wheels(
     out_wheel = (
         to_wheel.parent if out_wheel is None else Path(out_wheel).resolve()
     )
-
-    with InTemporaryDirectory():
-        zip2dir(to_wheel, "to_wheel")
-        zip2dir(from_wheel, "from_wheel")
-        fuse_trees("to_wheel", "from_wheel")
+    with tempfile.TemporaryDirectory() as temp_dir:
+        to_wheel_dir = Path(temp_dir, "to_wheel")
+        from_wheel_dir = Path(temp_dir, "from_wheel")
+        zip2dir(to_wheel, to_wheel_dir)
+        zip2dir(from_wheel, from_wheel_dir)
+        fuse_trees(to_wheel_dir, from_wheel_dir)
         if out_wheel.is_dir():
-            out_wheel_name = _retag_wheel(
-                to_wheel, from_wheel, Path("to_wheel")
-            )
+            out_wheel_name = _retag_wheel(to_wheel, from_wheel, to_wheel_dir)
             out_wheel = out_wheel / out_wheel_name
-        rewrite_record("to_wheel")
-        dir2zip("to_wheel", out_wheel)
+        rewrite_record(to_wheel_dir)
+        dir2zip(to_wheel_dir, out_wheel)
     return out_wheel

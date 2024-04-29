@@ -10,6 +10,7 @@ import hashlib
 import os
 import sys
 from itertools import product
+from os import PathLike
 from os.path import abspath, basename, dirname, exists, relpath, splitext
 from os.path import join as pjoin
 from os.path import sep as psep
@@ -34,7 +35,7 @@ def _open_for_csv(name, mode):
     return open_rw(name, mode, newline="", encoding="utf-8")
 
 
-def rewrite_record(bdist_dir: str) -> None:
+def rewrite_record(bdist_dir: str | PathLike) -> None:
     """Rewrite RECORD file with hashes for all files in `wheel_sdir`.
 
     Copied from :method:`wheel.bdist_wheel.bdist_wheel.write_record`.
@@ -43,7 +44,7 @@ def rewrite_record(bdist_dir: str) -> None:
 
     Parameters
     ----------
-    bdist_dir : str
+    bdist_dir : str or Path-like
         Path of unpacked wheel file
     """
     info_dirs = glob.glob(pjoin(bdist_dir, "*.dist-info"))

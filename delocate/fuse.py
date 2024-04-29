@@ -104,7 +104,7 @@ def fuse_trees(
     lib_exts : sequence, optional
         filename extensions for libraries
     """
-    for from_dirpath, dirnames, filenames in os.walk(str(from_tree)):
+    for from_dirpath, dirnames, filenames in os.walk(from_tree):
         to_dirpath = pjoin(to_tree, relpath(from_dirpath, from_tree))
         # Copy any missing directories in to_path
         for dirname in tuple(dirnames):
@@ -159,9 +159,8 @@ def fuse_wheels(
     .. versionchanged:: 0.12
         `out_wheel` can now take a directory or None.
     """
-    to_wheel, from_wheel = [
-        Path(w).resolve(strict=True) for w in (to_wheel, from_wheel)
-    ]
+    to_wheel = Path(to_wheel).resolve(strict=True)
+    from_wheel = Path(from_wheel).resolve(strict=True)
     out_wheel = (
         to_wheel.parent if out_wheel is None else Path(out_wheel).resolve()
     )

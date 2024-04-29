@@ -3,6 +3,8 @@
 Tools that aren't specific to delocation.
 """
 
+from __future__ import annotations
+
 import base64
 import csv
 import glob

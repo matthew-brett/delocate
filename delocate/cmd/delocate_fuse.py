@@ -34,8 +34,7 @@ def main() -> None:  # noqa: D103
     wheel1, wheel2 = [Path(wheel).resolve(strict=True) for wheel in args.wheels]
     if args.wheel_dir is not None:
         out_wheel = Path(args.wheel_dir).resolve()
-        if not out_wheel.exists():
-            out_wheel.mkdir(parents=True)
+        out_wheel.mkdir(parents=True, exist_ok=True)
     else:
         out_wheel = None
     fuse_wheels(wheel1, wheel2, out_wheel)

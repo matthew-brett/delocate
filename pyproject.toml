@@ -9,7 +9,7 @@ description = "Move macOS dynamic libraries into package"
 authors = [{ name = "Matthew Brett", email = "matthew.brett@gmail.com" }]
 maintainers = [{ name = "Matthew Brett", email = "matthew.brett@gmail.com" }]
 readme = "README.rst"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 license = { file = "LICENSE" }
 dependencies = [
     "bindepend; sys_platform == 'win32'",

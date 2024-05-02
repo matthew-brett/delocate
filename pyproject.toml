@@ -35,6 +35,7 @@ classifiers = [
 delocate-addplat = "delocate.cmd.delocate_addplat:main"
 delocate-fuse = "delocate.cmd.delocate_fuse:main"
 delocate-listdeps = "delocate.cmd.delocate_listdeps:main"
+delocate-merge = "delocate.cmd.delocate_merge:main"
 delocate-patch = "delocate.cmd.delocate_patch:main"
 delocate-path = "delocate.cmd.delocate_path:main"
 delocate-wheel = "delocate.cmd.delocate_wheel:main"

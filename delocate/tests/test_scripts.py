@@ -402,20 +402,26 @@ def test_fix_wheel_archs(script_runner: ScriptRunner) -> None:
 def test_fuse_wheels(script_runner: ScriptRunner) -> None:
     # Some tests for wheel fusing
     with InTemporaryDirectory():
-        # Wheels need proper wheel filename for delocate-fuse
+        # Wheels need proper wheel filename for delocate-merge
         to_wheel = "to_" + basename(PLAT_WHEEL)
         from_wheel = "from_" + basename(PLAT_WHEEL)
         zip2dir(PLAT_WHEEL, "to_wheel")
         zip2dir(PLAT_WHEEL, "from_wheel")
         dir2zip("to_wheel", to_wheel)
         dir2zip("from_wheel", from_wheel)
-        script_runner.run(["delocate-fuse", to_wheel, from_wheel], check=True)
+        # Make sure delocate-fuse returns a non-zero exit code, it is no longer
+        # supported
+        result = script_runner.run(
+            ["delocate-fuse", to_wheel, from_wheel], check=True
+        )
+        assert result.returncode != 0
+        script_runner.run(["delocate-merge", to_wheel, from_wheel], check=True)
         zip2dir(to_wheel, "to_wheel_fused")
         assert_same_tree("to_wheel_fused", "from_wheel")
         # Test output argument
         os.mkdir("wheels")
         script_runner.run(
-            ["delocate-fuse", to_wheel, from_wheel, "-w", "wheels"],
+            ["delocate-merge", to_wheel, from_wheel, "-w", "wheels"],
             check=True,
         )
         zip2dir(pjoin("wheels", to_wheel), "to_wheel_refused")

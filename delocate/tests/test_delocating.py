@@ -727,6 +727,11 @@ def test_get_archs_and_version_from_wheel_name() -> None:
     ) == {
         "universal2": Version("10.9"),
     }
+    assert _get_archs_and_version_from_wheel_name(
+        "foo-1.0-py310-abi3-macosx_10_9_x86_64.macosx_12_0_arm64.whl"
+    ) == {
+        "universal2": Version("12.0"),
+    }
     with pytest.raises(InvalidWheelFilename, match="Invalid wheel filename"):
         _get_archs_and_version_from_wheel_name("foo.whl")
 

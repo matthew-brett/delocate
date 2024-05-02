@@ -19,7 +19,7 @@ def main() -> None:  # noqa: D103
         " name. If the old behavior is needed (not recommended), pin the"
         " version to 'delocate==0.11.0'."
     )
-    return 1
+    raise SystemExit(1)
 
 
 if __name__ == "__main__":

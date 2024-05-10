@@ -133,7 +133,7 @@ def fuse_trees(
 def fuse_wheels(
     to_wheel: str | PathLike,
     from_wheel: str | PathLike,
-    out_wheel: str | PathLike | None = None,
+    out_wheel: str | PathLike,
 ) -> Path:
     """Fuse `from_wheel` into `to_wheel`, write to `out_wheel`.
 
@@ -143,13 +143,11 @@ def fuse_wheels(
         The path of the wheel to fuse into.
     from_wheel : str or Path-like
         The path of the wheel to fuse from.
-    out_wheel : str or Path-like, optional
+    out_wheel : str or Path-like
         The path of the new wheel from fusion of `to_wheel` and `from_wheel`. If
         a full path is given, (including the filename) it will be used as is. If
         a directory is given, the fused wheel will be stored in the directory,
-        with the name of the wheel automatically determined. If no path is
-        given, the fused wheel will be stored in the same directory as
-        `to_wheel`, with the name of the wheel automatically determined.
+        with the name of the wheel automatically determined.
 
     Returns
     -------
@@ -161,9 +159,7 @@ def fuse_wheels(
     """
     to_wheel = Path(to_wheel).resolve(strict=True)
     from_wheel = Path(from_wheel).resolve(strict=True)
-    out_wheel = (
-        to_wheel.parent if out_wheel is None else Path(out_wheel).resolve()
-    )
+    out_wheel = Path(out_wheel)
     with tempfile.TemporaryDirectory() as temp_dir:
         to_wheel_dir = Path(temp_dir, "to_wheel")
         from_wheel_dir = Path(temp_dir, "from_wheel")

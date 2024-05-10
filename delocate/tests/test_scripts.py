@@ -411,9 +411,7 @@ def test_fuse_wheels(script_runner: ScriptRunner) -> None:
         dir2zip("from_wheel", from_wheel)
         # Make sure delocate-fuse returns a non-zero exit code, it is no longer
         # supported
-        result = script_runner.run(
-            ["delocate-fuse", to_wheel, from_wheel], check=True
-        )
+        result = script_runner.run(["delocate-fuse", to_wheel, from_wheel])
         assert result.returncode != 0
         script_runner.run(["delocate-merge", to_wheel, from_wheel], check=True)
         zip2dir(to_wheel, "to_wheel_fused")

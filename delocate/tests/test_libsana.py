@@ -463,7 +463,9 @@ def test_wheel_libs_ignore_missing() -> None:
     # Test wheel_libs ignore_missing parameter.
     with InTemporaryDirectory() as tmpdir:
         shutil.copy(RPATH_WHEEL, pjoin(tmpdir, "rpath.whl"))
-        with pytest.raises(DelocationError):
+        with pytest.raises(
+            DelocationError, match=r"Could not find all dependencies."
+        ):
             wheel_libs("rpath.whl")
         wheel_libs("rpath.whl", ignore_missing=True)
 

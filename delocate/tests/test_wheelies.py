@@ -34,7 +34,7 @@ from ..tools import (
 )
 from ..wheeltools import InWheel
 from .env_tools import _scope_env
-from .pytest_tools import assert_equal, assert_false, assert_raises, assert_true
+from .pytest_tools import assert_equal, assert_false, assert_true
 from .test_install_names import DATA_PATH, EXT_LIBS
 from .test_tools import ARCH_BOTH, ARCH_M1
 
@@ -153,7 +153,12 @@ def test_fix_plat() -> None:
         assert exists(dylibs)
         assert os.listdir(dylibs) == ["libextfunc.dylib"]
         # Test check for existing output directory
-        with pytest.raises(DelocationError):
+        with pytest.raises(
+            DelocationError,
+            match=r".*wheel/fakepkg1/subpkg "
+            r"already exists in wheel but need to copy "
+            r".*libextfunc.dylib",
+        ):
             delocate_wheel(fixed_wheel, "broken_wheel.ext", "subpkg")
         # Test that `wheel unpack` works
         fixed_wheel, stray_lib = _fixed_wheel(tmpdir)
@@ -301,9 +306,8 @@ def test_check_plat_archs():
             )
             # Now we check, and error raised
             _fix_break(arch)
-            assert_raises(
-                DelocationError, delocate_wheel, fixed_wheel, require_archs=()
-            )
+            with pytest.raises(DelocationError, match=r".*(x86_64|arm64)"):
+                delocate_wheel(fixed_wheel, require_archs=())
             # We can fix again by thinning the module too
             fixed_wheel2 = _fix_break_fix(arch)
             assert_equal(
@@ -317,21 +321,17 @@ def test_check_plat_archs():
                 ARCH_BOTH.difference([arch]),
             ):
                 fixed_wheel3 = _fix_break_fix(arch)
-                assert_raises(
-                    DelocationError,
-                    delocate_wheel,
-                    fixed_wheel3,
-                    require_archs=req_arch,
-                )
+                with pytest.raises(DelocationError, match=r".*(x86_64|arm64)"):
+                    delocate_wheel(fixed_wheel3, require_archs=req_arch)
         # Can be verbose (we won't check output though)
         _fix_break("x86_64")
-        assert_raises(
+        with pytest.raises(
             DelocationError,
-            delocate_wheel,
-            fixed_wheel,
-            require_archs=(),
-            check_verbose=True,
-        )
+            match=r".*missing architectures in wheel\n"
+            r"fakepkg1/subpkg/module2.abi3.so needs arch arm64 missing from "
+            r".*/libextfunc.dylib",
+        ):
+            delocate_wheel(fixed_wheel, require_archs=(), check_verbose=True)
 
 
 def test_patch_wheel() -> None:

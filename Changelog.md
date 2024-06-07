@@ -21,6 +21,12 @@ rules on making a good Changelog.
   version to `delocate==0.11.0`.
   [#215](https://github.com/matthew-brett/delocate/pull/215)
 
+### Fixed
+
+- Existing libraries causing DelocationError were not shown due to bad string
+  formatting.
+  [#216](https://github.com/matthew-brett/delocate/pull/216)
+
 ## [0.11.0] - 2024-03-22
 
 ### Added

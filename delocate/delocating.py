@@ -992,7 +992,7 @@ def delocate_wheel(
         )
         if copied_libs and lib_path_exists_before_delocate:
             raise DelocationError(
-                "f{lib_path} already exists in wheel but need to copy "
+                f"{lib_path} already exists in wheel but need to copy "
                 + "; ".join(copied_libs)
             )
         if len(os.listdir(lib_path)) == 0:

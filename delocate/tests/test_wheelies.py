@@ -455,12 +455,14 @@ def test_fix_toplevel() -> None:
 
         assert (
             delocate_wheel(
-                TOPLEVEL_WHEEL, "out-1.0-cp39-cp39-macosx_10_9_x86_64.whl"
+                TOPLEVEL_WHEEL,
+                "out-1.0-cp39-cp39-macosx_10_9_x86_64.whl",
+                lib_sdir=".suffix_test",
             )
             == stray_libs
         )
         with InWheel("out-1.0-cp39-cp39-macosx_10_9_x86_64.whl") as wheel_path:
-            assert "fakepkg_toplevel.dylibs" in os.listdir(wheel_path)
+            assert "fakepkg_toplevel.suffix_test" in os.listdir(wheel_path)
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")

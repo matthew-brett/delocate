@@ -3,6 +3,7 @@
 # Run in directory containing this file
 # With thanks to https://dev.lsstcorp.org/trac/wiki/LinkingDarwin
 export MACOSX_DEPLOYMENT_TARGET=10.9
+export SOURCE_DATE_EPOCH=0
 
 if [ "$CXX" = "" ]; then
     CXX=c++

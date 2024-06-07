@@ -114,7 +114,9 @@ def test_delocate_tree_libs(
         sys_lib = EXT_LIBS[0]
         lib_dict = without_system_libs(tree_libs_func(subtree))
         lib_dict.update({"/unlikely/libname.dylib": {}})
-        with pytest.raises(DelocationError):
+        with pytest.raises(
+            DelocationError, match=r".*/unlikely/libname.dylib.*does not exist"
+        ):
             delocate_tree_libs(lib_dict, copy_dir, subtree)
 
         lib_dict = without_system_libs(tree_libs_func(subtree))
@@ -171,7 +173,11 @@ def test_delocate_tree_libs(
         # out-of-tree will raise an error because of duplicate library names
         # (libc and slibc both named <something>/libc.dylib)
         lib_dict2 = without_system_libs(tree_libs_func(subtree2))
-        with pytest.raises(DelocationError):
+        with pytest.raises(
+            DelocationError,
+            match=r"Already planning to copy library with same basename as: "
+            r"libc.dylib",
+        ):
             delocate_tree_libs(lib_dict2, copy_dir2, "/fictional")
         # Rename a library to make this work
         new_slibc = pjoin(dirname(slibc), "libc2.dylib")
@@ -365,7 +371,10 @@ def test_copy_recurse_overwrite() -> None:
         shutil.copy2(libb, "subtree")
         # If liba is already present, barf
         shutil.copy2(liba, "subtree")
-        assert_raises(DelocationError, copy_recurse, "subtree", filt_func)
+        with pytest.raises(
+            DelocationError, match=r".*liba.dylib .*already exists"
+        ):
+            copy_recurse("subtree", filt_func)
         # Works if liba not present
         os.unlink(pjoin("subtree", "liba.dylib"))
         copy_recurse("subtree", filt_func)

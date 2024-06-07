@@ -183,34 +183,36 @@ One solution to this problem is to do an entire ``arm64`` wheel build, and then
 an entire ``x86_64`` wheel build, and *fuse* the two wheels into a universal
 wheel.
 
-That is what the ``delocate-fuse`` command does.
+That is what the ``delocate-merge`` command does.
 
 Let's say you have built an ARM and Intel wheel, called, respectively:
 
 * ``scipy-1.9.3-cp311-cp311-macosx_12_0_arm64.whl``
 * ``scipy-1.9.3-cp311-cp311-macosx_10_9_x86_64.whl``
 
-Then you could create a new fused (``universal2``) wheel in the `tmp`
+Then you could create a new fused (``universal2``) wheel in the ``tmp``
 subdirectory with::
 
-    delocate-fuse scipy-1.9.3-cp311-cp311-macosx_12_0_arm64.whl scipy-1.9.3-cp311-cp311-macosx_10_9_x86_64.whl -w tmp
+    delocate-merge scipy-1.9.3-cp311-cp311-macosx_12_0_arm64.whl scipy-1.9.3-cp311-cp311-macosx_10_9_x86_64.whl -w tmp
 
 The output wheel in that case would be:
 
-* ``tmp/scipy-1.9.3-cp311-cp311-macosx_12_0_arm64.whl``
-
-Note that we specified an output directory above with the ``-w`` flag.  If we
-had not done that, then we overwrite the first wheel with the fused wheel.  And
-note that the wheel written into the ``tmp`` subdirectory has the same name as
-the first-specified wheel.
+* ``tmp/scipy-1.9.3-cp311-cp311-macosx_12_0_universal2.whl``
 
 In the new wheel, you will find, using ``lipo -archs`` - that all binaries with
 the same name in each wheel are now universal (``x86_64`` and ``arm64``).
 
-To be useful, you should rename the output wheel to reflect the fact that it is
-now a universal wheel - in this case to:
-
-* ``tmp/scipy-1.9.3-cp311-cp311-macosx_12_0_universal2.whl``
+    `:warning:` **Note:** In previous versions (``<0.12.0``) making dual architecture binaries was
+    performed with the ``delocate-fuse`` command. This commannd would overwrite the
+    first wheel passed in by default. This led to the user needing to rename the
+    wheel to correctly describe what platforms it supported. For this and other
+    reasons, wheels created with this were often incorrect. From version ``0.12.0``
+    and on, the ``delocate-fuse`` command has been removed and replaced with
+    ``delocate-merge``. The ``delocate-merge`` command will create a new wheel with an
+    automatically generated name based on the wheels that were merged together.
+    There is no need to perform any further changes to the merged wheel's name. If
+    the old behavior is needed (not recommended), pin the version to
+    ``delocate==0.11.0``.
 
 Troubleshooting
 ===============

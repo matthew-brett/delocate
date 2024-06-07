@@ -45,6 +45,7 @@ from .libsana import (
     tree_libs,
     tree_libs_from_directory,
 )
+from .pkginfo import read_pkg_info, write_pkg_info
 from .tmpdirs import TemporaryDirectory
 from .tools import (
     _is_macho_file,
@@ -653,6 +654,14 @@ def _get_archs_and_version_from_wheel_name(
             raise ValueError(f"Invalid platform tag: {platform_tag.platform}")
         major, minor, arch = match.groups()
         platform_requirements[arch] = Version(f"{major}.{minor}")
+    # If we have a wheel name with arm64 and x86_64 we have to convert that to
+    # universal2
+    if platform_requirements.keys() == {"arm64", "x86_64"}:
+        version = platform_requirements["arm64"]
+        if version == Version("11.0"):
+            version = platform_requirements["x86_64"]
+        platform_requirements = {"universal2": version}
+
     return platform_requirements
 
 
@@ -867,14 +876,11 @@ def _update_wheelfile(wheel_dir: Path, wheel_name: str) -> None:
     """
     platform_tag_set = parse_wheel_filename(wheel_name)[-1]
     (file_path,) = wheel_dir.glob("*.dist-info/WHEEL")
-    with file_path.open(encoding="utf-8") as f:
-        lines = f.readlines()
-    with file_path.open("w", encoding="utf-8") as f:
-        for line in lines:
-            if line.startswith("Tag:"):
-                f.write(f"Tag: {'.'.join(str(x) for x in platform_tag_set)}\n")
-            else:
-                f.write(line)
+    info = read_pkg_info(file_path)
+    del info["Tag"]
+    for tag in platform_tag_set:
+        info.add_header("Tag", str(tag))
+    write_pkg_info(file_path, info)
 
 
 def delocate_wheel(

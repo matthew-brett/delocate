@@ -14,6 +14,12 @@ rules on making a good Changelog.
 
 - Improved error message for when a MacOS target version is not met.
   [#211](https://github.com/matthew-brett/delocate/issues/211)
+- `delocate-fuse` is no longer available and will throw an error when invoked.
+  To fuse two wheels together use `delocate-merge`. `delocate-merge` does not
+  overwrite the first wheel. It creates a new wheel with an automatically
+  determined name. If the old behavior is needed (not recommended), pin the
+  version to `delocate==0.11.0`.
+  [#215](https://github.com/matthew-brett/delocate/pull/215)
 
 ## [0.11.0] - 2024-03-22
 

@@ -10,6 +10,12 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+### Added
+
+- `delocate-wheel` `--lib-sdir` now changes the suffix of the bundled library
+  directory.
+  [#210](https://github.com/matthew-brett/delocate/pull/210)
+
 ### Changed
 
 - Improved error message for when a MacOS target version is not met.

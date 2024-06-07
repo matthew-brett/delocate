@@ -40,7 +40,9 @@ parser.add_argument(
     action="store",
     type=str,
     default=".dylibs",
-    help="Subdirectory in packages to store copied libraries",
+    help="Subdirectory in packages to store copied libraries"
+    "\nFor non-package wheels this will be used as a suffix for the library "
+    "directory",
 )
 parser.add_argument(
     "-w",

@@ -7,6 +7,8 @@
 mac_ver=10.9
 export MACOSX_DEPLOYMENT_TARGET=${mac_ver}
 export _PYTHON_HOST_PLATFORM="macosx-${mac_ver}-universal2"
+export SOURCE_DATE_EPOCH=0
+export PYTHONHASHSEED=0
 
 rm -f */dist/fakepkg*.whl
 rm -f */libs/*.dylib

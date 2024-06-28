@@ -1,11 +1,14 @@
 """Tests for wheeltools utilities."""
 
+from __future__ import annotations
+
 import os
 import re
 import shutil
 from email.message import Message
 from os.path import basename, exists, isfile, realpath, splitext
 from os.path import join as pjoin
+from pathlib import Path
 from typing import AnyStr, List, Tuple
 from zipfile import ZipFile
 
@@ -38,7 +41,7 @@ WHEEL_INFO_RE = re.compile(
 # Template for testing expected wheel information
 EXP_PLAT = splitext(PLAT_WHEEL)[0].split("-")[-1]
 EXP_ITEMS = [
-    ("Generator", "bdist_wheel {pip_version}"),
+    ("Generator", "{generator_tool_version}"),
     ("Root-Is-Purelib", "false"),
     ("Tag", "{pyver}-{abi}-" + EXP_PLAT),
     ("Wheel-Version", "1.0"),
@@ -48,7 +51,7 @@ EXTRA_PLATS = ("macosx_10_11_universal2", "macosx_10_11_x86_64")
 # Expected outputs for plat added wheels minus wheel-version (that might
 # change)
 EXTRA_EXPS = [
-    ("Generator", "bdist_wheel {pip_version}"),
+    ("Generator", "{generator_tool_version}"),
     ("Root-Is-Purelib", "false"),
 ] + [("Tag", "{pyver}-{abi}-" + plat) for plat in (EXP_PLAT,) + EXTRA_PLATS]
 
@@ -124,12 +127,17 @@ def test_in_wheel():
             assert_false(isfile(mod_path))
 
 
-def _filter_key(items, key):
+def _filter_key(
+    items: list[tuple[str, str]], key: str
+) -> list[tuple[str, str]]:
+    """Return a list of key/value pairs with any instances of `key` removed."""
     return [(k, v) for k, v in items if k != key]
 
 
-def get_info(wheel_path: str) -> Message:
-    name, version, _, _ = parse_wheel_filename(basename(wheel_path))
+def get_info(wheel_path: str | os.PathLike[str]) -> Message:
+    """Return the `.dist-info/WHEEL` metadata from `wheel_path`."""
+    wheel_path = Path(wheel_path)
+    name, version, _, _ = parse_wheel_filename(wheel_path.name)
     with ZipFile(wheel_path) as zip_file:
         return read_pkg_info_bytes(
             zip_file.read(f"{name}-{version}.dist-info/WHEEL")
@@ -137,25 +145,28 @@ def get_info(wheel_path: str) -> Message:
 
 
 def assert_winfo_similar(
-    whl_fname: str, exp_items: List[Tuple[str, str]], drop_version: bool = True
+    wheel_path: str | os.PathLike[str],
+    expected: List[Tuple[str, str]],
+    drop_version: bool = True,
 ) -> None:
-    match = WHEEL_INFO_RE.match(basename(whl_fname))
+    """Assert `wheel_path` has `.dist-info/WHEEL` items matching `expected`.
+
+    Skips `Wheel-Version` check if `drop_version` is True.
+    """
+    wheel_path = Path(wheel_path)
+    match = WHEEL_INFO_RE.match(wheel_path.name)
     assert match
     wheel_parts = match.groupdict()
     # Info can contain duplicate keys (e.g. Tag)
-    w_info = sorted(get_info(whl_fname).items())
+    wheel_info: list[tuple[str, str]] = get_info(wheel_path).items()
     if drop_version:
-        w_info = _filter_key(w_info, "Wheel-Version")
-        exp_items = _filter_key(exp_items, "Wheel-Version")
-    assert len(exp_items) == len(w_info)
+        wheel_info = _filter_key(wheel_info, "Wheel-Version")
+        expected = _filter_key(expected, "Wheel-Version")
     # Extract some information from actual values
-    wheel_parts["pip_version"] = dict(w_info)["Generator"].split()[1]
-    for (key1, value1), (key2, value2) in zip(
-        sorted(exp_items), sorted(w_info)
-    ):
-        assert key1 == key2
-        value1 = value1.format(**wheel_parts)
-        assert value1 == value2
+    wheel_parts["generator_tool_version"] = dict(wheel_info)["Generator"]
+    # Apply variable metadata to expected items
+    expected = [(k, v.format(**wheel_parts)) for k, v in expected]
+    assert sorted(wheel_info) == sorted(expected)
 
 
 def test_add_platforms() -> None:

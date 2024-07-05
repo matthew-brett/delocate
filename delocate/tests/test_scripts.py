@@ -855,7 +855,7 @@ def test_delocate_wheel_verify_name_universal2_verify_crash_env_var(
         ["delocate-wheel", whl_10_9],
         check=False,
         cwd=tmp_path,
-        env={"MACOSX_DEPLOYMENT_TARGET": "10.9"},
+        env={**os.environ, "MACOSX_DEPLOYMENT_TARGET": "10.9"},
     )
     assert result.returncode != 0
     assert "Library dependencies do not satisfy target MacOS" in result.stderr
@@ -863,3 +863,21 @@ def test_delocate_wheel_verify_name_universal2_verify_crash_env_var(
     assert "module2.abi3.so has a minimum target of 11.0" not in result.stderr
     assert "MACOSX_DEPLOYMENT_TARGET=12.0" in result.stderr
     assert "--require-target-macos-version 12.0" in result.stderr
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_delocate_wheel_macos_release_minor_version(
+    plat_wheel: PlatWheel, script_runner: ScriptRunner, tmp_path: Path
+) -> None:
+    script_runner.run(
+        ["delocate-wheel", plat_wheel.whl, "-vv"],
+        env={**os.environ, "MACOSX_DEPLOYMENT_TARGET": "13.1"},
+        check=True,
+    )
+
+    # Should create a 13.0 wheel instead of the requested 13.1
+    assert {tmp_path / "plat-1.0-cp311-cp311-macosx_13_0_x86_64.whl"} == set(
+        file for file in tmp_path.iterdir() if file.suffix == ".whl"
+    )

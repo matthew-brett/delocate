@@ -808,8 +808,18 @@ def _calculate_minimum_wheel_name(
             f"Failed to find any binary with the required architecture: {e}"
         ) from e
     prefix = wheel_name.rsplit("-", 1)[0]
+
+    # Wheel platform tags MUST use the macOS release version, not the literal
+    # version provided by macOS. Since macOS 11 the minor version number is not
+    # part of the macOS release version and MUST be zero for tagging purposes.
+    def get_release_version(version: Version) -> str:
+        """Return the macOS release version from the given actual version."""
+        if require_target_macos_version is not None:
+            version = max(version, require_target_macos_version)
+        return f"{version.major}_{0 if version.major >= 11 else version.minor}"
+
     platform_tag = ".".join(
-        f"macosx_{version.major}_{version.minor}_{arch}"
+        f"macosx_{get_release_version(version)}_{arch}"
         for arch, version in arch_version.items()
     )
     return f"{prefix}-{platform_tag}.whl", problematic_libs

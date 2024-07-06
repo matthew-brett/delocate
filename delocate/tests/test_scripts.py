@@ -831,7 +831,6 @@ def test_delocate_wheel_verify_name_universal2_verify_crash(
     assert "Library dependencies do not satisfy target MacOS" in result.stderr
     assert "libam1.dylib has a minimum target of 12.0" in result.stderr
     assert "MACOSX_DEPLOYMENT_TARGET=12.0" in result.stderr
-    assert "--require-target-macos-version 12.0" in result.stderr
 
 
 @pytest.mark.xfail(  # type: ignore[misc]
@@ -862,7 +861,6 @@ def test_delocate_wheel_verify_name_universal2_verify_crash_env_var(
     assert "libam1.dylib has a minimum target of 12.0" in result.stderr
     assert "module2.abi3.so has a minimum target of 11.0" not in result.stderr
     assert "MACOSX_DEPLOYMENT_TARGET=12.0" in result.stderr
-    assert "--require-target-macos-version 12.0" in result.stderr
 
 
 @pytest.mark.xfail(  # type: ignore[misc]

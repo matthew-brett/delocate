@@ -862,8 +862,7 @@ def _check_and_update_wheel_name(
             "Library dependencies do not satisfy target MacOS"
             f" version {require_target_macos_version}:\n"
             f"{problematic_files_str}"
-            f"\nUse '--require-target-macos-version {min_valid_version}'"
-            " or set the environment variable"
+            "\nSet the environment variable"
             f" 'MACOSX_DEPLOYMENT_TARGET={min_valid_version}'"
             " to update minimum supported macOS for this wheel."
         )

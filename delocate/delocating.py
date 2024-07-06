@@ -816,6 +816,17 @@ def _calculate_minimum_wheel_name(
         """Return the macOS release version from the given actual version."""
         if require_target_macos_version is not None:
             version = max(version, require_target_macos_version)
+        elif version.major >= 11 and version.minor > 0:
+            # Warn when the platform tag is given a deceptive version number.
+            logger.warning(
+                "Wheel will be tagged as supporting macOS %i,"
+                " but will not support macOS versions older than %i.%i\n\t"
+                "Configure MACOSX_DEPLOYMENT_TARGET to suppress this warning.",
+                version.major,
+                version.major,
+                version.minor,
+            )
+
         return f"{version.major}_{0 if version.major >= 11 else version.minor}"
 
     platform_tag = ".".join(

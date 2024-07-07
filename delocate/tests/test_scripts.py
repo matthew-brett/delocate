@@ -879,3 +879,28 @@ def test_delocate_wheel_macos_release_minor_version(
     assert {tmp_path / "plat-1.0-cp311-cp311-macosx_13_0_x86_64.whl"} == set(
         file for file in tmp_path.iterdir() if file.suffix == ".whl"
     )
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_delocate_wheel_macos_release_version_warning(
+    plat_wheel: PlatWheel, script_runner: ScriptRunner, tmp_path: Path
+) -> None:
+    with InWheel(plat_wheel.whl, plat_wheel.whl) as wheel_tmp_path:
+        shutil.copy(
+            DATA_PATH / "liba_12_1.dylib",  # macOS library targeting 12.1
+            Path(wheel_tmp_path, "fakepkg1/"),
+        )
+
+    result = script_runner.run(
+        ["delocate-wheel", plat_wheel.whl, "-vv"], check=True
+    )
+
+    assert "will be tagged as supporting macOS 12" in result.stderr
+    assert "will not support macOS versions older than 12.1" in result.stderr
+
+    # Should create a 12.0 wheel instead of 12.1
+    assert {tmp_path / "plat-1.0-cp311-cp311-macosx_12_0_x86_64.whl"} == set(
+        file for file in tmp_path.iterdir() if file.suffix == ".whl"
+    )

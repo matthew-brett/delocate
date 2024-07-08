@@ -29,6 +29,12 @@ rules on making a good Changelog.
   version to `delocate==0.11.0`.
   [#215](https://github.com/matthew-brett/delocate/pull/215)
 
+### Deprecated
+
+- `--require-target-macos-version` has been deprecated.
+  `MACOSX_DEPLOYMENT_TARGET` should be used instead of this flag.
+  [#219](https://github.com/matthew-brett/delocate/pull/219)
+
 ### Fixed
 
 - Existing libraries causing DelocationError were not shown due to bad string

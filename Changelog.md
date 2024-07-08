@@ -37,6 +37,8 @@ rules on making a good Changelog.
 - Wheels for macOS 11 and later were using invalid literal versions in tags
   instead of the macOS release version required by Python packagers.
   [#219](https://github.com/matthew-brett/delocate/pull/219)
+- Fixed regression in `intel` platform support.
+  [#219](https://github.com/matthew-brett/delocate/pull/219)
 
 ## [0.11.0] - 2024-03-22
 

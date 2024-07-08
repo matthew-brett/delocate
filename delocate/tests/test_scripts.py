@@ -763,7 +763,7 @@ def test_delocate_wheel_verify_name_universal_ok(
         DATA_PATH / "np-1.6.0_intel_lib__compiled_base.so",
         tmp_path / "plat/fakepkg1/np-1.6.0_intel_lib__compiled_base.so",
     )
-    whl_10_9 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_universal.whl"
+    whl_10_9 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_intel.whl"
     dir2zip(tmp_path / "plat", whl_10_9)
     script_runner.run(
         [
@@ -789,12 +789,12 @@ def test_delocate_wheel_missing_architecture(
 ) -> None:
     shutil.copy(
         plat_wheel.whl,
-        tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_universal.whl",
+        tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_intel.whl",
     )
     result = script_runner.run(
         [
             "delocate-wheel",
-            tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_universal.whl",
+            tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_intel.whl",
         ],
         check=False,
         cwd=tmp_path,

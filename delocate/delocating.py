@@ -36,6 +36,7 @@ from macholib.mach_o import (  # type: ignore[import-untyped]
 from macholib.MachO import MachO  # type: ignore[import-untyped]
 from packaging.utils import parse_wheel_filename
 from packaging.version import Version
+from typing_extensions import Final
 
 from .libsana import (
     DelocationError,
@@ -665,7 +666,7 @@ def _get_archs_and_version_from_wheel_name(
     return platform_requirements
 
 
-def _get_problematic_libs(
+def _get_incompatible_libs(
     required_version: Optional[Version],
     version_lib_dict: Dict[Version, List[Path]],
     arch: str,
@@ -706,6 +707,73 @@ def _get_problematic_libs(
     return bad_libraries
 
 
+def _unpack_architectures(
+    architecture_versions: Mapping[str, Version],
+) -> dict[str, Version]:
+    """Return architecture versions derived from their universal forms.
+
+    Examples
+    --------
+    >>> _unpack_architectures({"arm64": Version("11.0")})
+    {'arm64': <Version('11.0')>}
+    >>> _unpack_architectures({"universal2": Version("10.5")})
+    {'x86_64': <Version('10.5')>, 'arm64': <Version('11.0')>}
+    >>> _unpack_architectures({"intel": Version("10.5")})
+    {'i386': <Version('10.5')>, 'x86_64': <Version('10.5')>}
+    >>> _unpack_architectures({})
+    {}
+    """
+    architecture_versions = {**architecture_versions}
+    if "universal2" in architecture_versions:
+        architecture_versions["x86_64"] = architecture_versions["universal2"]
+        architecture_versions["arm64"] = max(
+            architecture_versions["universal2"], Version("11.0")
+        )
+        del architecture_versions["universal2"]
+    if "intel" in architecture_versions:
+        architecture_versions["i386"] = architecture_versions["intel"]
+        architecture_versions["x86_64"] = architecture_versions["intel"]
+        del architecture_versions["intel"]
+    return architecture_versions
+
+
+def _pack_architectures(
+    architecture_versions: Mapping[str, Version],
+) -> dict[str, Version]:
+    """Return architecture versions combined into their universal forms.
+
+    Examples
+    --------
+    >>> _pack_architectures({"arm64": Version("11.0")})
+    {'arm64': <Version('11.0')>}
+    >>> _pack_architectures({"i386": Version("10.5"), "x86_64": Version("10.5")})
+    {'intel': <Version('10.5')>}
+    >>> _pack_architectures({"x86_64": Version("10.5"), "arm64": Version("11.0")})
+    {'universal2': <Version('10.5')>}
+    >>> _pack_architectures({"x86_64": Version("11.0"), "arm64": Version("12.0")})
+    {'x86_64': <Version('11.0')>, 'arm64': <Version('12.0')>}
+    >>> _pack_architectures({"i386": Version("11.0"), "x86_64": Version("11.0"), "arm64": Version("11.0")})
+    {'i386': <Version('11.0')>, 'universal2': <Version('11.0')>}
+    >>> _pack_architectures({})
+    {}
+    """  # noqa: E501
+    architecture_versions = {**architecture_versions}
+    if {"x86_64", "arm64"}.issubset(architecture_versions.keys()) and (
+        architecture_versions["x86_64"] == architecture_versions["arm64"]
+        or architecture_versions["arm64"] == Version("11.0")
+    ):
+        architecture_versions["universal2"] = architecture_versions["x86_64"]
+        del architecture_versions["x86_64"]
+        del architecture_versions["arm64"]
+    if {"i386", "x86_64"}.issubset(
+        architecture_versions.keys()
+    ) and architecture_versions["i386"] == architecture_versions["x86_64"]:
+        architecture_versions["intel"] = architecture_versions["i386"]
+        del architecture_versions["i386"]
+        del architecture_versions["x86_64"]
+    return architecture_versions
+
+
 def _calculate_minimum_wheel_name(
     wheel_name: str,
     wheel_dir: Path,
@@ -730,84 +798,62 @@ def _calculate_minimum_wheel_name(
     str
         The updated wheel name.
     set[tuple[Path, Version]]
-        A set of libraries that require a more modern macOS version than the
-        provided one.
+        Any libraries requiring a more modern macOS version than
+        `require_target_macos_version`.
     """
     # get platform tag from wheel name using packaging
     if wheel_name.endswith("any.whl"):
         # universal wheel, no need to update the platform tag
         return wheel_name, set()
-    arch_version = _get_archs_and_version_from_wheel_name(wheel_name)
+    wheel_arch_version: Final = _unpack_architectures(
+        _get_archs_and_version_from_wheel_name(wheel_name)
+    )
     # get the architecture and minimum macOS version from the libraries
     # in the wheel
-    version_info_dict: Dict[str, Dict[Version, List[Path]]] = {}
+    all_library_versions: Dict[str, Dict[Version, List[Path]]] = {}
 
     for lib in wheel_dir.glob("**/*"):
         for arch, version in _get_macos_min_version(lib):
-            version_info_dict.setdefault(arch.lower(), {}).setdefault(
+            all_library_versions.setdefault(arch.lower(), {}).setdefault(
                 version, []
             ).append(lib)
-    version_dkt = {
-        arch: max(version) for arch, version in version_info_dict.items()
+            logger.debug(
+                "Bundled library info: %s arch=%s target=%s",
+                lib.name,
+                arch,
+                version,
+            )
+
+    # Derive architecture requirements from bundled libraries
+    arch_version = {
+        arch: max(version_libraries.keys())
+        for arch, version_libraries in all_library_versions.items()
     }
 
-    problematic_libs: set[tuple[Path, Version]] = set()
+    # Compare libraries to target macOS version and track incompatibilities
+    incompatible_libs: set[tuple[Path, Version]] = set()
+    for arch, version_libraries in all_library_versions.items():
+        incompatible_libs.update(
+            _get_incompatible_libs(
+                require_target_macos_version, version_libraries, arch
+            )
+        )
 
-    try:
-        for arch, version in list(arch_version.items()):
-            if arch == "universal2":
-                if version_dkt["arm64"] == Version("11.0"):
-                    arch_version["universal2"] = max(
-                        version, version_dkt["x86_64"]
-                    )
-                else:
-                    arch_version["universal2"] = max(
-                        version, version_dkt["arm64"], version_dkt["x86_64"]
-                    )
-                    problematic_libs.update(
-                        _get_problematic_libs(
-                            require_target_macos_version,
-                            version_info_dict["arm64"],
-                            "arm64",
-                        )
-                    )
-                problematic_libs.update(
-                    _get_problematic_libs(
-                        require_target_macos_version,
-                        version_info_dict["x86_64"],
-                        "x86_64",
-                    )
-                )
-            elif arch == "universal":
-                arch_version["universal"] = max(
-                    version, version_dkt["i386"], version_dkt["x86_64"]
-                )
-                problematic_libs.update(
-                    _get_problematic_libs(
-                        require_target_macos_version,
-                        version_info_dict["i386"],
-                        "i386",
-                    ),
-                    _get_problematic_libs(
-                        require_target_macos_version,
-                        version_info_dict["x86_64"],
-                        "x86_64",
-                    ),
-                )
-            else:
-                arch_version[arch] = max(version, version_dkt[arch])
-                problematic_libs.update(
-                    _get_problematic_libs(
-                        require_target_macos_version,
-                        version_info_dict[arch],
-                        arch,
-                    )
-                )
-    except KeyError as e:
+    # Sanity check, wheels tagged with architectures should have at least one
+    # bundled library matching that architecture.
+    missing_architectures: Final = (
+        wheel_arch_version.keys() - arch_version.keys()
+    )
+    if missing_architectures:
         raise DelocationError(
-            f"Failed to find any binary with the required architecture: {e}"
-        ) from e
-    prefix = wheel_name.rsplit("-", 1)[0]
+            "Failed to find any binary with the required architecture: "
+            f"""{",".join(missing_architectures)!r}"""
+        )
+
+    # Limit architecture tags to whatever the wheel already claimed to support.
+    # Use versions derived from bundled libraries instead of previous wheel tag.
+    for arch in arch_version.keys() - wheel_arch_version.keys():
+        del arch_version[arch]
 
     # Wheel platform tags MUST use the macOS release version, not the literal
     # version provided by macOS. Since macOS 11 the minor version number is not
@@ -829,11 +875,12 @@ def _calculate_minimum_wheel_name(
 
         return f"{version.major}_{0 if version.major >= 11 else version.minor}"
 
-    platform_tag = ".".join(
+    platform_tag: Final = ".".join(
         f"macosx_{get_release_version(version)}_{arch}"
-        for arch, version in arch_version.items()
+        for arch, version in _pack_architectures(arch_version).items()
     )
-    return f"{prefix}-{platform_tag}.whl", problematic_libs
+    prefix: Final = wheel_name.rsplit("-", 1)[0]
+    return f"{prefix}-{platform_tag}.whl", incompatible_libs
 
 
 def _check_and_update_wheel_name(
@@ -1044,7 +1091,9 @@ def delocate_wheel(
         if len(copied_libs) or not in_place:
             if remove_old:
                 os.remove(in_wheel)
+                logger.info("Deleted:%s", in_wheel)
             dir2zip(wheel_dir, out_wheel_)
+            logger.info("Output:%s", out_wheel_)
     return stripped_lib_dict(copied_libs, wheel_dir + os.path.sep)
 
 

@@ -2,6 +2,9 @@
 """Copy, relink library dependencies for wheel.
 
 Overwrites the wheel in-place by default.
+
+This script respects the MACOSX_DEPLOYMENT_TARGET environment variable.
+Set MACOSX_DEPLOYMENT_TARGET to verify and target a specific macOS release.
 """
 
 # vim: ft=python
@@ -69,7 +72,8 @@ parser.add_argument(
 parser.add_argument(
     "--require-target-macos-version",
     type=Version,
-    help="Verify if platform tag in wheel name is proper",
+    help="Verify if platform tag in wheel name is proper (deprecated)"
+    "\nConfigure MACOSX_DEPLOYMENT_TARGET instead of using this flag",
     default=None,
 )
 

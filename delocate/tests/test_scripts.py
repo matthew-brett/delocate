@@ -897,7 +897,7 @@ def test_delocate_wheel_macos_release_version_warning(
         ["delocate-wheel", plat_wheel.whl, "-vv"], check=True
     )
 
-    assert "will be tagged as supporting macOS 12" in result.stderr
+    assert "will be tagged as supporting macOS 12 (x86_64)" in result.stderr
     assert "will not support macOS versions older than 12.1" in result.stderr
 
     # Should create a 12.0 wheel instead of 12.1

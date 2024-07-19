@@ -858,25 +858,31 @@ def _calculate_minimum_wheel_name(
     # Wheel platform tags MUST use the macOS release version, not the literal
     # version provided by macOS. Since macOS 11 the minor version number is not
     # part of the macOS release version and MUST be zero for tagging purposes.
-    def get_release_version(version: Version) -> str:
-        """Return the macOS release version from the given actual version."""
+    def get_macos_platform_tag(version: Version, architecture: str) -> str:
+        """Return the macOS platform tag for this version and architecture.
+
+        `version` will be converted to a release version expected by pip.
+        """
         if require_target_macos_version is not None:
+            # Version was specified explicitly with MACOSX_DEPLOYMENT_TARGET.
             version = max(version, require_target_macos_version)
         elif version.major >= 11 and version.minor > 0:
-            # Warn when the platform tag is given a deceptive version number.
+            # This is the range where an automatic version is deceptive.
             logger.warning(
-                "Wheel will be tagged as supporting macOS %i,"
+                "Wheel will be tagged as supporting macOS %i (%s),"
                 " but will not support macOS versions older than %i.%i\n\t"
                 "Configure MACOSX_DEPLOYMENT_TARGET to suppress this warning.",
                 version.major,
+                architecture,
                 version.major,
                 version.minor,
             )
 
-        return f"{version.major}_{0 if version.major >= 11 else version.minor}"
+        minor: Final = 0 if version.major >= 11 else version.minor
+        return f"macosx_{version.major}_{minor}_{architecture}"
 
     platform_tag: Final = ".".join(
-        f"macosx_{get_release_version(version)}_{arch}"
+        get_macos_platform_tag(version, arch)
         for arch, version in _pack_architectures(arch_version).items()
     )
     prefix: Final = wheel_name.rsplit("-", 1)[0]

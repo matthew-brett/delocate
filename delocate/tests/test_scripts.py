@@ -21,6 +21,7 @@ from typing import Text
 import pytest
 from pytest_console_scripts import ScriptRunner
 
+from ..cmd.common import delocate_parser
 from ..tmpdirs import InGivenDirectory, InTemporaryDirectory
 from ..tools import dir2zip, get_rpaths, set_install_name, zip2dir
 from ..wheeltools import InWheel
@@ -615,10 +616,22 @@ def test_fix_wheel_with_excluded_dylibs(
     _check_wheel(test2_name, ".dylibs")
 
 
+def test_sanitize_rpaths_flag() -> None:
+    args = delocate_parser.parse_args([])
+    assert args.sanitize_rpaths
+    args = delocate_parser.parse_args(["--sanitize-rpaths"])
+    assert args.sanitize_rpaths
+    args = delocate_parser.parse_args(["--no-sanitize-rpaths"])
+    assert not args.sanitize_rpaths
+
+
 @pytest.mark.xfail(  # type: ignore[misc]
     sys.platform != "darwin", reason="Needs macOS linkage."
 )
-def test_sanitize_command(tmp_path: Path, script_runner: ScriptRunner) -> None:
+@pytest.mark.parametrize("sanitize_rpaths", [True, False])
+def test_sanitize_command(
+    tmp_path: Path, script_runner: ScriptRunner, sanitize_rpaths: bool
+) -> None:
     unpack_dir = tmp_path / "unpack"
     zip2dir(RPATH_WHEEL, unpack_dir)
     assert "libs/" in set(
@@ -630,18 +643,26 @@ def test_sanitize_command(tmp_path: Path, script_runner: ScriptRunner) -> None:
     libs_path.mkdir()
     shutil.copy(DATA_PATH / "libextfunc_rpath.dylib", libs_path)
     shutil.copy(DATA_PATH / "libextfunc2_rpath.dylib", libs_path)
+    cmd = ["delocate-wheel", "-vv"]
+    if not sanitize_rpaths:
+        cmd.append("--no-sanitize-rpaths")
     result = script_runner.run(
-        ["delocate-wheel", "-vv", "--sanitize-rpaths", rpath_wheel],
+        cmd + [rpath_wheel],
         check=True,
         cwd=tmp_path,
     )
-    assert "Sanitize: Deleting rpath 'libs/' from" in result.stderr
+    if sanitize_rpaths:
+        assert "Sanitize: Deleting rpath 'libs/' from" in result.stderr
+    else:
+        assert "Deleting rpath" not in result.stderr
 
     unpack_dir = tmp_path / "unpack"
     zip2dir(rpath_wheel, unpack_dir)
-    assert "libs/" not in set(
-        get_rpaths(str(unpack_dir / "fakepkg/subpkg/module2.abi3.so"))
-    )
+    rpaths = set(get_rpaths(str(unpack_dir / "fakepkg/subpkg/module2.abi3.so")))
+    if sanitize_rpaths:
+        assert "libs/" not in rpaths
+    else:
+        assert "libs/" in rpaths
 
 
 @pytest.mark.xfail(  # type: ignore[misc]

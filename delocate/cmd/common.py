@@ -70,6 +70,7 @@ delocate_parser.add_argument(
 delocate_parser.add_argument(
     "--sanitize-rpaths",
     action="store_true",
+    default=True,
     help="Remove absolute and relative rpaths from binaries (default)",
 )
 delocate_parser.add_argument(
@@ -78,7 +79,6 @@ delocate_parser.add_argument(
     dest="sanitize_rpaths",
     help="Don't remove absolute and relative rpaths from binaries",
 )
-delocate_parser.set_defaults(sanitize_rpaths=True)
 
 
 def verbosity_config(args: Namespace) -> None:

@@ -10,6 +10,11 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+### Removed
+
+- Dropped support for Python 3.7 and Python 3.8.
+  [#226](https://github.com/matthew-brett/delocate/pull/226)
+
 ## [0.12.0] - 2024-08-29
 
 ### Added

@@ -10,6 +10,8 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+## [0.12.0] - 2024-08-29
+
 ### Added
 
 - `delocate-wheel` `--lib-sdir` now changes the suffix of the bundled library
@@ -19,7 +21,8 @@ rules on making a good Changelog.
 ### Changed
 
 - Sanitize rpaths (`--sanitize-rpaths`) is now the default behavior.
-  Opt out with new `--no-sanitize-rpaths` [#223](https://github.com/matthew-brett/delocate/pull/223)
+  Opt-out with the new `--no-sanitize-rpaths` flag.
+  [#223](https://github.com/matthew-brett/delocate/pull/223)
 - Improved error message for when a MacOS target version is not met.
   [#211](https://github.com/matthew-brett/delocate/issues/211)
 - `delocate-fuse` is no longer available and will throw an error when invoked.

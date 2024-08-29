@@ -53,6 +53,17 @@ testpaths = ["delocate/"]
 addopts = ["--doctest-modules", "--cov=delocate", "--cov-config=.coveragerc"]
 log_file_level = "DEBUG"
 
+
+[tool.mypy]
+files = ["*.py", "delocate"]
+python_version = "3.9"
+
+[[tool.mypy.overrides]] # Ignore delocate._version module.
+module = "delocate._version"
+ignore_errors = true
+ignore_missing_imports = true
+
+
 [tool.ruff]
 line-length = 80
 

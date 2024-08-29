@@ -79,6 +79,10 @@ jobs:
         run: |
           pip install -r test-requirements.txt build
       - name: Build delocate
+        env:
+          # @HexDecimal - Suppress dirty git-describe tag from dirty test data
+          # Remove this after test data is reproducible
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: |
           python -m build
       - name: Install delocate

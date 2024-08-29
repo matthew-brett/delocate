@@ -70,7 +70,14 @@ delocate_parser.add_argument(
 delocate_parser.add_argument(
     "--sanitize-rpaths",
     action="store_true",
-    help="Remove absolute and relative rpaths from binaries",
+    default=True,
+    help="Remove absolute and relative rpaths from binaries (default)",
+)
+delocate_parser.add_argument(
+    "--no-sanitize-rpaths",
+    action="store_false",
+    dest="sanitize_rpaths",
+    help="Don't remove absolute and relative rpaths from binaries",
 )
 
 

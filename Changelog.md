@@ -29,11 +29,22 @@ rules on making a good Changelog.
   version to `delocate==0.11.0`.
   [#215](https://github.com/matthew-brett/delocate/pull/215)
 
+### Deprecated
+
+- `--require-target-macos-version` has been deprecated.
+  `MACOSX_DEPLOYMENT_TARGET` should be used instead of this flag.
+  [#219](https://github.com/matthew-brett/delocate/pull/219)
+
 ### Fixed
 
 - Existing libraries causing DelocationError were not shown due to bad string
   formatting.
   [#216](https://github.com/matthew-brett/delocate/pull/216)
+- Wheels for macOS 11 and later were using invalid literal versions in tags
+  instead of the macOS release version required by Python packagers.
+  [#219](https://github.com/matthew-brett/delocate/pull/219)
+- Fixed regression in `intel` platform support.
+  [#219](https://github.com/matthew-brett/delocate/pull/219)
 
 ## [0.11.0] - 2024-03-22
 

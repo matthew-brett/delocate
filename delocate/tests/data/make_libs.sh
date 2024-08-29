@@ -48,6 +48,7 @@ fi
 $CXX_64 -o liba.dylib -dynamiclib a.cc
 $CXX_M1 -o libam1.dylib -dynamiclib a.cc
 MACOSX_DEPLOYMENT_TARGET=12.0 $CXX_M1 -o libam1_12.dylib -dynamiclib a.cc
+MACOSX_DEPLOYMENT_TARGET=12.1 $CXX_64 -o liba_12_1.dylib -dynamiclib a.cc
 $CXX_64 -o a.o -c a.cc
 ar rcs liba.a a.o
 $CXX_64 -o libb.dylib -dynamiclib b.cc -L. -la

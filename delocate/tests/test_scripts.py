@@ -763,7 +763,7 @@ def test_delocate_wheel_verify_name_universal_ok(
         DATA_PATH / "np-1.6.0_intel_lib__compiled_base.so",
         tmp_path / "plat/fakepkg1/np-1.6.0_intel_lib__compiled_base.so",
     )
-    whl_10_9 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_universal.whl"
+    whl_10_9 = tmp_path / "plat-1.0-cp311-cp311-macosx_10_9_intel.whl"
     dir2zip(tmp_path / "plat", whl_10_9)
     script_runner.run(
         [
@@ -789,12 +789,12 @@ def test_delocate_wheel_missing_architecture(
 ) -> None:
     shutil.copy(
         plat_wheel.whl,
-        tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_universal.whl",
+        tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_intel.whl",
     )
     result = script_runner.run(
         [
             "delocate-wheel",
-            tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_universal.whl",
+            tmp_path / "plat2-1.0-cp311-cp311-macosx_10_9_intel.whl",
         ],
         check=False,
         cwd=tmp_path,
@@ -831,7 +831,6 @@ def test_delocate_wheel_verify_name_universal2_verify_crash(
     assert "Library dependencies do not satisfy target MacOS" in result.stderr
     assert "libam1.dylib has a minimum target of 12.0" in result.stderr
     assert "MACOSX_DEPLOYMENT_TARGET=12.0" in result.stderr
-    assert "--require-target-macos-version 12.0" in result.stderr
 
 
 @pytest.mark.xfail(  # type: ignore[misc]
@@ -855,11 +854,53 @@ def test_delocate_wheel_verify_name_universal2_verify_crash_env_var(
         ["delocate-wheel", whl_10_9],
         check=False,
         cwd=tmp_path,
-        env={"MACOSX_DEPLOYMENT_TARGET": "10.9"},
+        env={**os.environ, "MACOSX_DEPLOYMENT_TARGET": "10.9"},
     )
     assert result.returncode != 0
     assert "Library dependencies do not satisfy target MacOS" in result.stderr
     assert "libam1.dylib has a minimum target of 12.0" in result.stderr
     assert "module2.abi3.so has a minimum target of 11.0" not in result.stderr
     assert "MACOSX_DEPLOYMENT_TARGET=12.0" in result.stderr
-    assert "--require-target-macos-version 12.0" in result.stderr
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_delocate_wheel_macos_release_minor_version(
+    plat_wheel: PlatWheel, script_runner: ScriptRunner, tmp_path: Path
+) -> None:
+    script_runner.run(
+        ["delocate-wheel", plat_wheel.whl, "-vv"],
+        env={**os.environ, "MACOSX_DEPLOYMENT_TARGET": "13.1"},
+        check=True,
+    )
+
+    # Should create a 13.0 wheel instead of the requested 13.1
+    assert {tmp_path / "plat-1.0-cp311-cp311-macosx_13_0_x86_64.whl"} == set(
+        file for file in tmp_path.iterdir() if file.suffix == ".whl"
+    )
+
+
+@pytest.mark.xfail(  # type: ignore[misc]
+    sys.platform != "darwin", reason="Needs macOS linkage."
+)
+def test_delocate_wheel_macos_release_version_warning(
+    plat_wheel: PlatWheel, script_runner: ScriptRunner, tmp_path: Path
+) -> None:
+    with InWheel(plat_wheel.whl, plat_wheel.whl) as wheel_tmp_path:
+        shutil.copy(
+            DATA_PATH / "liba_12_1.dylib",  # macOS library targeting 12.1
+            Path(wheel_tmp_path, "fakepkg1/"),
+        )
+
+    result = script_runner.run(
+        ["delocate-wheel", plat_wheel.whl, "-vv"], check=True
+    )
+
+    assert "will be tagged as supporting macOS 12 (x86_64)" in result.stderr
+    assert "will not support macOS versions older than 12.1" in result.stderr
+
+    # Should create a 12.0 wheel instead of 12.1
+    assert {tmp_path / "plat-1.0-cp311-cp311-macosx_12_0_x86_64.whl"} == set(
+        file for file in tmp_path.iterdir() if file.suffix == ".whl"
+    )

@@ -43,7 +43,7 @@ def _collect_wheel(globber):
     glob_path = pjoin(DATA_PATH, globber)
     wheels = glob(glob_path)
     if len(wheels) == 0:
-        raise ValueError("No wheels for glob {}".format(glob_path))
+        raise ValueError(f"No wheels for glob {glob_path}")
     elif len(wheels) > 1:
         raise ValueError(
             "Too many wheels for glob {} ({})".format(
@@ -341,7 +341,7 @@ def test_patch_wheel() -> None:
         out_fname = basename(PURE_WHEEL)
         patch_wheel(PURE_WHEEL, WHEEL_PATCH, out_fname)
         zip2dir(out_fname, "wheel1")
-        with open(pjoin("wheel1", "fakepkg2", "__init__.py"), "rt") as fobj:
+        with open(pjoin("wheel1", "fakepkg2", "__init__.py")) as fobj:
             assert fobj.read() == 'print("Am in init")\n'
         # Check that wheel unpack works
         subprocess.run(
@@ -350,13 +350,13 @@ def test_patch_wheel() -> None:
         # Copy the original, check it doesn't have patch
         shutil.copyfile(PURE_WHEEL, "copied.whl")
         zip2dir("copied.whl", "wheel2")
-        with open(pjoin("wheel2", "fakepkg2", "__init__.py"), "rt") as fobj:
+        with open(pjoin("wheel2", "fakepkg2", "__init__.py")) as fobj:
             assert fobj.read() == '"""Fake package."""\n'
         # Overwrite input wheel (the default)
         patch_wheel("copied.whl", WHEEL_PATCH)
         # Patched
         zip2dir("copied.whl", "wheel3")
-        with open(pjoin("wheel3", "fakepkg2", "__init__.py"), "rt") as fobj:
+        with open(pjoin("wheel3", "fakepkg2", "__init__.py")) as fobj:
             assert fobj.read() == 'print("Am in init")\n'
         # Check bad patch raises error
         with pytest.raises(RuntimeError):

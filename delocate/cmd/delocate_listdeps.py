@@ -2,7 +2,6 @@
 """List library dependencies for libraries in path or wheel."""
 
 # vim: ft=python
-from __future__ import absolute_import, division, print_function
 
 from argparse import ArgumentParser
 from os import getcwd

@@ -48,7 +48,7 @@ def test_fuse_trees():
         os.mkdir("tree2")
         fuse_trees("tree1", "tree2")
         assert_listdir_equal("tree1", [])
-        with open(pjoin("tree2", "afile.txt"), "wt") as fobj:
+        with open(pjoin("tree2", "afile.txt"), "w") as fobj:
             fobj.write("Some text")
         fuse_trees("tree1", "tree2")
         assert_listdir_equal("tree1", ["afile.txt"])
@@ -78,7 +78,7 @@ def test_fuse_trees():
         assert_equal(get_archs(fused_fname), {"arm64", "x86_64"})
         os.unlink(fused_fname)
         # A file not present in tree2 stays in tree1
-        with open(pjoin("tree1", "anotherfile.txt"), "wt") as fobj:
+        with open(pjoin("tree1", "anotherfile.txt"), "w") as fobj:
             fobj.write("Some more text")
         fuse_trees("tree1", "tree2")
         assert_listdir_equal(

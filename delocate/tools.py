@@ -10,6 +10,7 @@ import subprocess
 import time
 import warnings
 import zipfile
+from collections.abc import Iterable, Sequence
 from datetime import datetime
 from os import PathLike
 from os.path import exists, isdir
@@ -17,16 +18,7 @@ from os.path import join as pjoin
 from pathlib import Path
 from typing import (
     Any,
-    Dict,
-    FrozenSet,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
     TypeVar,
-    Union,
 )
 
 T = TypeVar("T")
@@ -39,10 +31,10 @@ class InstallNameError(Exception):
 
 
 def back_tick(
-    cmd: Union[str, Sequence[str]],
+    cmd: str | Sequence[str],
     ret_err: bool = False,
     as_str: bool = True,
-    raise_err: Optional[bool] = None,
+    raise_err: bool | None = None,
 ) -> Any:
     """Run command `cmd`, return stdout, or stdout, stderr if `ret_err`.
 
@@ -90,9 +82,8 @@ def back_tick(
         proc = subprocess.run(
             cmd,
             shell=not cmd_is_seq,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=as_str,
+            capture_output=True,
+            text=as_str,
             check=raise_err,
         )
     except subprocess.CalledProcessError as exc:
@@ -142,8 +133,7 @@ def _run(
     try:
         return subprocess.run(
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             check=check,
         )
@@ -249,7 +239,7 @@ IN_RE = re.compile(
 )
 
 
-def parse_install_name(line: str) -> Tuple[str, str, str]:
+def parse_install_name(line: str) -> tuple[str, str, str]:
     """Parse a line of install name output.
 
     Parameters
@@ -299,7 +289,7 @@ True
 """
 
 
-def _parse_otool_listing(stdout: str) -> Dict[str, List[str]]:
+def _parse_otool_listing(stdout: str) -> dict[str, list[str]]:
     '''Parse the output of otool lists.
 
     Parameters
@@ -348,14 +338,14 @@ def _parse_otool_listing(stdout: str) -> Dict[str, List[str]]:
     RuntimeError: Input has duplicate architectures for ...
     '''  # noqa: D301
     stdout = stdout.strip()
-    out: Dict[str, List[str]] = {}
+    out: dict[str, list[str]] = {}
     lines = stdout.split("\n")
     while lines:
         # Detect and parse the name/arch header line.
         match_arch = _OTOOL_ARCHITECTURE_RE.match(lines.pop(0))
         if not match_arch:
             raise RuntimeError(f"Missing file/architecture header:\n{stdout}")
-        current_arch: Optional[str] = match_arch["architecture"]
+        current_arch: str | None = match_arch["architecture"]
         if current_arch is None:
             current_arch = ""
         if current_arch in out:
@@ -370,7 +360,7 @@ def _parse_otool_listing(stdout: str) -> Dict[str, List[str]]:
     return out
 
 
-def _check_ignore_archs(input: Dict[str, T]) -> T:
+def _check_ignore_archs(input: dict[str, T]) -> T:
     """Merge architecture outputs for functions which don't support multiple.
 
     This is used to maintain backward compatibility inside of functions which
@@ -419,7 +409,7 @@ def _check_ignore_archs(input: Dict[str, T]) -> T:
 
 def _parse_otool_install_names(
     stdout: str,
-) -> Dict[str, List[Tuple[str, str, str]]]:
+) -> dict[str, list[tuple[str, str, str]]]:
     '''Parse the stdout of 'otool -L' and return.
 
     Parameters
@@ -452,7 +442,7 @@ def _parse_otool_install_names(
     ... """)
     {'': [('/usr/lib/libc++.1.dylib', '1.0.0', '905.6.0'), ('/usr/lib/libSystem.B.dylib', '1.0.0', '1292.100.5')]}
     '''  # noqa: E501, D301
-    out: Dict[str, List[Tuple[str, str, str]]] = {}
+    out: dict[str, list[tuple[str, str, str]]] = {}
     for arch, install_names in _parse_otool_listing(stdout).items():
         out[arch] = [parse_install_name(name) for name in install_names]
     return out
@@ -522,11 +512,11 @@ def _line0_says_object(stdout_stderr: str, filename: str) -> bool:
     if further_report == "":
         return True
     raise InstallNameError(
-        'Too ignorant to know what "{0}" means'.format(further_report)
+        f'Too ignorant to know what "{further_report}" means'
     )
 
 
-def get_install_names(filename: str) -> Tuple[str, ...]:
+def get_install_names(filename: str) -> tuple[str, ...]:
     """Return install names from library named in `filename`.
 
     Returns tuple of install names.
@@ -567,7 +557,7 @@ def get_install_names(filename: str) -> Tuple[str, ...]:
     return tuple(names)
 
 
-def get_install_id(filename: str) -> Optional[str]:
+def get_install_id(filename: str) -> str | None:
     """Return install id from library named in `filename`.
 
     Returns None if no install id, or if this is not an object file.
@@ -593,7 +583,7 @@ def get_install_id(filename: str) -> Optional[str]:
     return _check_ignore_archs(install_ids)
 
 
-def _get_install_ids(filename: str) -> Dict[str, str]:
+def _get_install_ids(filename: str) -> dict[str, str]:
     """Return the install ids of a library.
 
     Parameters
@@ -651,9 +641,7 @@ def set_install_name(
     """
     names = get_install_names(filename)
     if oldname not in names:
-        raise InstallNameError(
-            "{0} not in install names for {1}".format(oldname, filename)
-        )
+        raise InstallNameError(f"{oldname} not in install names for {filename}")
     _run(
         ["install_name_tool", "-change", oldname, newname, filename], check=True
     )
@@ -681,7 +669,7 @@ def set_install_id(filename: str, install_id: str, ad_hoc_sign: bool = True):
     RuntimeError if `filename` has not install id
     """
     if get_install_id(filename) is None:
-        raise InstallNameError("{0} has no install id".format(filename))
+        raise InstallNameError(f"{filename} has no install id")
     _run(["install_name_tool", "-id", install_id, filename], check=True)
     if ad_hoc_sign:
         replace_signature(filename, "-")
@@ -690,7 +678,7 @@ def set_install_id(filename: str, install_id: str, ad_hoc_sign: bool = True):
 RPATH_RE = re.compile(r"path (?P<rpath>.*) \(offset \d+\)")
 
 
-def _parse_otool_rpaths(stdout: str) -> Dict[str, List[str]]:
+def _parse_otool_rpaths(stdout: str) -> dict[str, list[str]]:
     '''Return the rpaths of the library `filename`.
 
     Parameters
@@ -730,7 +718,7 @@ def _parse_otool_rpaths(stdout: str) -> Dict[str, List[str]]:
     ... """)
     {'x86_64': ['path/x86_64'], 'arm64': ['path/arm64']}
     '''
-    rpaths: Dict[str, List[str]] = {}
+    rpaths: dict[str, list[str]] = {}
     for arch, lines in _parse_otool_listing(stdout).items():
         rpaths[arch] = []
         line_no = 0
@@ -748,7 +736,7 @@ def _parse_otool_rpaths(stdout: str) -> Dict[str, List[str]]:
     return rpaths
 
 
-def get_rpaths(filename: str) -> Tuple[str, ...]:
+def get_rpaths(filename: str) -> tuple[str, ...]:
     """Return a tuple of rpaths from the library `filename`.
 
     If `filename` is not a library then the returned tuple will be empty.
@@ -933,12 +921,12 @@ def zip2dir(
 
 
 _ZIP_TIMESTAMP_MIN = 315532800  # 1980-01-01 00:00:00 UTC
-_DateTuple = Tuple[int, int, int, int, int, int]
+_DateTuple = tuple[int, int, int, int, int, int]
 
 
 def _get_zip_datetime(
-    date_time: Optional[_DateTuple] = None,
-) -> Optional[_DateTuple]:
+    date_time: _DateTuple | None = None,
+) -> _DateTuple | None:
     """Return ``SOURCE_DATE_EPOCH`` if set, otherwise return `date_time`.
 
     https://reproducible-builds.org/docs/source-date-epoch/
@@ -967,7 +955,7 @@ def dir2zip(
     *,
     compression: int = zipfile.ZIP_DEFLATED,
     compress_level: int = -1,
-    date_time: Optional[_DateTuple] = None,
+    date_time: _DateTuple | None = None,
 ) -> None:
     """Make a zip file `zip_fname` with contents of directory `in_dir`.
 
@@ -1014,7 +1002,7 @@ def dir2zip(
                 )
 
 
-def find_package_dirs(root_path: str) -> Set[str]:
+def find_package_dirs(root_path: str) -> set[str]:
     """Find python package directories in directory `root_path`.
 
     Parameters
@@ -1059,7 +1047,7 @@ def cmp_contents(filename1, filename2):
     return contents1 == contents2
 
 
-def get_archs(libname: str) -> FrozenSet[str]:
+def get_archs(libname: str) -> frozenset[str]:
     """Return architecture types from library `libname`.
 
     Parameters
@@ -1082,21 +1070,19 @@ def get_archs(libname: str) -> FrozenSet[str]:
         return frozenset()
     lines = [line.strip() for line in stdout.split("\n") if line.strip()]
     # For some reason, output from lipo -info on .a file generates this line
-    if lines[0] == "input file {0} is not a fat file".format(libname):
+    if lines[0] == f"input file {libname} is not a fat file":
         line = lines[1]
     else:
         assert len(lines) == 1
         line = lines[0]
     for reggie in (
-        "Non-fat file: {0} is architecture: (.*)".format(re.escape(libname)),
-        "Architectures in the fat file: {0} are: (.*)".format(
-            re.escape(libname)
-        ),
+        f"Non-fat file: {re.escape(libname)} is architecture: (.*)",
+        f"Architectures in the fat file: {re.escape(libname)} are: (.*)",
     ):
         match = re.match(reggie, line)
         if match is not None:
             return frozenset(match.groups()[0].split(" "))
-    raise ValueError("Unexpected output: '{0}' for {1}".format(stdout, libname))
+    raise ValueError(f"Unexpected output: '{stdout}' for {libname}")
 
 
 def lipo_fuse(

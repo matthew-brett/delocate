@@ -9,7 +9,7 @@ from email.message import Message
 from os.path import basename, exists, isfile, realpath, splitext
 from os.path import join as pjoin
 from pathlib import Path
-from typing import AnyStr, List, Tuple
+from typing import AnyStr
 from zipfile import ZipFile
 
 import pytest
@@ -75,7 +75,7 @@ def test_rewrite_record():
         assert_record_equal(record_orig, record_new)
         # Test that signature gets deleted
         sig_fname = pjoin("wheel", dist_info_sdir, "RECORD.jws")
-        with open(sig_fname, "wt") as fobj:
+        with open(sig_fname, "w") as fobj:
             fobj.write("something")
         rewrite_record("wheel")
         with open_readable(record_fname, "rt") as fobj:
@@ -146,7 +146,7 @@ def get_info(wheel_path: str | os.PathLike[str]) -> Message:
 
 def assert_winfo_similar(
     wheel_path: str | os.PathLike[str],
-    expected: List[Tuple[str, str]],
+    expected: list[tuple[str, str]],
     drop_version: bool = True,
 ) -> None:
     """Assert `wheel_path` has `.dist-info/WHEEL` items matching `expected`.

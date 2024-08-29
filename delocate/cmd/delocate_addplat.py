@@ -15,7 +15,6 @@ or (adds tags for OSX 10.9 and 10.10):
 """
 
 # vim: ft=python
-from __future__ import absolute_import, division, print_function
 
 import os
 from argparse import ArgumentParser
@@ -107,15 +106,15 @@ def main() -> None:  # noqa: D103
     if args.osx_ver is not None:
         for ver in args.osx_ver:
             plat_tags += [
-                "macosx_{0}_{1}".format(ver, args.dual_arch_type),
-                "macosx_{0}_x86_64".format(ver),
+                f"macosx_{ver}_{args.dual_arch_type}",
+                f"macosx_{ver}_x86_64",
             ]
     if len(plat_tags) == 0:
         raise RuntimeError("Need at least one --osx-ver or --plat-tag")
     for wheel in wheels:
         if multi or args.verbose:
             print(
-                "Setting platform tags {0} for wheel {1}".format(
+                "Setting platform tags {} for wheel {}".format(
                     ",".join(plat_tags), wheel
                 )
             )
@@ -125,18 +124,16 @@ def main() -> None:  # noqa: D103
             )
         except WheelToolsError as e:
             if args.skip_errors:
-                print("Cannot modify {0} because {1}".format(wheel, e))
+                print(f"Cannot modify {wheel} because {e}")
                 continue
             raise
         if args.verbose:
             if fname is None:
                 print(
-                    "{0} already has tags {1}".format(
-                        wheel, ", ".join(plat_tags)
-                    )
+                    "{} already has tags {}".format(wheel, ", ".join(plat_tags))
                 )
             else:
-                print("Wrote {0}".format(fname))
+                print(f"Wrote {fname}")
         if (
             args.rm_orig
             and fname is not None

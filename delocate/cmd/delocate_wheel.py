@@ -14,7 +14,6 @@ import os
 from argparse import ArgumentParser
 from os.path import basename, exists, expanduser
 from os.path import join as pjoin
-from typing import List, Optional, Text
 
 from packaging.version import Version
 
@@ -89,7 +88,7 @@ def main() -> None:  # noqa: D103
             os.makedirs(wheel_dir)
     else:
         wheel_dir = None
-    require_archs: Optional[List[Text]] = None
+    require_archs: list[str] | None = None
     if args.require_archs is None:
         require_archs = [] if args.check_archs else None
     elif "," in args.require_archs:
@@ -122,7 +121,7 @@ def main() -> None:  # noqa: D103
             **delocate_values(args),
         )
         if args.verbose and len(copied):
-            print("Copied to package {0} directory:".format(args.lib_sdir))
+            print(f"Copied to package {args.lib_sdir} directory:")
             copy_lines = ["  " + name for name in sorted(copied)]
             print("\n".join(copy_lines))
 

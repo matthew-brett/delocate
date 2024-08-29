@@ -69,11 +69,13 @@ line-length = 80
 
 [tool.ruff.lint] # https://docs.astral.sh/ruff/rules/
 select = [
-    "E", # pycodestyle
-    "W", # pycodestyle
-    "F", # Pyflakes
-    "I", # isort
-    "D", # pydocstyle
+    "E",  # pycodestyle
+    "W",  # pycodestyle
+    "F",  # Pyflakes
+    "I",  # isort
+    "D",  # pydocstyle
+    "UP", # pyupgrade
+    "FA", # flake8-future-annotations
 ]
 ignore = [
     "ANN101", # missing-type-self

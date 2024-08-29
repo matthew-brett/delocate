@@ -45,8 +45,9 @@ A guide for maintainers who are doing a Delocate release.
   Check whether there are outstanding issues that can be closed, and whether there are any issues that should delay the release.
   Label them!
 
-- Review and update the release notes.
-  Review and update the `Changelog` file.
+- Review and update the `Changelog.md` file.
+  Add the new version/date while preserving the `[Unreleased]` header.
+
   Get a partial list of contributors with something like::
 
       git shortlog -ns 0.6.0..
@@ -69,14 +70,14 @@ A guide for maintainers who are doing a Delocate release.
 
 #### Doing the release
 
-You might want to make tag the release commit on your local machine, push to [PyPI](https://pypi.org/project/delocate), review, fix, rebase, until all is good.
-Then and only then do you push to upstream on github.
+Once the above is done the commit can be tagged and uploaded.
 
 - Make an annotated tag for the release with tag of form `0.6.0`::
 
       git tag -a 0.6.0
 
-- Push the tag with something like `git push origin 0.6.0` and that tag will be automatically deployed to PyPI.
+- Push the tag to `matthew-brett/delocate` to automatically deploy to PyPI.
+  If the remote name for the `matthew-brett/delocate` repo is `origin` then the command would be `git push origin 0.6.0`.
 
 - Check how everything looks on PyPI - the description, the packages.
   If anything doesn't look right then yank the release and upload with the patch version incremented.

@@ -20,7 +20,7 @@ Provides scripts:
 * ``delocate-path`` -- copy libraries a tree depends on into the tree and relink
 * ``delocate-wheel`` -- rewrite wheel having copied and relinked library
   dependencies into the wheel tree.
-* ``delocate-fuse`` -- combine two wheels with different architectures into one
+* ``delocate-merge`` -- combine two wheels with different architectures into one
   wheel with dual architecture binaries.
 
 `Auditwheel <https://github.com/pypa/auditwheel>`_ is a similar tool for Linux.
@@ -267,8 +267,8 @@ See https://github.com/matthew-brett/delocate
 Released under the BSD two-clause license - see the file ``LICENSE`` in the
 source distribution.
 
-`travis-ci <https://travis-ci.org/matthew-brett/delocate>`_ kindly tests the
-code automatically under Python 3.6 through 3.9.
+`GitHub Actions <https://github.com/matthew-brett/delocate/actions>`_
+kindly tests the code automatically.
 
 The latest released version is at https://pypi.python.org/pypi/delocate
 

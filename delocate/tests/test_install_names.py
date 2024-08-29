@@ -1,20 +1,17 @@
 """Tests for install name utilities."""
 
+from __future__ import annotations
+
 import contextlib
 import os
 import shutil
 import sys
+from collections.abc import Sequence
 from os.path import basename, dirname, exists
 from os.path import join as pjoin
 from subprocess import CompletedProcess
 from typing import (
-    ContextManager,
-    Dict,
     NamedTuple,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
 )
 from unittest import mock
 
@@ -198,7 +195,7 @@ def _copy_libs(lib_files, out_path):
 
 def assert_raises_if_exception(
     exception: object,
-) -> ContextManager[object]:
+) -> contextlib.AbstractContextManager[object]:
     """Return a pytest.raises context if `exception` is an Exception type."""
     if isinstance(exception, type) and issubclass(exception, Exception):
         return pytest.raises(exception)
@@ -208,11 +205,11 @@ def assert_raises_if_exception(
 class ToolArchMock(NamedTuple):
     """A group of expectations and mocks for otool-based function tests."""
 
-    commands: Dict[Tuple[str, ...], str]  # {command: stdout}
+    commands: dict[tuple[str, ...], str]  # {command: stdout}
     "Subprocess commands and their expected stdout for mocking."
-    expected_install_names: Union[Sequence[str], Type[Exception]]
+    expected_install_names: Sequence[str] | type[Exception]
     "The expected return result of get_install_names."
-    expected_rpaths: Union[Sequence[str], Type[Exception]]
+    expected_rpaths: Sequence[str] | type[Exception]
     "The expected return result of get_rpaths."
 
     def mock_subprocess_run(

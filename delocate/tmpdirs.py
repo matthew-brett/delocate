@@ -8,14 +8,12 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 """Contexts for *with* statement providing temporary directories."""
 
-from __future__ import absolute_import, division, print_function
-
 import os
 import shutil
 from tempfile import mkdtemp, template
 
 
-class TemporaryDirectory(object):
+class TemporaryDirectory:
     r"""Create and return a temporary directory.
 
     This has the same behavior as mkdtemp but can be used as a context manager.
@@ -75,15 +73,15 @@ class InTemporaryDirectory(TemporaryDirectory):
         """Chdir to the managed directory and then return its path."""
         self._pwd = os.getcwd()
         os.chdir(self.name)
-        return super(InTemporaryDirectory, self).__enter__()
+        return super().__enter__()
 
     def __exit__(self, exc, value, tb):
         """Revert the working directory then delete the managed directory."""
         os.chdir(self._pwd)
-        return super(InTemporaryDirectory, self).__exit__(exc, value, tb)
+        return super().__exit__(exc, value, tb)
 
 
-class InGivenDirectory(object):
+class InGivenDirectory:
     """Change directory to given directory for duration of ``with`` block.
 
     Useful when you want to use `InTemporaryDirectory` for the final test, but

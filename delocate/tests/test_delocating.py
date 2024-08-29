@@ -1,15 +1,14 @@
 """Tests for relocating libraries."""
 
-from __future__ import division, print_function
-
 import os
 import shutil
 import subprocess
 import sys
 from collections import namedtuple
+from collections.abc import Iterable
 from os.path import basename, dirname, realpath, relpath, splitext
 from os.path import join as pjoin
-from typing import Any, Callable, Dict, Iterable, List, Set, Text, Tuple
+from typing import Any, Callable
 
 import pytest
 from packaging.utils import InvalidWheelFilename
@@ -100,7 +99,7 @@ def without_system_libs(obj):
     "tree_libs_func", [tree_libs, tree_libs_from_directory]
 )
 def test_delocate_tree_libs(
-    tree_libs_func: Callable[[str], Dict[Text, Dict[Text, Text]]],
+    tree_libs_func: Callable[[str], dict[str, dict[str, str]]],
 ) -> None:
     # Test routine to copy library dependencies into a local directory
     with InTemporaryDirectory() as tmpdir:
@@ -192,9 +191,9 @@ def test_delocate_tree_libs(
         lib_dict2 = without_system_libs(tree_libs_func(subtree2))
         copied2 = delocate_tree_libs(lib_dict2, copy_dir2, "/fictional")
         local_libs = [liba, libb, libc, slibc, test_lib, stest_lib]
-        rp_liba, rp_libb, rp_libc, rp_slibc, rp_test_lib, rp_stest_lib = [
+        rp_liba, rp_libb, rp_libc, rp_slibc, rp_test_lib, rp_stest_lib = (
             realpath(L) for L in local_libs
-        ]
+        )
         exp_dict = {
             rp_libc: {rp_test_lib: libc},
             rp_slibc: {rp_stest_lib: slibc},
@@ -218,7 +217,7 @@ def test_delocate_tree_libs(
             assert set(new_links) <= set(lib_inames)
 
 
-def _copy_fixpath(files: Iterable[str], directory: str) -> List[str]:
+def _copy_fixpath(files: Iterable[str], directory: str) -> list[str]:
     new_fnames = []
     for fname in files:
         shutil.copy2(fname, directory)
@@ -363,7 +362,7 @@ def test_copy_recurse_overwrite() -> None:
         )
         # Filter system libs
 
-        def filt_func(libname: Text) -> bool:
+        def filt_func(libname: str) -> bool:
             return not libname.startswith("/usr/lib")
 
         os.makedirs("subtree")
@@ -443,7 +442,7 @@ def test_delocate_path() -> None:
             delocate_path("subtree5", "deplibs5", lib_filt_func="invalid-str")
 
 
-def _make_bare_depends() -> Tuple[Text, Text]:
+def _make_bare_depends() -> tuple[str, str]:
     # Copy:
     # * liba.dylib to 'libs' dir, which is a dependency of libb.dylib
     # * libb.dylib to 'subtree' dir, as 'libb' (no extension).
@@ -481,12 +480,12 @@ def test_delocate_path_dylibs() -> None:
         # Callable, dylibs only, does not inspect
         liba, bare_b = _make_bare_depends()
 
-        def func(fn: Text) -> bool:
+        def func(fn: str) -> bool:
             return fn.endswith(".dylib")
 
         assert_equal(delocate_path("subtree", "deplibs", func), {})
 
-        def func(fn: Text) -> bool:
+        def func(fn: str) -> bool:
             return fn.endswith("libb")
 
         assert_equal(
@@ -499,7 +498,7 @@ def test_delocate_path_dylibs() -> None:
 def test_check_archs() -> None:
     # Test utility to check architectures in copied_libs dict
     # No libs always OK
-    s0: Set[Any] = set()
+    s0: set[Any] = set()
     assert_equal(check_archs({}), s0)
     # One lib to itself OK
     lib_M1_M1 = {LIBM1: {LIBM1: "install_name"}}

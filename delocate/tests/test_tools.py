@@ -1,7 +1,5 @@
 """Test tools module."""
 
-from __future__ import division, print_function
-
 import os
 import shutil
 import stat
@@ -82,13 +80,13 @@ def test_ensure_permissions():
             ("test.read", "A line\n"),
             ("test.write", "B line"),
         ):
-            with open(fname, "wt") as fobj:
+            with open(fname, "w") as fobj:
                 fobj.write(contents)
             os.chmod(fname, 0)
             sts[fname] = chmod_perms(fname)
 
         def read_file(fname):
-            with open(fname, "rt") as fobj:
+            with open(fname) as fobj:
                 contents = fobj.read()
             return contents
 
@@ -96,7 +94,7 @@ def test_ensure_permissions():
         non_read_file = ensure_permissions(stat.S_IWUSR)(read_file)
 
         def write_file(fname, contents):
-            with open(fname, "wt") as fobj:
+            with open(fname, "w") as fobj:
                 fobj.write(contents)
 
         fixed_write_file = ensure_permissions(stat.S_IWUSR)(write_file)
@@ -126,7 +124,7 @@ def test_ensure_permissions():
 def test_ensure_writable():
     # Test ensure writable decorator
     with InTemporaryDirectory():
-        with open("test.bin", "wt") as fobj:
+        with open("test.bin", "w") as fobj:
             fobj.write("A line\n")
         # Set to user rw, else r
         os.chmod("test.bin", 0o644)
@@ -170,7 +168,7 @@ def test_parse_install_name() -> None:
 
 
 def _write_file(filename, contents):
-    with open(filename, "wt") as fobj:
+    with open(filename, "w") as fobj:
         fobj.write(contents)
 
 

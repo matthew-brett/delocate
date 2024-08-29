@@ -10,8 +10,9 @@ import logging
 import os
 import sys
 from argparse import ArgumentParser, Namespace
+from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import Callable, Iterable, Iterator, List
+from typing import Callable
 
 from typing_extensions import Literal, TypedDict
 
@@ -102,7 +103,7 @@ class DelocateArgs(TypedDict):
 
 def delocate_values(args: Namespace) -> DelocateArgs:
     """Return the common kwargs for delocate_path and delocate_wheel."""
-    exclude_files: List[str] = args.exclude
+    exclude_files: list[str] = args.exclude
 
     def copy_filter_exclude(name: str) -> bool:
         """Return False if name is excluded, uses normal rules otherwise."""

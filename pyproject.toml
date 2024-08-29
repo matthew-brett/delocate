@@ -9,7 +9,7 @@ description = "Move macOS dynamic libraries into package"
 authors = [{ name = "Matthew Brett", email = "matthew.brett@gmail.com" }]
 maintainers = [{ name = "Matthew Brett", email = "matthew.brett@gmail.com" }]
 readme = "README.rst"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 license = { file = "LICENSE" }
 dependencies = [
     "bindepend; sys_platform == 'win32'",
@@ -53,16 +53,29 @@ testpaths = ["delocate/"]
 addopts = ["--doctest-modules", "--cov=delocate", "--cov-config=.coveragerc"]
 log_file_level = "DEBUG"
 
+
+[tool.mypy]
+files = ["*.py", "delocate"]
+python_version = "3.9"
+
+[[tool.mypy.overrides]] # Ignore delocate._version module.
+module = "delocate._version"
+ignore_errors = true
+ignore_missing_imports = true
+
+
 [tool.ruff]
 line-length = 80
 
 [tool.ruff.lint] # https://docs.astral.sh/ruff/rules/
 select = [
-    "E", # pycodestyle
-    "W", # pycodestyle
-    "F", # Pyflakes
-    "I", # isort
-    "D", # pydocstyle
+    "E",  # pycodestyle
+    "W",  # pycodestyle
+    "F",  # Pyflakes
+    "I",  # isort
+    "D",  # pydocstyle
+    "UP", # pyupgrade
+    "FA", # flake8-future-annotations
 ]
 ignore = [
     "ANN101", # missing-type-self

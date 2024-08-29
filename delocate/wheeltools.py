@@ -11,12 +11,13 @@ import glob
 import hashlib
 import os
 import sys
+from collections.abc import Iterable
 from itertools import product
 from os import PathLike
 from os.path import abspath, basename, dirname, exists, relpath, splitext
 from os.path import join as pjoin
 from os.path import sep as psep
-from typing import Iterable, Optional, Union, overload
+from typing import overload
 
 from packaging.utils import parse_wheel_filename
 
@@ -74,12 +75,12 @@ def rewrite_record(bdist_dir: str | PathLike) -> None:
             relative_path = relpath(path, bdist_dir)
             if skip(relative_path):
                 hash = ""
-                size: Union[int, str] = ""
+                size: int | str = ""
             else:
                 with open(path, "rb") as f:
                     data = f.read()
                 digest = hashlib.sha256(data).digest()
-                hash = "sha256=%s" % (
+                hash = "sha256={}".format(
                     base64.urlsafe_b64encode(digest).decode("ascii").strip("=")
                 )
                 size = len(data)
@@ -111,7 +112,7 @@ class InWheel(InTemporaryDirectory):
         """
         self.in_wheel = abspath(in_wheel)
         self.out_wheel = None if out_wheel is None else abspath(out_wheel)
-        super(InWheel, self).__init__()
+        super().__init__()
 
     def __enter__(self):
         """Unpack a wheel and return the path to its temporary directly.
@@ -119,7 +120,7 @@ class InWheel(InTemporaryDirectory):
         Will also chdir to the temporary directory.
         """
         zip2dir(self.in_wheel, self.name)
-        return super(InWheel, self).__enter__()
+        return super().__enter__()
 
     def __exit__(self, exc, value, tb):
         """Write out the wheel based on the value of `out_wheel`, then cleanup.
@@ -129,7 +130,7 @@ class InWheel(InTemporaryDirectory):
         if self.out_wheel is not None:
             rewrite_record(self.name)
             dir2zip(self.name, self.out_wheel)
-        return super(InWheel, self).__exit__(exc, value, tb)
+        return super().__exit__(exc, value, tb)
 
 
 class InWheelCtx(InWheel):
@@ -159,7 +160,7 @@ class InWheelCtx(InWheel):
             filename of wheel to write after exiting.  If None, don't write and
             discard
         """
-        super(InWheelCtx, self).__init__(in_wheel, out_wheel)
+        super().__init__(in_wheel, out_wheel)
         self.wheel_path = None
 
     def __enter__(self):
@@ -168,7 +169,7 @@ class InWheelCtx(InWheel):
 
         Will also chdir to the temporary directory.
         """
-        self.wheel_path = super(InWheelCtx, self).__enter__()
+        self.wheel_path = super().__enter__()
         return self
 
 
@@ -193,9 +194,9 @@ def add_platforms(
 def add_platforms(
     in_wheel: str,
     platforms: Iterable[str],
-    out_path: Optional[str] = None,
+    out_path: str | None = None,
     clobber: bool = False,
-) -> Optional[str]:
+) -> str | None:
     """Add platform tags `platforms` to `in_wheel` filename and WHEEL tags.
 
     Add any platform tags in `platforms` that are missing from `in_wheel`
@@ -235,9 +236,7 @@ def add_platforms(
     out_wheel = pjoin(out_path, out_wheel_base + ext)
     if exists(out_wheel) and not clobber:
         raise WheelToolsError(
-            "Not overwriting {0}; set clobber=True to overwrite".format(
-                out_wheel
-            )
+            f"Not overwriting {out_wheel}; set clobber=True to overwrite"
         )
     with InWheelCtx(in_wheel) as ctx:
         info = read_pkg_info(info_fname)

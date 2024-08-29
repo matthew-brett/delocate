@@ -7,9 +7,9 @@ import os
 import shutil
 import subprocess
 import sys
+from collections.abc import Iterable
 from os.path import dirname, realpath, relpath, split
 from os.path import join as pjoin
-from typing import Dict, Iterable, Text
 from unittest import mock
 
 import pytest
@@ -47,7 +47,7 @@ from .test_install_names import (
 from .test_wheelies import PLAT_WHEEL, PURE_WHEEL, RPATH_WHEEL, PlatWheel
 
 
-def get_ext_dict(local_libs: Iterable[Text]) -> Dict[Text, Dict[Text, Text]]:
+def get_ext_dict(local_libs: Iterable[str]) -> dict[str, dict[str, str]]:
     ext_deps = {}
     for ext_lib in EXT_LIBS:
         lib_deps = {}
@@ -79,7 +79,7 @@ def test_tree_libs() -> None:
         # default - no filtering
         assert tree_libs(tmpdir) == exp_dict
 
-        def filt(fname: Text) -> bool:
+        def filt(fname: str) -> bool:
             return fname.endswith(".dylib")
 
         exp_dict = get_ext_dict([liba, libb, libc])
@@ -372,8 +372,8 @@ def test_get_rp_stripper() -> None:
 
 
 def get_ext_dict_stripped(
-    local_libs: Iterable[Text], start_path: Text
-) -> Dict[Text, Dict[Text, Text]]:
+    local_libs: Iterable[str], start_path: str
+) -> dict[str, dict[str, str]]:
     ext_dict = {}
     for ext_lib in EXT_LIBS:
         lib_deps = {}

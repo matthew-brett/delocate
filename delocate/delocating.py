@@ -9,23 +9,14 @@ import re
 import shutil
 import stat
 import warnings
+from collections.abc import Iterable, Iterator, Mapping
 from os.path import abspath, basename, dirname, exists, realpath, relpath
 from os.path import join as pjoin
 from pathlib import Path
 from subprocess import PIPE, Popen
 from typing import (
     Callable,
-    Dict,
-    FrozenSet,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
-    Optional,
-    Set,
-    Text,
-    Tuple,
-    Union,
+    Final,
 )
 
 from macholib.mach_o import (  # type: ignore[import-untyped]
@@ -36,7 +27,6 @@ from macholib.mach_o import (  # type: ignore[import-untyped]
 from macholib.MachO import MachO  # type: ignore[import-untyped]
 from packaging.utils import parse_wheel_filename
 from packaging.version import Version
-from typing_extensions import Final
 
 from .libsana import (
     DelocationError,
@@ -70,12 +60,12 @@ _PLATFORM_REGEXP = re.compile(r"macosx_(\d+)_(\d+)_(\w+)")
 
 
 def delocate_tree_libs(
-    lib_dict: Mapping[Text, Mapping[Text, Text]],
-    lib_path: Text,
-    root_path: Text,
+    lib_dict: Mapping[str, Mapping[str, str]],
+    lib_path: str,
+    root_path: str,
     *,
     sanitize_rpaths: bool = False,
-) -> Dict[Text, Dict[Text, Text]]:
+) -> dict[str, dict[str, str]]:
     """Move needed libraries in `lib_dict` into `lib_path`.
 
     `lib_dict` has keys naming libraries required by the files in the
@@ -137,8 +127,8 @@ def delocate_tree_libs(
 
 
 def _sanitize_rpaths(
-    lib_dict: Mapping[Text, Mapping[Text, Text]],
-    files_to_delocate: Iterable[Text],
+    lib_dict: Mapping[str, Mapping[str, str]],
+    files_to_delocate: Iterable[str],
 ) -> None:
     """Sanitize the rpaths of libraries."""
     for required in files_to_delocate:
@@ -148,9 +138,9 @@ def _sanitize_rpaths(
 
 
 def _analyze_tree_libs(
-    lib_dict: Mapping[Text, Mapping[Text, Text]],
-    root_path: Text,
-) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]:
+    lib_dict: Mapping[str, Mapping[str, str]],
+    root_path: str,
+) -> tuple[dict[str, dict[str, str]], set[str]]:
     """Verify then return which library files to copy and delocate.
 
     Returns
@@ -168,7 +158,7 @@ def _analyze_tree_libs(
     for required, requirings in lib_dict.items():
         if required.startswith("@"):
             # @rpath, etc, at this point should never happen.
-            raise DelocationError("%s was expected to be resolved." % required)
+            raise DelocationError(f"{required} was expected to be resolved.")
         r_ed_base = basename(required)
         if relpath(required, rp_root_path).startswith(".."):
             # Not local, plan to copy
@@ -178,9 +168,7 @@ def _analyze_tree_libs(
                     + r_ed_base
                 )
             if not exists(required):
-                raise DelocationError(
-                    'library "{0}" does not exist'.format(required)
-                )
+                raise DelocationError(f'library "{required}" does not exist')
             # Copy requirings to preserve it since it will be modified later.
             needs_copying[required] = dict(requirings)
             copied_basenames.add(r_ed_base)
@@ -190,11 +178,11 @@ def _analyze_tree_libs(
 
 
 def _copy_required_libs(
-    lib_dict: Mapping[Text, Mapping[Text, Text]],
-    lib_path: Text,
-    root_path: Text,
-    libraries_to_copy: Iterable[Text],
-) -> Tuple[Dict[Text, Dict[Text, Text]], Set[Text]]:
+    lib_dict: Mapping[str, Mapping[str, str]],
+    lib_path: str,
+    root_path: str,
+    libraries_to_copy: Iterable[str],
+) -> tuple[dict[str, dict[str, str]], set[str]]:
     """Copy libraries outside of root_path to lib_path.
 
     Returns
@@ -234,9 +222,9 @@ def _copy_required_libs(
 
 
 def _update_install_names(
-    lib_dict: Mapping[Text, Mapping[Text, Text]],
-    root_path: Text,
-    files_to_delocate: Iterable[Text],
+    lib_dict: Mapping[str, Mapping[str, str]],
+    root_path: str,
+    files_to_delocate: Iterable[str],
 ) -> None:
     """Update the install names of libraries."""
     for required in files_to_delocate:
@@ -262,10 +250,10 @@ def _update_install_names(
 
 
 def copy_recurse(
-    lib_path: Text,
-    copy_filt_func: Optional[Callable[[Text], bool]] = None,
-    copied_libs: Optional[Dict[Text, Dict[Text, Text]]] = None,
-) -> Dict[Text, Dict[Text, Text]]:
+    lib_path: str,
+    copy_filt_func: Callable[[str], bool] | None = None,
+    copied_libs: dict[str, dict[str, str]] | None = None,
+) -> dict[str, dict[str, str]]:
     """Analyze `lib_path` for library dependencies and copy libraries.
 
     `lib_path` is a directory containing libraries.  The libraries might
@@ -321,9 +309,9 @@ def copy_recurse(
 
 
 def _copy_required(
-    lib_path: Text,
-    copy_filt_func: Optional[Callable[[Text], bool]],
-    copied_libs: Dict[Text, Dict[Text, Text]],
+    lib_path: str,
+    copy_filt_func: Callable[[str], bool] | None,
+    copied_libs: dict[str, dict[str, str]],
 ) -> None:
     """Copy libraries required for files in `lib_path` to `copied_libs`.
 
@@ -438,15 +426,15 @@ def _delocate_filter_function(
 
 
 def delocate_path(
-    tree_path: Text,
-    lib_path: Text,
-    lib_filt_func: Optional[Union[str, Callable[[Text], bool]]] = None,
-    copy_filt_func: Optional[Callable[[Text], bool]] = filter_system_libs,
-    executable_path: Optional[Text] = None,
+    tree_path: str,
+    lib_path: str,
+    lib_filt_func: str | Callable[[str], bool] | None = None,
+    copy_filt_func: Callable[[str], bool] | None = filter_system_libs,
+    executable_path: str | None = None,
     ignore_missing: bool = False,
     *,
     sanitize_rpaths: bool = False,
-) -> Dict[Text, Dict[Text, Text]]:
+) -> dict[str, dict[str, str]]:
     """Copy required libraries for files in `tree_path` into `lib_path`.
 
     Parameters
@@ -522,8 +510,8 @@ def delocate_path(
 
 
 def _copy_lib_dict(
-    lib_dict: Mapping[Text, Mapping[Text, Text]],
-) -> Dict[Text, Dict[Text, Text]]:
+    lib_dict: Mapping[str, Mapping[str, str]],
+) -> dict[str, dict[str, str]]:
     """Return a copy of lib_dict."""
     return {  # Convert nested Mapping types into nested Dict types.
         required: dict(requiring) for required, requiring in lib_dict.items()
@@ -667,8 +655,8 @@ def _get_archs_and_version_from_wheel_name(
 
 
 def _get_incompatible_libs(
-    required_version: Optional[Version],
-    version_lib_dict: Dict[Version, List[Path]],
+    required_version: Version | None,
+    version_lib_dict: dict[Version, list[Path]],
     arch: str,
 ) -> set[tuple[Path, Version]]:
     """Find libraries which require a more modern macOS version.
@@ -777,7 +765,7 @@ def _pack_architectures(
 def _calculate_minimum_wheel_name(
     wheel_name: str,
     wheel_dir: Path,
-    require_target_macos_version: Optional[Version],
+    require_target_macos_version: Version | None,
 ) -> tuple[str, set[tuple[Path, Version]]]:
     """Return a wheel name with an updated platform tag.
 
@@ -810,7 +798,7 @@ def _calculate_minimum_wheel_name(
     )
     # get the architecture and minimum macOS version from the libraries
     # in the wheel
-    all_library_versions: Dict[str, Dict[Version, List[Path]]] = {}
+    all_library_versions: dict[str, dict[Version, list[Path]]] = {}
 
     for lib in wheel_dir.glob("**/*"):
         for arch, version in _get_macos_min_version(lib):
@@ -892,7 +880,7 @@ def _calculate_minimum_wheel_name(
 def _check_and_update_wheel_name(
     wheel_path: Path,
     wheel_dir: Path,
-    require_target_macos_version: Optional[Version],
+    require_target_macos_version: Version | None,
 ) -> Path:
     """Determine the minimum platform tag and update the wheel name if needed.
 
@@ -958,18 +946,18 @@ def _update_wheelfile(wheel_dir: Path, wheel_name: str) -> None:
 
 def delocate_wheel(
     in_wheel: str,
-    out_wheel: Optional[str] = None,
+    out_wheel: str | None = None,
     lib_sdir: str = ".dylibs",
-    lib_filt_func: Union[None, str, Callable[[str], bool]] = None,
-    copy_filt_func: Optional[Callable[[str], bool]] = filter_system_libs,
-    require_archs: Union[None, str, Iterable[str]] = None,
-    check_verbose: Optional[bool] = None,
+    lib_filt_func: Callable[[str], bool] | str | None = None,
+    copy_filt_func: Callable[[str], bool] | None = filter_system_libs,
+    require_archs: Iterable[str] | str | None = None,
+    check_verbose: bool | None = None,
     *,
-    executable_path: Optional[str] = None,
+    executable_path: str | None = None,
     ignore_missing: bool = False,
     sanitize_rpaths: bool = False,
-    require_target_macos_version: Optional[Version] = None,
-) -> Dict[str, Dict[str, str]]:
+    require_target_macos_version: Version | None = None,
+) -> dict[str, dict[str, str]]:
     """Update wheel by copying required libraries to `lib_sdir` in wheel.
 
     Create `lib_sdir` in wheel tree only if we are copying one or more
@@ -1104,7 +1092,7 @@ def delocate_wheel(
 
 
 def patch_wheel(
-    in_wheel: Text, patch_fname: Text, out_wheel: Optional[Text] = None
+    in_wheel: str, patch_fname: str, out_wheel: str | None = None
 ) -> None:
     """Apply ``-p1`` style patch in `patch_fname` to contents of `in_wheel`.
 
@@ -1128,7 +1116,7 @@ def patch_wheel(
     else:
         out_wheel = abspath(out_wheel)
     if not exists(patch_fname):
-        raise ValueError("patch file {0} does not exist".format(patch_fname))
+        raise ValueError(f"patch file {patch_fname} does not exist")
     with InWheel(in_wheel, out_wheel):
         with open(patch_fname, "rb") as fobj:
             patch_proc = Popen(
@@ -1145,12 +1133,10 @@ _ARCH_LOOKUP = {"intel": ["i386", "x86_64"], "universal2": ["x86_64", "arm64"]}
 
 
 def check_archs(
-    copied_libs: Mapping[Text, Mapping[Text, Text]],
-    require_archs: Union[Text, Iterable[Text]] = (),
+    copied_libs: Mapping[str, Mapping[str, str]],
+    require_archs: str | Iterable[str] = (),
     stop_fast: bool = False,
-) -> Set[
-    Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]
-]:
+) -> set[tuple[str, frozenset[str]] | tuple[str, str, frozenset[str]]]:
     """Check compatibility of archs in `copied_libs` dict.
 
     Parameters
@@ -1193,8 +1179,8 @@ def check_archs(
     if isinstance(require_archs, str):
         require_archs = _ARCH_LOOKUP.get(require_archs, [require_archs])
     require_archs_set = frozenset(require_archs)
-    bads: List[
-        Union[Tuple[Text, FrozenSet[Text]], Tuple[Text, Text, FrozenSet[Text]]]
+    bads: list[
+        tuple[str, frozenset[str]] | tuple[str, str, frozenset[str]]
     ] = []
     for depended_lib, dep_dict in copied_libs.items():
         depended_archs = get_archs(depended_lib)
@@ -1247,7 +1233,7 @@ def bads_report(bads, path_prefix=None):
         if len(result) == 3:
             depended_lib, depending_lib, missing_archs = result
             reports.append(
-                "{0} needs {1} {2} missing from {3}".format(
+                "{} needs {} {} missing from {}".format(
                     path_processor(depending_lib),
                     "archs" if len(missing_archs) > 1 else "arch",
                     ", ".join(sorted(missing_archs)),
@@ -1257,7 +1243,7 @@ def bads_report(bads, path_prefix=None):
         elif len(result) == 2:
             depending_lib, missing_archs = result
             reports.append(
-                "Required {0} {1} missing from {2}".format(
+                "Required {} {} missing from {}".format(
                     "archs" if len(missing_archs) > 1 else "arch",
                     ", ".join(sorted(missing_archs)),
                     path_processor(depending_lib),

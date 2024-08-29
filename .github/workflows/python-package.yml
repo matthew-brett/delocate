@@ -185,6 +185,8 @@ jobs:
     needs: isolated_tests
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     environment:
       name: pypi
       url: https://pypi.org/project/delocate/${{ github.ref_name }}/

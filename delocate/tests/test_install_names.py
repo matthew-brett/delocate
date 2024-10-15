@@ -226,6 +226,8 @@ class ToolArchMock(NamedTuple):
             commands={
                 (
                     "otool",
+                    "-arch",
+                    "all",
                     "-L",
                     "example.so",
                 ): """\
@@ -236,6 +238,8 @@ example.so:
 """,  # noqa: E501
                 (
                     "otool",
+                    "-arch",
+                    "all",
                     "-D",
                     "example.so",
                 ): """\
@@ -244,6 +248,8 @@ example.so:
 """,
                 (
                     "otool",
+                    "-arch",
+                    "all",
                     "-l",
                     "example.so",
                 ): """\
@@ -263,6 +269,8 @@ cmdsize 0
             commands={
                 (  # Install names match.
                     "otool",
+                    "-arch",
+                    "all",
                     "-L",
                     "example.so",
                 ): """\
@@ -277,6 +285,8 @@ example.so (architecture arm64):
 """,  # noqa: E501
                 (  # Install IDs match.
                     "otool",
+                    "-arch",
+                    "all",
                     "-D",
                     "example.so",
                 ): """\
@@ -287,6 +297,8 @@ example.so (architecture arm64):
 """,
                 (  # Rpaths match.
                     "otool",
+                    "-arch",
+                    "all",
                     "-l",
                     "example.so",
                 ): """\
@@ -310,6 +322,8 @@ cmdsize 0
             commands={  # Multi arch - not matching install names, rpaths
                 (  # Install names do not match (compatibility version).
                     "otool",
+                    "-arch",
+                    "all",
                     "-L",
                     "example.so",
                 ): """\
@@ -324,6 +338,8 @@ example.so (architecture arm64):
 """,  # noqa: E501
                 (  # Install IDs match.
                     "otool",
+                    "-arch",
+                    "all",
                     "-D",
                     "example.so",
                 ): """\
@@ -334,6 +350,8 @@ example.so (architecture arm64):
 """,
                 (  # Rpaths do not match.
                     "otool",
+                    "-arch",
+                    "all",
                     "-l",
                     "example.so",
                 ): """\
@@ -354,6 +372,8 @@ cmdsize 0
             commands={  # Multi arch - not matching install IDS
                 (  # Install names match.
                     "otool",
+                    "-arch",
+                    "all",
                     "-L",
                     "example.so",
                 ): """\
@@ -368,6 +388,8 @@ example.so (architecture arm64):
 """,  # noqa: E501
                 (  # Different install IDs for different archs.
                     "otool",
+                    "-arch",
+                    "all",
                     "-D",
                     "example.so",
                 ): """\
@@ -378,6 +400,8 @@ example.so (architecture arm64):
 """,
                 (  # RPaths match.
                     "otool",
+                    "-arch",
+                    "all",
                     "-l",
                     "example.so",
                 ): """\

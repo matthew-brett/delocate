@@ -542,7 +542,7 @@ def get_install_names(filename: str) -> tuple[str, ...]:
     """
     if not _is_macho_file(filename):
         return ()
-    otool = _run(["otool", "-L", filename], check=False)
+    otool = _run(["otool", "-arch", "all", "-L", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
     install_id = get_install_id(filename)
@@ -606,7 +606,7 @@ def _get_install_ids(filename: str) -> dict[str, str]:
     """
     if not _is_macho_file(filename):
         return {}
-    otool = _run(["otool", "-D", filename], check=False)
+    otool = _run(["otool", "-arch", "all", "-D", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return {}
     out = {}
@@ -762,7 +762,7 @@ def get_rpaths(filename: str) -> tuple[str, ...]:
     """
     if not _is_macho_file(filename):
         return ()
-    otool = _run(["otool", "-l", filename], check=False)
+    otool = _run(["otool", "-arch", "all", "-l", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
     rpaths = _check_ignore_archs(_parse_otool_rpaths(otool.stdout))

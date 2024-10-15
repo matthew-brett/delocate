@@ -1092,7 +1092,9 @@ def delocate_wheel(
 
 
 def patch_wheel(
-    in_wheel: str, patch_fname: str, out_wheel: str | None = None
+    in_wheel: str | os.PathLike[str],
+    patch_fname: str | os.PathLike[str],
+    out_wheel: str | os.PathLike[str] | None = None,
 ) -> None:
     """Apply ``-p1`` style patch in `patch_fname` to contents of `in_wheel`.
 
@@ -1101,32 +1103,25 @@ def patch_wheel(
 
     Parameters
     ----------
-    in_wheel : str
+    in_wheel : str or PathLike
         Filename of wheel to process
-    patch_fname : str
+    patch_fname : str or PathLike
         Filename of patch file.  Will be applied with ``patch -p1 <
         patch_fname``
-    out_wheel : None or str
+    out_wheel : None or str or PathLike
         Filename of patched wheel to write.  If None, overwrite `in_wheel`
     """
-    in_wheel = abspath(in_wheel)
-    patch_fname = abspath(patch_fname)
-    if out_wheel is None:
-        out_wheel = in_wheel
-    else:
-        out_wheel = abspath(out_wheel)
-    if not exists(patch_fname):
-        raise ValueError(f"patch file {patch_fname} does not exist")
+    in_wheel = Path(in_wheel).resolve(strict=True)
+    patch_fname = Path(patch_fname).resolve(strict=True)
+    out_wheel = Path(out_wheel).resolve() if out_wheel is not None else in_wheel
     with InWheel(in_wheel, out_wheel):
-        with open(patch_fname, "rb") as fobj:
+        with open(patch_fname, "rb") as f:
             patch_proc = Popen(
-                ["patch", "-p1"], stdin=fobj, stdout=PIPE, stderr=PIPE
+                ["patch", "-p1"], stdin=f, stdout=PIPE, stderr=PIPE, text=True
             )
-            stdout, stderr = patch_proc.communicate()
+            stdout, _stderr = patch_proc.communicate()
             if patch_proc.returncode != 0:
-                raise RuntimeError(
-                    "Patch failed with stdout:\n" + stdout.decode("latin1")
-                )
+                raise RuntimeError(f"Patch failed with stdout:\n{stdout}")
 
 
 _ARCH_LOOKUP = {"intel": ["i386", "x86_64"], "universal2": ["x86_64", "arm64"]}

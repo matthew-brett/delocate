@@ -10,6 +10,11 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+### Changed
+
+- `patch_wheel` function raises `FileNotFoundError` instead of `ValueError` on
+  missing patch files.
+
 ### Removed
 
 - Dropped support for Python 3.7 and Python 3.8.

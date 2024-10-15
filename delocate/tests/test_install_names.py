@@ -9,7 +9,6 @@ import sys
 from collections.abc import Sequence
 from os.path import basename, dirname, exists
 from os.path import join as pjoin
-from pathlib import Path, PurePosixPath
 from subprocess import CompletedProcess
 from typing import (
     NamedTuple,
@@ -425,17 +424,12 @@ cmdsize 0
     ],
 )
 def test_names_multi(arch_def: ToolArchMock) -> None:
-    def _as_posix(paths) -> list[PurePosixPath]:
-        """Ensure paths are POSIX on all platforms."""
-        return [PurePosixPath(Path(path)) for path in paths]
-
     with mock.patch("subprocess.run", arch_def.mock_subprocess_run):
         with mock.patch("delocate.tools._is_macho_file", return_value=True):
             with assert_raises_if_exception(arch_def.expected_install_names):
-                assert _as_posix(get_install_names("example.so")) == _as_posix(
-                    arch_def.expected_install_names
+                assert (
+                    get_install_names("example.so")
+                    == arch_def.expected_install_names
                 )
             with assert_raises_if_exception(arch_def.expected_rpaths):
-                assert _as_posix(get_rpaths("example.so")) == _as_posix(
-                    arch_def.expected_rpaths
-                )
+                assert get_rpaths("example.so") == arch_def.expected_rpaths

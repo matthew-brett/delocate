@@ -13,7 +13,7 @@ from collections.abc import Iterable, Iterator
 from os import PathLike
 from os.path import join as pjoin
 from os.path import realpath
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import (
     Callable,
 )
@@ -99,7 +99,7 @@ def get_dependencies(
             return
         raise DependencyNotFound(lib_fname)
 
-    environment_paths = [Path(p) for p in get_environment_variable_paths()]
+    environment_paths = get_environment_variable_paths()
     rpaths = {
         arch: [*paths, *environment_paths]
         for arch, paths in _get_rpaths(lib_fname).items()
@@ -114,7 +114,7 @@ def get_dependencies(
                 continue
             install_name_seen.add(install_name)
             try:
-                if install_name.parts[0].startswith("@"):
+                if install_name.startswith("@"):
                     dependency_path = resolve_dynamic_paths(
                         install_name,
                         rpaths[arch],
@@ -141,7 +141,7 @@ def get_dependencies(
                 message = (
                     f"\n{install_name} not found:\n  Needed by: {lib_fname}"
                 )
-                if install_name.parts[0] == "@rpath":
+                if Path(install_name).parts[0] == "@rpath":
                     message += "\n  Search path:\n    " + "\n    ".join(rpaths)
                 logger.error(message)
                 # At this point install_name is known to be a bad path.
@@ -518,7 +518,7 @@ def resolve_dynamic_paths(
         When `lib_path` has `@rpath` in it but no library can be found on any
         of the provided `rpaths`.
     """
-    lib_path = PurePosixPath(lib_path)
+    lib_path = Path(lib_path)
 
     if executable_path is None:
         executable_path = Path(sys.executable).parent
@@ -540,12 +540,12 @@ def resolve_dynamic_paths(
     # library is not in the previous paths.
     paths_to_search.extend(_default_paths_to_search)
 
-    rel_path = PurePosixPath(*lib_path.parts[1:])
+    rel_path = Path(*lib_path.parts[1:])
     for prefix_path in paths_to_search:
         try:
             abs_path = Path(
                 resolve_dynamic_paths(
-                    PurePosixPath(prefix_path, rel_path),
+                    Path(prefix_path, rel_path),
                     (),
                     loader_path,
                     executable_path,

@@ -16,7 +16,7 @@ from datetime import datetime
 from os import PathLike
 from os.path import exists, isdir
 from os.path import join as pjoin
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import (
     Any,
     TypeVar,
@@ -539,7 +539,7 @@ def _line0_says_object(
 
 def _get_install_names(
     filename: str | PathLike[str],
-) -> dict[str, Sequence[PurePosixPath]]:
+) -> dict[str, list[str]]:
     """Return install names from library named in `filename`.
 
     Returns tuple of install names.
@@ -568,7 +568,7 @@ def _get_install_names(
         return {}
     install_ids = _get_install_ids(filename)
     # Collect install names for each architecture
-    all_names: dict[str, Sequence[PurePosixPath]] = {}
+    all_names: dict[str, list[str]] = {}
     for arch, names_data in _parse_otool_install_names(otool.stdout).items():
         names = [name for name, _, _ in names_data]
         # Remove redundant install id from the install names.
@@ -578,7 +578,7 @@ def _get_install_names(
                     f"Expected {install_ids[arch]!r} to be first in {names}"
                 )
             names = names[1:]
-        all_names[arch] = tuple(PurePosixPath(name) for name in names)
+        all_names[arch] = names
 
     return all_names
 
@@ -606,8 +606,7 @@ def get_install_names(filename: str | PathLike[str]) -> tuple[str, ...]:
         On any unexpected output from ``otool``.
     """
     return tuple(
-        str(name)
-        for name in _unique_everseen(
+        _unique_everseen(
             itertools.chain(*_get_install_names(filename).values())
         )
     )
@@ -797,7 +796,7 @@ def _parse_otool_rpaths(stdout: str) -> dict[str, list[str]]:
 
 def _get_rpaths(
     filename: str | PathLike[str],
-) -> dict[str, Sequence[PurePosixPath]]:
+) -> dict[str, list[str]]:
     """Return the rpaths from the library `filename` organized by architecture.
 
     If `filename` is not a library then the returned dict will be empty.
@@ -826,10 +825,7 @@ def _get_rpaths(
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return {}
 
-    return {
-        arch: tuple(PurePosixPath(p) for p in paths)
-        for arch, paths in _parse_otool_rpaths(otool.stdout).items()
-    }
+    return _parse_otool_rpaths(otool.stdout)
 
 
 @deprecated("This function has been replaced by _get_rpaths")
@@ -857,10 +853,7 @@ def get_rpaths(filename: str | PathLike[str]) -> tuple[str, ...]:
     """
     # Simply return all rpaths ignoring architectures
     return tuple(
-        str(path)
-        for path in _unique_everseen(
-            itertools.chain(*_get_rpaths(filename).values())
-        )
+        _unique_everseen(itertools.chain(*_get_rpaths(filename).values()))
     )
 
 

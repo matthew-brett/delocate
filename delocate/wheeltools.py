@@ -24,7 +24,7 @@ from packaging.utils import parse_wheel_filename
 from delocate.pkginfo import read_pkg_info, write_pkg_info
 
 from .tmpdirs import InTemporaryDirectory
-from .tools import dir2zip, open_rw, unique_by_index, zip2dir
+from .tools import _unique_everseen, dir2zip, open_rw, zip2dir
 
 
 class WheelToolsError(Exception):
@@ -246,7 +246,7 @@ def add_platforms(
         # Python version, C-API version combinations
         pyc_apis = ["-".join(tag.split("-")[:2]) for tag in in_info_tags]
         # unique Python version, C-API version combinations
-        pyc_apis = unique_by_index(pyc_apis)
+        pyc_apis = list(_unique_everseen(pyc_apis))
         # Add new platform tags for each Python version, C-API combination
         required_tags = ["-".join(tup) for tup in product(pyc_apis, platforms)]
         needs_write = False

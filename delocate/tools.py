@@ -10,7 +10,7 @@ import subprocess
 import time
 import warnings
 import zipfile
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from datetime import datetime
 from os import PathLike
 from os.path import exists, isdir
@@ -176,7 +176,25 @@ def _is_macho_file(filename: str | os.PathLike[str]) -> bool:
         return False
 
 
-def unique_by_index(sequence):
+def _unique_everseen(iterable: Iterable[T], /) -> Iterator[T]:
+    """Yield unique elements, preserving order.
+
+    Simplified version of unique_everseen, see itertools recipes.
+
+    Examples
+    --------
+    >>> list(_unique_everseen('AAAABBBCCDAABBB'))
+    ['A', 'B', 'C', 'D']
+    """
+    seen: set[T] = set()
+    for element in iterable:
+        if element not in seen:
+            seen.add(element)
+            yield element
+
+
+@deprecated("Use unique_everseen instead")
+def unique_by_index(sequence: Iterable[T]) -> list[T]:
     """Return unique elements in `sequence` in the order in which they occur.
 
     Parameters
@@ -189,11 +207,7 @@ def unique_by_index(sequence):
         unique elements of sequence, ordered by the order in which the element
         occurs in `sequence`
     """
-    uniques = []
-    for element in sequence:
-        if element not in uniques:
-            uniques.append(element)
-    return uniques
+    return list(_unique_everseen(sequence))
 
 
 def chmod_perms(fname):
@@ -521,7 +535,7 @@ def _line0_says_object(
     )
 
 
-def get_install_names(filename: str) -> tuple[str, ...]:
+def get_install_names(filename: str | PathLike[str]) -> tuple[str, ...]:
     """Return install names from library named in `filename`.
 
     Returns tuple of install names.
@@ -530,7 +544,7 @@ def get_install_names(filename: str) -> tuple[str, ...]:
 
     Parameters
     ----------
-    filename : str
+    filename : str or PathLike
         filename of library
 
     Returns
@@ -550,16 +564,21 @@ def get_install_names(filename: str) -> tuple[str, ...]:
     otool = _run(["otool", "-arch", "all", "-L", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return ()
-    install_id = get_install_id(filename)
-    names_data = _check_ignore_archs(_parse_otool_install_names(otool.stdout))
-    names = [name for name, _, _ in names_data]
-    if install_id:  # Remove redundant install id from the install names.
-        if names[0] != install_id:
-            raise InstallNameError(
-                f"Expected {install_id!r} to be first in {names}"
-            )
-        names = names[1:]
-    return tuple(names)
+    install_ids = _get_install_ids(filename)
+    # Collect all install names from all architectures
+    all_names: list[str] = []
+    for arch, names_data in _parse_otool_install_names(otool.stdout).items():
+        names = [name for name, _, _ in names_data]
+        # Remove redundant install id from the install names.
+        if arch in install_ids:
+            if names[0] != install_ids[arch]:
+                raise InstallNameError(
+                    f"Expected {install_ids[arch]!r} to be first in {names}"
+                )
+            names = names[1:]
+        all_names.extend(names)
+
+    return tuple(_unique_everseen(all_names))
 
 
 @deprecated("This function was replaced by _get_install_ids")

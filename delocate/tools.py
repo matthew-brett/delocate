@@ -21,6 +21,8 @@ from typing import (
     TypeVar,
 )
 
+from typing_extensions import deprecated
+
 T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
@@ -96,7 +98,7 @@ def back_tick(
 
 
 def _run(
-    cmd: Sequence[str], *, check: bool
+    cmd: Sequence[str | PathLike[str]], *, check: bool
 ) -> subprocess.CompletedProcess[str]:
     r"""Run ``cmd`` capturing output and handling non-zero exit codes by default.
 
@@ -474,7 +476,9 @@ BAD_OBJECT_TESTS = [
 _LINE0_RE = re.compile(r"^(?: \(architecture .*\))?:(?P<further_report>.*)")
 
 
-def _line0_says_object(stdout_stderr: str, filename: str) -> bool:
+def _line0_says_object(
+    stdout_stderr: str, filename: str | PathLike[str]
+) -> bool:
     """Return True if an output is for an object and matches filename.
 
     Parameters
@@ -495,6 +499,7 @@ def _line0_says_object(stdout_stderr: str, filename: str) -> bool:
     InstallNameError
         On any unexpected output which would leave the return value unknown.
     """
+    filename = str(Path(filename))
     line0 = stdout_stderr.strip().split("\n", 1)[0]
     for test in BAD_OBJECT_TESTS:
         if test(line0):
@@ -557,6 +562,7 @@ def get_install_names(filename: str) -> tuple[str, ...]:
     return tuple(names)
 
 
+@deprecated("This function was replaced by _get_install_ids")
 def get_install_id(filename: str) -> str | None:
     """Return install id from library named in `filename`.
 
@@ -583,7 +589,7 @@ def get_install_id(filename: str) -> str | None:
     return _check_ignore_archs(install_ids)
 
 
-def _get_install_ids(filename: str) -> dict[str, str]:
+def _get_install_ids(filename: str | PathLike[str]) -> dict[str, str]:
     """Return the install ids of a library.
 
     Parameters
@@ -652,12 +658,14 @@ def set_install_name(
 
 
 @ensure_writable
-def set_install_id(filename: str, install_id: str, ad_hoc_sign: bool = True):
+def set_install_id(
+    filename: str | PathLike[str], install_id: str, ad_hoc_sign: bool = True
+):
     """Set install id for library named in `filename`.
 
     Parameters
     ----------
-    filename : str
+    filename : str or PathLike
         filename of library
     install_id : str
         install id for library `filename`
@@ -668,7 +676,7 @@ def set_install_id(filename: str, install_id: str, ad_hoc_sign: bool = True):
     ------
     RuntimeError if `filename` has not install id
     """
-    if get_install_id(filename) is None:
+    if not _get_install_ids(filename):
         raise InstallNameError(f"{filename} has no install id")
     _run(["install_name_tool", "-id", install_id, filename], check=True)
     if ad_hoc_sign:
@@ -1116,7 +1124,7 @@ def lipo_fuse(
 
 
 @ensure_writable
-def replace_signature(filename: str, identity: str) -> None:
+def replace_signature(filename: str | PathLike[str], identity: str) -> None:
     """Replace the signature of a binary file using `identity`.
 
     See the codesign documentation for more info.

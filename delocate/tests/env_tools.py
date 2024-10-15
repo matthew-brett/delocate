@@ -1,8 +1,8 @@
 """Context managers for working with environment variables."""
 
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator
 
 from ..tmpdirs import InTemporaryDirectory
 

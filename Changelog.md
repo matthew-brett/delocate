@@ -10,6 +10,16 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+### Changed
+
+- `patch_wheel` function raises `FileNotFoundError` instead of `ValueError` on
+  missing patch files.
+
+### Removed
+
+- Dropped support for Python 3.7 and Python 3.8.
+  [#226](https://github.com/matthew-brett/delocate/pull/226)
+
 ## [0.12.0] - 2024-08-29
 
 ### Added

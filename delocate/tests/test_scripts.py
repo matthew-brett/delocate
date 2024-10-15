@@ -16,7 +16,6 @@ import sys
 from os.path import basename, exists, realpath, splitext
 from os.path import join as pjoin
 from pathlib import Path
-from typing import Text
 
 import pytest
 from pytest_console_scripts import ScriptRunner
@@ -335,11 +334,11 @@ def test_fix_wheel_archs(script_runner: ScriptRunner) -> None:
         # Broken with one architecture removed
         archs = set(("x86_64", "arm64"))
 
-        def _fix_break(arch: Text) -> None:
+        def _fix_break(arch: str) -> None:
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
 
-        def _fix_break_fix(arch: Text) -> None:
+        def _fix_break_fix(arch: str) -> None:
             _fixed_wheel(tmpdir)
             _thin_lib(stray_lib, arch)
             _thin_mod(fixed_wheel, arch)

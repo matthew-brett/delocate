@@ -31,7 +31,7 @@ parser.add_argument(
 def main() -> None:  # noqa: D103
     args = parser.parse_args()
     verbosity_config(args)
-    wheel1, wheel2 = [Path(wheel).resolve(strict=True) for wheel in args.wheels]
+    wheel1, wheel2 = (Path(wheel).resolve(strict=True) for wheel in args.wheels)
     out_wheel = Path(
         args.wheel_dir if args.wheel_dir is not None else wheel1.parent
     ).resolve()

@@ -21,7 +21,7 @@ The `wheel_makers` directory holds scripts used to make test data. GitHub Action
 
 Use [pathlib](https://docs.python.org/3/library/pathlib.html) for any new code using paths.
 Refactor any touched functions to use pathlib when it does not break backwards compatibility.
-Prefer using `PurePosixPath` to handle relative library paths returned from MacOS tools such as `otool`.
+Prefer using `str` to handle paths returned from MacOS tools such as `otool`.
 
 All new functions must have [type hints](https://mypy.readthedocs.io/en/stable/getting_started.html).
 All touched functions must be refactored to use type hints, including test functions.

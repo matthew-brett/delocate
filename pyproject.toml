@@ -15,7 +15,7 @@ dependencies = [
     "bindepend; sys_platform == 'win32'",
     "machomachomangler; sys_platform == 'win32'",
     "packaging>=20.9",
-    "typing_extensions",
+    "typing_extensions>=4.12.2",
     "macholib",
 ]
 classifiers = [

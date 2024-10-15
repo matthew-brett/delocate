@@ -365,7 +365,10 @@ cmdsize 0
    path path/arm64 (offset 0)
 """,
             },
-            expected_install_names=NotImplementedError,
+            expected_install_names=(
+                "/usr/lib/libc++.1.dylib",
+                "/usr/lib/libSystem.B.dylib",
+            ),
             expected_rpaths=NotImplementedError,
         ),
         ToolArchMock(
@@ -415,7 +418,7 @@ cmdsize 0
    path path/x86_64 (offset 0)
 """,
             },
-            expected_install_names=NotImplementedError,
+            expected_install_names=InstallNameError,  # Bad install id
             expected_rpaths=("path/x86_64",),
         ),
     ],

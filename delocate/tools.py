@@ -194,7 +194,7 @@ def _unique_everseen(iterable: Iterable[T], /) -> Iterator[T]:
             yield element
 
 
-@deprecated("Use unique_everseen instead")
+@deprecated("Use more-itertools unique_everseen instead")
 def unique_by_index(sequence: Iterable[T]) -> list[T]:
     """Return unique elements in `sequence` in the order in which they occur.
 
@@ -207,6 +207,9 @@ def unique_by_index(sequence: Iterable[T]) -> list[T]:
     uniques : list
         unique elements of sequence, ordered by the order in which the element
         occurs in `sequence`
+
+    .. deprecated:: 0.12
+        Use more-itertools unique_everseen instead.
     """
     return list(_unique_everseen(sequence))
 
@@ -632,6 +635,10 @@ def get_install_id(filename: str) -> str | None:
     ------
     NotImplementedError
         If ``filename`` has different install ids per-architecture.
+
+    .. deprecated:: 0.12
+        This function has been replaced by the private function
+        `_get_install_ids`.
     """
     install_ids = _get_install_ids(filename)
     if not install_ids:
@@ -850,6 +857,9 @@ def get_rpaths(filename: str | PathLike[str]) -> tuple[str, ...]:
         If ``filename`` has different rpaths per-architecture.
     InstallNameError
         On any unexpected output from ``otool``.
+
+    .. deprecated:: 0.12
+        This function has been replaced by the private function `_get_rpaths`.
     """
     # Simply return all rpaths ignoring architectures
     return tuple(

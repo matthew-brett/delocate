@@ -15,6 +15,12 @@ rules on making a good Changelog.
 - `patch_wheel` function raises `FileNotFoundError` instead of `ValueError` on
   missing patch files.
 
+### Deprecated
+
+- `get_rpaths` and `get_install_id` are deprecated due to not supporting
+  architectures.
+- `unique_by_index` is deprecated. Use more-itertools unique_everseen instead.
+
 ### Fixed
 
 - Fixed `NotImplementedError` when libraries depend on differing binaries

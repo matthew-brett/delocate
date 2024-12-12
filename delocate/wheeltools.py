@@ -7,16 +7,14 @@ from __future__ import annotations
 
 import base64
 import csv
-import glob
 import hashlib
 import os
-import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from itertools import product
 from os import PathLike
-from os.path import abspath, basename, dirname, exists, relpath, splitext
+from os.path import abspath, basename, dirname, exists, splitext
 from os.path import join as pjoin
-from os.path import sep as psep
+from pathlib import Path, PurePosixPath
 from typing import overload
 
 from packaging.utils import parse_wheel_filename
@@ -24,21 +22,14 @@ from packaging.utils import parse_wheel_filename
 from delocate.pkginfo import read_pkg_info, write_pkg_info
 
 from .tmpdirs import InTemporaryDirectory
-from .tools import _unique_everseen, dir2zip, open_rw, zip2dir
+from .tools import _unique_everseen, dir2zip, zip2dir
 
 
 class WheelToolsError(Exception):
     """Errors raised when reading or writing wheel files."""
 
 
-def _open_for_csv(name, mode):
-    """Deal with Python 2/3 open API differences."""
-    if sys.version_info[0] < 3:
-        return open_rw(name, mode + "b")
-    return open_rw(name, mode, newline="", encoding="utf-8")
-
-
-def rewrite_record(bdist_dir: str | PathLike) -> None:
+def rewrite_record(bdist_dir: str | PathLike[str]) -> None:
     """Rewrite RECORD file with hashes for all files in `wheel_sdir`.
 
     Copied from :method:`wheel.bdist_wheel.bdist_wheel.write_record`.
@@ -50,42 +41,38 @@ def rewrite_record(bdist_dir: str | PathLike) -> None:
     bdist_dir : str or Path-like
         Path of unpacked wheel file
     """
-    info_dirs = glob.glob(pjoin(bdist_dir, "*.dist-info"))
-    if len(info_dirs) != 1:
-        raise WheelToolsError("Should be exactly one `*.dist_info` directory")
-    record_path = pjoin(info_dirs[0], "RECORD")
-    record_relpath = relpath(record_path, bdist_dir)
+    bdist_dir = Path(bdist_dir).resolve(strict=True)
+    try:
+        (info_dir,) = bdist_dir.glob("*.dist-info")
+    except ValueError:
+        msg = "Should be exactly one `*.dist_info` directory"
+        raise WheelToolsError(msg) from None
+    record_path = info_dir / "RECORD"
     # Unsign wheel - because we're invalidating the record hash
-    sig_path = pjoin(info_dirs[0], "RECORD.jws")
-    if exists(sig_path):
-        os.unlink(sig_path)
+    Path(info_dir, "RECORD.jws").unlink(missing_ok=True)
 
-    def walk():
-        for dir, dirs, files in os.walk(bdist_dir):
-            for f in files:
-                yield pjoin(dir, f)
+    def walk() -> Iterator[tuple[Path, str]]:
+        """Walk `(path, relative_posix_str)` for each file in `bdist_dir`."""
+        for dirpath_, _dirnames, filenames in os.walk(bdist_dir):
+            dirpath = Path(dirpath_).resolve()
+            for file in filenames:
+                path = dirpath / file
+                yield path, str(PurePosixPath(path.relative_to(bdist_dir)))
 
-    def skip(path):
-        """Wheel hashes every possible file."""
-        return path == record_relpath
-
-    with _open_for_csv(record_path, "w+") as record_file:
+    with record_path.open("w+", encoding="utf-8", newline="") as record_file:
         writer = csv.writer(record_file)
-        for path in walk():
-            relative_path = relpath(path, bdist_dir)
-            if skip(relative_path):
+        for path, relative_path_for_record in walk():
+            if path == record_path:
                 hash = ""
                 size: int | str = ""
             else:
-                with open(path, "rb") as f:
-                    data = f.read()
+                data = path.read_bytes()
                 digest = hashlib.sha256(data).digest()
                 hash = "sha256={}".format(
-                    base64.urlsafe_b64encode(digest).decode("ascii").strip("=")
+                    base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
                 )
                 size = len(data)
-            path_for_record = relpath(path, bdist_dir).replace(psep, "/")
-            writer.writerow((path_for_record, hash, size))
+            writer.writerow((relative_path_for_record, hash, size))
 
 
 class InWheel(InTemporaryDirectory):

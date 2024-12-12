@@ -15,6 +15,15 @@ rules on making a good Changelog.
 - `patch_wheel` function raises `FileNotFoundError` instead of `ValueError` on
   missing patch files.
 
+### Fixed
+
+- Fixed `NotImplementedError` when libraries depend on differing binaries
+  per-architecture.
+  [#230](https://github.com/matthew-brett/delocate/pull/230)
+- Now checks all architectures instead of an arbitrary default.
+  This was causing inconsistent behavior across MacOS versions.
+  [#230](https://github.com/matthew-brett/delocate/pull/230)
+
 ### Removed
 
 - Dropped support for Python 3.7 and Python 3.8.

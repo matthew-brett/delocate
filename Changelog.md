@@ -15,6 +15,21 @@ rules on making a good Changelog.
 - `patch_wheel` function raises `FileNotFoundError` instead of `ValueError` on
   missing patch files.
 
+### Deprecated
+
+- `get_rpaths` and `get_install_id` are deprecated due to not supporting
+  architectures.
+- `unique_by_index` is deprecated. Use more-itertools unique_everseen instead.
+
+### Fixed
+
+- Fixed `NotImplementedError` when libraries depend on differing binaries
+  per-architecture.
+  [#230](https://github.com/matthew-brett/delocate/pull/230)
+- Now checks all architectures instead of an arbitrary default.
+  This was causing inconsistent behavior across MacOS versions.
+  [#230](https://github.com/matthew-brett/delocate/pull/230)
+
 ### Removed
 
 - Dropped support for Python 3.7 and Python 3.8.

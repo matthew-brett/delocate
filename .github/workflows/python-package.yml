@@ -45,14 +45,14 @@ jobs:
 
   tests:
     needs: [pre-commit, mypy]
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
       - uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "14.0"
+          xcode-version: "14.2"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
@@ -134,11 +134,14 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - os: "macos-12"
-            xcode: "14.0"
-            python: "3.x"
           - os: "macos-13"
             xcode: "14.2"
+            python: "3.x"
+          - os: "macos-14"
+            xcode: "15.4"
+            python: "3.x"
+          - os: "macos-15"
+            xcode: "16.0"
             python: "3.x"
           - os: "ubuntu-latest"
             python: "3.9"

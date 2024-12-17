@@ -14,6 +14,8 @@ rules on making a good Changelog.
 
 - `patch_wheel` function raises `FileNotFoundError` instead of `ValueError` on
   missing patch files.
+- `delocate-wheel` and `delocate-fuse` now appends the delocate version used to
+  the wheels metadata.
 
 ### Deprecated
 

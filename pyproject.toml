@@ -50,8 +50,13 @@ write_to = "delocate/_version.py"
 minversion = "6.0"
 required_plugins = ["pytest-console-scripts>=1.4.0", "pytest-cov"]
 testpaths = ["delocate/"]
-addopts = ["--doctest-modules", "--cov=delocate", "--cov-config=.coveragerc"]
+addopts = ["--doctest-modules", "--cov=delocate", "--cov-config=pyproject.toml"]
 log_file_level = "DEBUG"
+
+
+[tool.coverage.run]
+# Exclude files from coverage
+omit = ["*/_version.py", "*/tests/*"]
 
 
 [tool.mypy]

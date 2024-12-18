@@ -399,6 +399,7 @@ def _allow_all(path: str) -> bool:
     return True
 
 
+@deprecated("tree_libs doesn't support @loader_path and has been deprecated")
 def tree_libs(
     start_path: str,
     filt_func: Callable[[str], bool] | None = None,
@@ -443,11 +444,6 @@ def tree_libs(
 
         :func:`tree_libs_from_directory` should be used instead.
     """
-    warnings.warn(
-        "tree_libs doesn't support @loader_path and has been deprecated.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     if filt_func is None:
         filt_func = _allow_all
     lib_dict: dict[str, dict[str, str]] = {}
@@ -559,7 +555,10 @@ def resolve_dynamic_paths(
     raise DependencyNotFound(lib_path)
 
 
-@deprecated("This function was replaced by resolve_dynamic_paths")
+@deprecated(
+    "This function doesn't support @loader_path "
+    "and was replaced by resolve_dynamic_paths"
+)
 def resolve_rpath(lib_path: str, rpaths: Iterable[str]) -> str:
     """Return `lib_path` with its `@rpath` resolved.
 
@@ -584,12 +583,6 @@ def resolve_rpath(lib_path: str, rpaths: Iterable[str]) -> str:
         This function does not support `@loader_path`.
         Use `resolve_dynamic_paths` instead.
     """
-    warnings.warn(
-        "resolve_rpath doesn't support @loader_path and has been deprecated."
-        "  Switch to using `resolve_dynamic_paths` instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     if not lib_path.startswith("@rpath/"):
         return lib_path
 

@@ -9,7 +9,6 @@ import re
 import stat
 import subprocess
 import time
-import warnings
 import zipfile
 from collections.abc import Iterable, Iterator, Sequence
 from datetime import datetime
@@ -33,6 +32,7 @@ class InstallNameError(Exception):
     """Errors reading or modifying macOS install name identifiers."""
 
 
+@deprecated("Replace this call with subprocess.run")
 def back_tick(
     cmd: str | Sequence[str],
     ret_err: bool = False,
@@ -73,11 +73,6 @@ def back_tick(
         This function was deprecated because the return type is too dynamic.
         You should use :func:`subprocess.run` instead.
     """
-    warnings.warn(
-        "back_tick is deprecated, replace this call with subprocess.run.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     if raise_err is None:
         raise_err = False if ret_err else True
     cmd_is_seq = isinstance(cmd, (list, tuple))

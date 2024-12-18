@@ -27,6 +27,7 @@ from macholib.mach_o import (  # type: ignore[import-untyped]
 from macholib.MachO import MachO  # type: ignore[import-untyped]
 from packaging.utils import parse_wheel_filename
 from packaging.version import Version
+from typing_extensions import deprecated
 
 from .libsana import (
     DelocationError,
@@ -249,6 +250,7 @@ def _update_install_names(
                 set_install_name(requiring, orig_install_name, new_install_name)
 
 
+@deprecated("copy_recurse is obsolete and should no longer be called")
 def copy_recurse(
     lib_path: str,
     copy_filt_func: Callable[[str], bool] | None = None,
@@ -291,11 +293,6 @@ def copy_recurse(
         This function is obsolete.  :func:`delocate_path` handles recursive
         dependencies while also supporting `@loader_path`.
     """
-    warnings.warn(
-        "copy_recurse is obsolete and should no longer be called.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     if copied_libs is None:
         copied_libs = {}
     else:

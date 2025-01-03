@@ -14,6 +14,8 @@ rules on making a good Changelog.
 
 - `patch_wheel` function raises `FileNotFoundError` instead of `ValueError` on
   missing patch files.
+- `delocate.fuse.fuse_trees` now auto-detects binary files instead of testing
+  filename suffixes.
 
 ### Deprecated
 
@@ -29,6 +31,8 @@ rules on making a good Changelog.
 - Now checks all architectures instead of an arbitrary default.
   This was causing inconsistent behavior across MacOS versions.
   [#230](https://github.com/matthew-brett/delocate/pull/230)
+- `delocate-merge` now supports libraries with missing or unusual extensions.
+  [#228](https://github.com/matthew-brett/delocate/issues/228)
 
 ### Removed
 

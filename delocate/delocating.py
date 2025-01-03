@@ -40,7 +40,6 @@ from .libsana import (
 from .pkginfo import read_pkg_info, write_pkg_info
 from .tmpdirs import TemporaryDirectory
 from .tools import (
-    _is_macho_file,
     _remove_absolute_rpaths,
     dir2zip,
     find_package_dirs,
@@ -584,12 +583,14 @@ def _make_install_name_ids_unique(
         validate_signature(lib)
 
 
-def _get_macos_min_version(dylib_path: Path) -> Iterator[tuple[str, Version]]:
+def _get_macos_min_version(
+    dylib_path: str | os.PathLike[str],
+) -> Iterator[tuple[str, Version]]:
     """Get the minimum macOS version from a dylib file.
 
     Parameters
     ----------
-    dylib_path : Path
+    dylib_path : str or PathLike
         The path to the dylib file.
 
     Yields
@@ -599,9 +600,16 @@ def _get_macos_min_version(dylib_path: Path) -> Iterator[tuple[str, Version]]:
     Version
         The minimum macOS version.
     """
-    if not _is_macho_file(dylib_path):
-        return
-    for header in MachO(dylib_path).headers:
+    try:
+        macho = MachO(dylib_path)
+    except ValueError as exc:
+        if str(exc.args[0]).startswith(
+            ("Unknown fat header magic", "Unknown Mach-O header")
+        ):
+            return  # Not a recognised Mach-O object file
+        raise  # pragma: no cover  # Unexpected error
+
+    for header in macho.headers:
         for cmd in header.commands:
             if cmd[0].cmd == LC_BUILD_VERSION:
                 version = cmd[1].minos
@@ -798,6 +806,8 @@ def _calculate_minimum_wheel_name(
     all_library_versions: dict[str, dict[Version, list[Path]]] = {}
 
     for lib in wheel_dir.glob("**/*"):
+        if lib.is_dir():
+            continue
         for arch, version in _get_macos_min_version(lib):
             all_library_versions.setdefault(arch.lower(), {}).setdefault(
                 version, []

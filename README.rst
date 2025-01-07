@@ -1,6 +1,6 @@
 .. image:: https://img.shields.io/pypi/v/delocate
     :target: https://pypi.org/project/delocate/
-.. image:: https://codecov.io/gh/matthew-brett/delocate/branch/master/graph/badge.svg?token=wvAWRBK5Di
+.. image:: https://codecov.io/gh/matthew-brett/delocate/branch/main/graph/badge.svg?token=wvAWRBK5Di
     :target: https://codecov.io/gh/matthew-brett/delocate
 
 ########

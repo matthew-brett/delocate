@@ -111,7 +111,7 @@ def fuse_trees(
     """
     if lib_exts:
         warnings.warn(
-            "`lib_exts` parameter will be removed in the future.",
+            "`lib_exts` parameter ignored, will be removed in future.",
             FutureWarning,
             stacklevel=2,
         )

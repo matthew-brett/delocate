@@ -15,7 +15,9 @@ libraries.
 from __future__ import annotations
 
 import os
+import re
 import shutil
+import subprocess
 import tempfile
 import warnings
 from collections.abc import Container
@@ -29,8 +31,8 @@ from .tools import (
     chmod_perms,
     cmp_contents,
     dir2zip,
-    lipo_fuse,
     open_rw,
+    replace_signature,
     zip2dir,
 )
 from .wheeltools import rewrite_record
@@ -80,6 +82,12 @@ def _retag_wheel(to_wheel: Path, from_wheel: Path, to_tree: Path) -> str:
     _update_wheelfile(to_tree, retag_name)
 
     return retag_name
+
+
+_RE_LIPO_UNKNOWN_FILE_STDERR = re.compile(
+    r"^fatal error: (?P<program>.+): "
+    r"can't figure out the architecture type of: (?P<file>.+)\n$"
+)
 
 
 def fuse_trees(
@@ -135,11 +143,28 @@ def fuse_trees(
             if cmp_contents(from_path, to_path):
                 continue
             try:
-                # Try to fuse this file with lipo
-                lipo_fuse(from_path, to_path, to_path)
-            except RuntimeError:
-                # existing not-lib file not identical to source
+                # Try to fuse this file using lipo
+                subprocess.run(
+                    [
+                        "lipo",
+                        "-create",
+                        from_path,
+                        to_path,
+                        "-output",
+                        to_path,
+                    ],
+                    check=True,
+                    text=True,
+                    capture_output=True,
+                )
+            except subprocess.CalledProcessError as exc:
+                if not _RE_LIPO_UNKNOWN_FILE_STDERR.match(exc.stderr):
+                    # Unexpected error on library file
+                    raise RuntimeError(exc.stderr) from None
+                # Existing non-library file not identical to source
                 _copyfile(from_path, to_path)
+            else:
+                replace_signature(to_path, "-")
 
 
 def fuse_wheels(

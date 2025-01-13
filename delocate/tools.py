@@ -1183,6 +1183,7 @@ def get_archs(libname: str) -> frozenset[str]:
     raise ValueError(f"Unexpected output: '{stdout}' for {libname}")
 
 
+@deprecated("Call lipo directly")
 def lipo_fuse(
     in_fname1: str | PathLike[str],
     in_fname2: str | PathLike[str],

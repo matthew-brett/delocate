@@ -397,7 +397,7 @@ def test_fix_wheel_archs(script_runner: ScriptRunner) -> None:
 
 
 @pytest.mark.xfail(  # type: ignore[misc]
-    sys.platform == "win32", reason="Can't run scripts."
+    sys.platform != "darwin", reason="requires lipo"
 )
 def test_fuse_wheels(script_runner: ScriptRunner) -> None:
     # Some tests for wheel fusing

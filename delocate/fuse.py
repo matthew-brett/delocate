@@ -15,11 +15,13 @@ libraries.
 from __future__ import annotations
 
 import os
+import re
 import shutil
+import subprocess
 import tempfile
+import warnings
+from collections.abc import Container
 from os import PathLike
-from os.path import exists, relpath, splitext
-from os.path import join as pjoin
 from pathlib import Path
 
 from packaging.utils import parse_wheel_filename
@@ -29,8 +31,8 @@ from .tools import (
     chmod_perms,
     cmp_contents,
     dir2zip,
-    lipo_fuse,
     open_rw,
+    replace_signature,
     zip2dir,
 )
 from .wheeltools import rewrite_record
@@ -82,18 +84,25 @@ def _retag_wheel(to_wheel: Path, from_wheel: Path, to_tree: Path) -> str:
     return retag_name
 
 
+_RE_LIPO_UNKNOWN_FILE_STDERR = re.compile(
+    r"^fatal error: (?P<program>.+): "
+    r"can't figure out the architecture type of: (?P<file>.+)\n$"
+)
+
+
 def fuse_trees(
-    to_tree: str | PathLike,
-    from_tree: str | PathLike,
-    lib_exts=(".so", ".dylib", ".a"),
-):
+    to_tree: str | PathLike[str],
+    from_tree: str | PathLike[str],
+    lib_exts: Container[str] | None = None,
+) -> None:
     """Fuse path `from_tree` into path `to_tree`.
 
-    For each file in `from_tree` - check for library file extension (in
-    `lib_exts` - if present, check if there is a file with matching relative
-    path in `to_tree`, if so, use :func:`delocate.tools.lipo_fuse` to fuse the
-    two libraries together and write into `to_tree`.  If any of these
-    conditions are not met, just copy the file from `from_tree` to `to_tree`.
+    Any files in `from_tree` which are not in `to_tree` will be copied over to
+    `to_tree`.
+
+    Files existing in both `from_tree` and `to_tree` will be parsed.
+    Binary files on the same path in both directories will be merged using
+    :func:`delocate.tools.lipo_fuse`.
 
     Parameters
     ----------
@@ -102,32 +111,60 @@ def fuse_trees(
     from_tree : str or Path-like
         path of tree to fuse from (update from)
     lib_exts : sequence, optional
-        filename extensions for libraries
+        This parameter is deprecated and should be ignored.
+
+    .. versionchanged:: Unreleased
+        Binary files are auto-detected instead of using `lib_exts` to test file
+        suffixes.
     """
+    if lib_exts:
+        warnings.warn(
+            "`lib_exts` parameter ignored, will be removed in future.",
+            FutureWarning,
+            stacklevel=2,
+        )
     for from_dirpath, dirnames, filenames in os.walk(Path(from_tree)):
-        to_dirpath = pjoin(to_tree, relpath(from_dirpath, from_tree))
+        to_dirpath = Path(to_tree, Path(from_dirpath).relative_to(from_tree))
         # Copy any missing directories in to_path
-        for dirname in tuple(dirnames):
-            to_path = pjoin(to_dirpath, dirname)
-            if not exists(to_path):
-                from_path = pjoin(from_dirpath, dirname)
+        for dirname in dirnames.copy():
+            to_path = Path(to_dirpath, dirname)
+            if not to_path.exists():
+                from_path = Path(from_dirpath, dirname)
                 shutil.copytree(from_path, to_path)
                 # If copying, don't further analyze this directory
                 dirnames.remove(dirname)
-        for fname in filenames:
-            root, ext = splitext(fname)
-            from_path = pjoin(from_dirpath, fname)
-            to_path = pjoin(to_dirpath, fname)
-            if not exists(to_path):
+        for filename in filenames:
+            file = Path(filename)
+            from_path = Path(from_dirpath, file)
+            to_path = Path(to_dirpath, file)
+            if not to_path.exists():
                 _copyfile(from_path, to_path)
-            elif cmp_contents(from_path, to_path):
-                pass
-            elif ext in lib_exts:
-                # existing lib that needs fuse
-                lipo_fuse(from_path, to_path, to_path)
+                continue
+            if cmp_contents(from_path, to_path):
+                continue
+            try:
+                # Try to fuse this file using lipo
+                subprocess.run(
+                    [
+                        "lipo",
+                        "-create",
+                        from_path,
+                        to_path,
+                        "-output",
+                        to_path,
+                    ],
+                    check=True,
+                    text=True,
+                    capture_output=True,
+                )
+            except subprocess.CalledProcessError as exc:
+                if not _RE_LIPO_UNKNOWN_FILE_STDERR.match(exc.stderr):
+                    # Unexpected error on library file
+                    raise RuntimeError(exc.stderr) from None
+                # Existing non-library file not identical to source
+                _copyfile(from_path, to_path)
             else:
-                # existing not-lib file not identical to source
-                _copyfile(from_path, to_path)
+                replace_signature(to_path, "-")
 
 
 def fuse_wheels(

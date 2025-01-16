@@ -1183,18 +1183,22 @@ def get_archs(libname: str) -> frozenset[str]:
     raise ValueError(f"Unexpected output: '{stdout}' for {libname}")
 
 
+@deprecated("Call lipo directly")
 def lipo_fuse(
-    in_fname1: str, in_fname2: str, out_fname: str, ad_hoc_sign: bool = True
+    in_fname1: str | PathLike[str],
+    in_fname2: str | PathLike[str],
+    out_fname: str | PathLike[str],
+    ad_hoc_sign: bool = True,
 ) -> str:
     """Use lipo to merge libs `filename1`, `filename2`, store in `out_fname`.
 
     Parameters
     ----------
-    in_fname1 : str
+    in_fname1 : str or PathLike
         filename of library
-    in_fname2 : str
+    in_fname2 : str or PathLike
         filename of library
-    out_fname : str
+    out_fname : str or PathLike
         filename to which to write new fused library
     ad_hoc_sign : {True, False}, optional
         If True, sign file with ad-hoc signature

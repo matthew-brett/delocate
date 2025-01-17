@@ -7,11 +7,15 @@ import subprocess
 import sys
 from os.path import dirname
 from os.path import join as pjoin
+from pathlib import Path
 
 import pytest
 
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import (
+    _get_install_ids,
+    _get_install_names,
+    _get_rpaths,
     _is_macho_file,
     add_rpath,
     back_tick,
@@ -32,7 +36,7 @@ from ..tools import (
     zip2dir,
 )
 from .pytest_tools import assert_equal, assert_false, assert_raises, assert_true
-from .test_install_names import LIBSTDCXX
+from .test_install_names import LIBC, LIBSTDCXX
 
 DATA_PATH = pjoin(dirname(__file__), "data")
 LIBM1 = pjoin(DATA_PATH, "libam1.dylib")
@@ -339,3 +343,20 @@ def test_is_macho_file() -> None:
         if not os.path.isfile(path):
             continue
         assert_equal(_is_macho_file(path), filename in MACHO_FILES)
+
+
+@pytest.mark.xfail(sys.platform != "darwin", reason="Needs otool.")
+def test_archive_member(tmp_path: Path) -> None:
+    # Tools should always take a trailing parentheses as a literal file path
+    lib_path = Path(tmp_path, "libc(member)")
+    shutil.copyfile(LIBC, lib_path)
+    assert _get_install_names(lib_path) == {
+        "": [
+            "liba.dylib",
+            "libb.dylib",
+            "/usr/lib/libc++.1.dylib",
+            "/usr/lib/libSystem.B.dylib",
+        ]
+    }
+    assert _get_install_ids(lib_path) == {"": "libc.dylib"}
+    assert _get_rpaths(lib_path) == {"": []}

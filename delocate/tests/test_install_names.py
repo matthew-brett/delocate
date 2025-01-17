@@ -9,6 +9,7 @@ import sys
 from collections.abc import Sequence
 from os.path import basename, dirname, exists
 from os.path import join as pjoin
+from pathlib import Path
 from subprocess import CompletedProcess
 from typing import (
     NamedTuple,
@@ -20,6 +21,7 @@ import pytest
 from ..tmpdirs import InTemporaryDirectory
 from ..tools import (
     InstallNameError,
+    _get_install_ids,
     add_rpath,
     get_environment_variable_paths,
     get_install_id,
@@ -104,15 +106,30 @@ def test_parse_install_name():
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
-def test_install_id():
+def test_install_id() -> None:
     # Test basic otool library listing
-    assert_equal(get_install_id(LIBA), "liba.dylib")
-    assert_equal(get_install_id(LIBB), "libb.dylib")
-    assert_equal(get_install_id(LIBC), "libc.dylib")
-    assert_equal(get_install_id(TEST_LIB), None)
+    assert get_install_id(LIBA) == "liba.dylib"
+    assert get_install_id(LIBB) == "libb.dylib"
+    assert get_install_id(LIBC) == "libc.dylib"
+    assert get_install_id(TEST_LIB) is None
     # Non-object file returns None too
-    assert_equal(get_install_id(__file__), None)
-    assert_equal(get_install_id(ICO_FILE), None)
+    assert get_install_id(__file__) is None
+    assert get_install_id(ICO_FILE) is None
+
+
+@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
+def test_install_ids(tmp_path: Path) -> None:
+    # Test basic otool library listing
+    assert _get_install_ids(LIBA) == {"": "liba.dylib"}
+    assert _get_install_ids(LIBB) == {"": "libb.dylib"}
+    assert _get_install_ids(LIBC) == {"": "libc.dylib"}
+    assert _get_install_ids(TEST_LIB) == {}
+    # Non-object file returns None too
+    assert _get_install_ids(__file__) == {}
+    assert _get_install_ids(ICO_FILE) == {}
+    # Should work ending with parentheses
+    shutil.copy(LIBA, tmp_path / "liba(test)")
+    assert _get_install_ids(tmp_path / "liba(test)") == {"": "liba.dylib"}
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
@@ -228,6 +245,7 @@ class ToolArchMock(NamedTuple):
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-L",
                     "example.so",
                 ): """\
@@ -240,6 +258,7 @@ example.so:
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-D",
                     "example.so",
                 ): """\
@@ -250,6 +269,7 @@ example.so:
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-l",
                     "example.so",
                 ): """\
@@ -271,6 +291,7 @@ cmdsize 0
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-L",
                     "example.so",
                 ): """\
@@ -287,6 +308,7 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-D",
                     "example.so",
                 ): """\
@@ -299,6 +321,7 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-l",
                     "example.so",
                 ): """\
@@ -324,6 +347,7 @@ cmdsize 0
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-L",
                     "example.so",
                 ): """\
@@ -340,6 +364,7 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-D",
                     "example.so",
                 ): """\
@@ -352,6 +377,7 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-l",
                     "example.so",
                 ): """\
@@ -377,6 +403,7 @@ cmdsize 0
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-L",
                     "example.so",
                 ): """\
@@ -393,6 +420,7 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-D",
                     "example.so",
                 ): """\
@@ -405,6 +433,7 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
+                    "-m",
                     "-l",
                     "example.so",
                 ): """\

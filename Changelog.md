@@ -33,6 +33,9 @@ rules on making a good Changelog.
   [#230](https://github.com/matthew-brett/delocate/pull/230)
 - `delocate-merge` now supports libraries with missing or unusual extensions.
   [#228](https://github.com/matthew-brett/delocate/issues/228)
+- Now supports library files ending in parentheses.
+- Fixed `Unknown Mach-O header` error when encountering a fat static library.
+  [#229](https://github.com/matthew-brett/delocate/issues/229)
 
 ### Removed
 

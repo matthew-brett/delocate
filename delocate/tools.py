@@ -9,7 +9,6 @@ import re
 import stat
 import subprocess
 import time
-import warnings
 import zipfile
 from collections.abc import Iterable, Iterator, Sequence
 from datetime import datetime
@@ -33,6 +32,7 @@ class InstallNameError(Exception):
     """Errors reading or modifying macOS install name identifiers."""
 
 
+@deprecated("Replace this call with subprocess.run")
 def back_tick(
     cmd: str | Sequence[str],
     ret_err: bool = False,
@@ -73,11 +73,6 @@ def back_tick(
         This function was deprecated because the return type is too dynamic.
         You should use :func:`subprocess.run` instead.
     """
-    warnings.warn(
-        "back_tick is deprecated, replace this call with subprocess.run.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     if raise_err is None:
         raise_err = False if ret_err else True
     cmd_is_seq = isinstance(cmd, (list, tuple))
@@ -566,7 +561,7 @@ def _get_install_names(
     """
     if not _is_macho_file(filename):
         return {}
-    otool = _run(["otool", "-arch", "all", "-L", filename], check=False)
+    otool = _run(["otool", "-arch", "all", "-m", "-L", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return {}
     install_ids = _get_install_ids(filename)
@@ -669,7 +664,7 @@ def _get_install_ids(filename: str | PathLike[str]) -> dict[str, str]:
     """
     if not _is_macho_file(filename):
         return {}
-    otool = _run(["otool", "-arch", "all", "-D", filename], check=False)
+    otool = _run(["otool", "-arch", "all", "-m", "-D", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return {}
     out = {}
@@ -828,7 +823,7 @@ def _get_rpaths(
     """
     if not _is_macho_file(filename):
         return {}
-    otool = _run(["otool", "-arch", "all", "-l", filename], check=False)
+    otool = _run(["otool", "-arch", "all", "-m", "-l", filename], check=False)
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return {}
 

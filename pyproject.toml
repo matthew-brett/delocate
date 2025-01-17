@@ -11,13 +11,7 @@ maintainers = [{ name = "Matthew Brett", email = "matthew.brett@gmail.com" }]
 readme = "README.rst"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
-dependencies = [
-    "bindepend; sys_platform == 'win32'",
-    "machomachomangler; sys_platform == 'win32'",
-    "packaging>=20.9",
-    "typing_extensions>=4.12.2",
-    "macholib",
-]
+dependencies = ["packaging>=20.9", "typing_extensions>=4.12.2", "macholib"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",

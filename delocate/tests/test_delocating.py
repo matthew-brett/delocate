@@ -1,5 +1,7 @@
 """Tests for relocating libraries."""
 
+from __future__ import annotations
+
 import os
 import shutil
 import subprocess
@@ -8,6 +10,7 @@ from collections import namedtuple
 from collections.abc import Iterable
 from os.path import basename, dirname, realpath, relpath, splitext
 from os.path import join as pjoin
+from pathlib import Path
 from typing import Any, Callable
 
 import pytest
@@ -16,6 +19,7 @@ from packaging.version import Version
 
 from ..delocating import (
     _get_archs_and_version_from_wheel_name,
+    _get_macos_min_version,
     bads_report,
     check_archs,
     copy_recurse,
@@ -33,7 +37,18 @@ from ..tmpdirs import InTemporaryDirectory
 from ..tools import get_install_names, set_install_name
 from .env_tools import TempDirWithoutEnvVars
 from .pytest_tools import assert_equal, assert_raises
-from .test_install_names import EXT_LIBS, LIBA, LIBB, LIBC, TEST_LIB, _copy_libs
+from .test_install_names import (
+    A_OBJECT,
+    DATA_PATH,
+    EXT_LIBS,
+    ICO_FILE,
+    LIBA,
+    LIBA_STATIC,
+    LIBB,
+    LIBC,
+    TEST_LIB,
+    _copy_libs,
+)
 from .test_tools import (
     ARCH_32,
     ARCH_64,
@@ -747,3 +762,28 @@ def test_get_archs_and_version_from_wheel_name() -> None:
         _get_archs_and_version_from_wheel_name(
             "foo-1.0-py310-abi3-manylinux1.whl"
         )
+
+
+@pytest.mark.parametrize(
+    "file,expected_min_version",
+    [
+        # Dylib files
+        (LIBBOTH, {"ARM64": Version("11.0"), "x86_64": Version("10.9")}),
+        (LIBA, {"x86_64": Version("10.9")}),
+        # Shared objects
+        (
+            Path(DATA_PATH, "np-1.6.0_intel_lib__compiled_base.so"),
+            {"i386": Version("10.6"), "x86_64": Version("10.6")},
+        ),
+        # Object file
+        (A_OBJECT, {"x86_64": Version("10.9")}),
+        # Static file
+        (LIBA_STATIC, {}),
+        # Non library
+        (ICO_FILE, {}),
+    ],
+)
+def test_get_macos_min_version(
+    file: str | Path, expected_min_version: dict[str, Version]
+) -> None:
+    assert dict(_get_macos_min_version(file)) == expected_min_version

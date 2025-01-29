@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import stat
+import struct
 import warnings
 from collections.abc import Iterable, Iterator, Mapping
 from os.path import abspath, basename, dirname, exists, realpath, relpath
@@ -602,7 +603,9 @@ def _get_macos_min_version(
     """
     try:
         macho = MachO(dylib_path)
-    except ValueError as exc:
+    except struct.error:  # Parse error duing macholib's parsing
+        return  # Not a recognised Mach-O object file
+    except ValueError as exc:  # Raised by macholib for parse errors
         if str(exc.args[0]).startswith(
             ("Unknown fat header magic", "Unknown Mach-O header")
         ):

@@ -781,6 +781,7 @@ def test_get_archs_and_version_from_wheel_name() -> None:
         (LIBA_STATIC, {}),
         # Non library
         (ICO_FILE, {}),
+        (Path(DATA_PATH, "empty"), {}),
     ],
 )
 def test_get_macos_min_version(

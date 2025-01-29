@@ -76,10 +76,7 @@ select = [
     "UP", # pyupgrade
     "FA", # flake8-future-annotations
 ]
-ignore = [
-    "ANN101", # missing-type-self
-    "ANN102", # missing-type-cls
-]
+ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "test_*.py" = ["D103"] # Docstrings not required for test functions

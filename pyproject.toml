@@ -7,7 +7,10 @@ name = "delocate"
 dynamic = ["version"]
 description = "Move macOS dynamic libraries into package"
 authors = [{ name = "Matthew Brett", email = "matthew.brett@gmail.com" }]
-maintainers = [{ name = "Matthew Brett", email = "matthew.brett@gmail.com" }]
+maintainers = [
+    { name = "Matthew Brett", email = "matthew.brett@gmail.com" },
+    { name = "Kyle Benesch", email = "4b796c65+github@gmail.com" },
+]
 readme = "README.rst"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }

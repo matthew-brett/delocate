@@ -1,11 +1,14 @@
 """Test fusing two directory trees / wheels."""
 
+from __future__ import annotations
+
 import os
 import shutil
 import subprocess
 import sys
-from os.path import basename, dirname, isdir, relpath
+from os.path import basename, dirname
 from os.path import join as pjoin
+from pathlib import Path
 
 import pytest
 
@@ -19,17 +22,25 @@ from .test_wheelies import PURE_WHEEL
 from .test_wheeltools import assert_record_equal
 
 
-def assert_same_tree(tree1: str, tree2: str) -> None:
+def assert_same_tree(
+    tree1: str | Path, tree2: str | Path, *, updated_metadata: bool = False
+) -> None:
+    """Assert that `tree2` has files with the same content as `tree1`.
+
+    If `updated_metadata` is True then the RECORD and WHEEL files are skipped.
+    """
     for dirpath, dirnames, filenames in os.walk(tree1):
-        tree2_dirpath = pjoin(tree2, relpath(dirpath, tree1))
+        tree2_dirpath = Path(tree2, Path(dirpath).relative_to(tree1))
         for dname in dirnames:
-            assert isdir(pjoin(tree2_dirpath, dname))
+            assert Path(tree2_dirpath, dname).is_dir()
         for fname in filenames:
-            tree1_path = pjoin(dirpath, fname)
+            tree1_path = Path(dirpath, fname)
             with open_readable(tree1_path, "rb") as fobj:
-                contents1 = fobj.read()
-            with open_readable(pjoin(tree2_dirpath, fname), "rb") as fobj:
-                contents2 = fobj.read()
+                contents1: bytes = fobj.read()
+            with open_readable(Path(tree2_dirpath, fname), "rb") as fobj:
+                contents2: bytes = fobj.read()
+            if updated_metadata and fname in {"RECORD", "WHEEL"}:
+                continue
             if fname == "RECORD":  # Record can have different line orders
                 assert_record_equal(contents1, contents2)
             else:

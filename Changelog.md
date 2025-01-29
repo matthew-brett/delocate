@@ -16,6 +16,8 @@ rules on making a good Changelog.
   missing patch files.
 - `delocate.fuse.fuse_trees` now auto-detects binary files instead of testing
   filename suffixes.
+- `delocate-wheel` and `delocate-fuse` now appends the delocate version used to
+  the wheels metadata.
 
 ### Deprecated
 

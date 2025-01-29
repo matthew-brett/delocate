@@ -13,6 +13,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from os.path import basename, exists, realpath, splitext
 from os.path import join as pjoin
 from pathlib import Path
@@ -45,6 +46,13 @@ from .test_wheeltools import (
     EXTRA_PLATS,
     assert_winfo_similar,
 )
+
+try:
+    from delocate._version import __version__
+
+    DELOCATE_GENERATOR_HEADER = f"Generator: delocate {__version__}"
+except ImportError:
+    DELOCATE_GENERATOR_HEADER = "Generator: delocate"
 
 DATA_PATH = (Path(__file__).parent / "data").resolve(strict=True)
 
@@ -224,11 +232,14 @@ def test_path_dylibs(script_runner: ScriptRunner) -> None:
 
 def _check_wheel(wheel_fname: str | Path, lib_sdir: str | Path) -> None:
     wheel_fname = Path(wheel_fname).resolve(strict=True)
-    with InTemporaryDirectory():
-        zip2dir(str(wheel_fname), "plat_pkg")
-        dylibs = Path("plat_pkg", "fakepkg1", lib_sdir)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        plat_pkg_path = Path(temp_dir, "plat_pkg")
+        zip2dir(wheel_fname, plat_pkg_path)
+        dylibs = Path(plat_pkg_path, "fakepkg1", lib_sdir)
         assert dylibs.exists()
         assert os.listdir(dylibs) == ["libextfunc.dylib"]
+        (wheel_info,) = plat_pkg_path.glob("*.dist-info/WHEEL")
+        assert DELOCATE_GENERATOR_HEADER in wheel_info.read_text()
 
 
 @pytest.mark.xfail(  # type: ignore[misc]
@@ -252,7 +263,7 @@ def test_wheel(script_runner: ScriptRunner) -> None:
         script_runner.run(
             ["delocate-wheel", "-w", "fixed", fixed_wheel], check=True
         )
-        _check_wheel(Path("fixed", basename(fixed_wheel)), ".dylibs")
+        _check_wheel(Path("fixed", Path(fixed_wheel).name), ".dylibs")
         # More than one wheel
         copy_name = "fakepkg1_copy-1.0-cp36-abi3-macosx_10_9_universal2.whl"
         shutil.copy2(fixed_wheel, copy_name)
@@ -263,14 +274,14 @@ def test_wheel(script_runner: ScriptRunner) -> None:
         assert _proc_lines(result.stdout) == [
             "Fixing: " + name for name in (fixed_wheel, copy_name)
         ]
-        _check_wheel(Path("fixed2", basename(fixed_wheel)), ".dylibs")
+        _check_wheel(Path("fixed2", Path(fixed_wheel).name), ".dylibs")
         _check_wheel(Path("fixed2", copy_name), ".dylibs")
 
         # Verbose - single wheel
         result = script_runner.run(
             ["delocate-wheel", "-w", "fixed3", fixed_wheel, "-v"], check=True
         )
-        _check_wheel(Path("fixed3", basename(fixed_wheel)), ".dylibs")
+        _check_wheel(Path("fixed3", Path(fixed_wheel).name), ".dylibs")
         wheel_lines1 = [
             "Fixing: " + fixed_wheel,
             "Copied to package .dylibs directory:",
@@ -401,29 +412,49 @@ def test_fix_wheel_archs(script_runner: ScriptRunner) -> None:
 )
 def test_fuse_wheels(script_runner: ScriptRunner) -> None:
     # Some tests for wheel fusing
-    with InTemporaryDirectory():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
         # Wheels need proper wheel filename for delocate-merge
-        to_wheel = "to_" + basename(PLAT_WHEEL)
-        from_wheel = "from_" + basename(PLAT_WHEEL)
-        zip2dir(PLAT_WHEEL, "to_wheel")
-        zip2dir(PLAT_WHEEL, "from_wheel")
-        dir2zip("to_wheel", to_wheel)
-        dir2zip("from_wheel", from_wheel)
+        to_wheel = temp_path / f"to_{Path(PLAT_WHEEL).name}"
+        from_wheel = temp_path / f"from_{Path(PLAT_WHEEL).name}"
+        zip2dir(PLAT_WHEEL, temp_path / "to_wheel")
+        zip2dir(PLAT_WHEEL, temp_path / "from_wheel")
+        dir2zip(temp_path / "to_wheel", to_wheel)
+        dir2zip(temp_path / "from_wheel", from_wheel)
         # Make sure delocate-fuse returns a non-zero exit code, it is no longer
         # supported
-        result = script_runner.run(["delocate-fuse", to_wheel, from_wheel])
+        result = script_runner.run(
+            ["delocate-fuse", to_wheel, from_wheel], cwd=temp_path
+        )
         assert result.returncode != 0
-        script_runner.run(["delocate-merge", to_wheel, from_wheel], check=True)
-        zip2dir(to_wheel, "to_wheel_fused")
-        assert_same_tree("to_wheel_fused", "from_wheel")
+
+        script_runner.run(
+            ["delocate-merge", to_wheel, from_wheel], check=True, cwd=temp_path
+        )
+        zip2dir(to_wheel, temp_path / "to_wheel_fused")
+        assert_same_tree(
+            temp_path / "to_wheel_fused",
+            temp_path / "from_wheel",
+            updated_metadata=True,
+        )
         # Test output argument
-        os.mkdir("wheels")
         script_runner.run(
             ["delocate-merge", to_wheel, from_wheel, "-w", "wheels"],
             check=True,
+            cwd=temp_path,
         )
-        zip2dir(pjoin("wheels", to_wheel), "to_wheel_refused")
-        assert_same_tree("to_wheel_refused", "from_wheel")
+        zip2dir(
+            Path(temp_path, "wheels", to_wheel), temp_path / "to_wheel_refused"
+        )
+        (wheel_info,) = Path(temp_path, "to_wheel_refused").glob(
+            "*.dist-info/WHEEL"
+        )
+        assert DELOCATE_GENERATOR_HEADER in wheel_info.read_text()
+        assert_same_tree(
+            temp_path / "to_wheel_refused",
+            temp_path / "from_wheel",
+            updated_metadata=True,
+        )
 
 
 @pytest.mark.xfail(  # type: ignore[misc]

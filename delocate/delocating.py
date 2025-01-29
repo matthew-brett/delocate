@@ -52,6 +52,11 @@ from .tools import (
 )
 from .wheeltools import InWheel, rewrite_record
 
+try:
+    from delocate._version import __version__
+except ImportError:  # pragma: no cover
+    __version__ = ""
+
 logger = logging.getLogger(__name__)
 
 # Prefix for install_name_id of copied libraries
@@ -933,9 +938,15 @@ def _check_and_update_wheel_name(
     return wheel_path
 
 
+def _get_delocate_generator_header() -> tuple[str, str]:
+    """Return Delocate's version info to be appended to the WHEEL metadata."""
+    return ("Generator", f"delocate {__version__}".rstrip())
+
+
 def _update_wheelfile(wheel_dir: Path, wheel_name: str) -> None:
-    """
-    Update the WHEEL file in the wheel directory with the new platform tag.
+    """Update the WHEEL file in the wheel directory with updated metadata.
+
+    Updates the platform tag and marks the wheel as modified by delocate.
 
     Parameters
     ----------
@@ -945,12 +956,20 @@ def _update_wheelfile(wheel_dir: Path, wheel_name: str) -> None:
         The name of the wheel.
         Used for determining the new platform tag.
     """
-    platform_tag_set = parse_wheel_filename(wheel_name)[-1]
+    _name, _version, _, platform_tag_set = parse_wheel_filename(wheel_name)
     (file_path,) = wheel_dir.glob("*.dist-info/WHEEL")
     info = read_pkg_info(file_path)
+
+    # Update tags to match current wheel name
     del info["Tag"]
     for tag in platform_tag_set:
         info.add_header("Tag", str(tag))
+
+    # Mark wheel as modifed by this version of Delocate
+    delocate_generator = _get_delocate_generator_header()
+    if delocate_generator not in info.items():
+        info.add_header(*delocate_generator)
+
     write_pkg_info(file_path, info)
 
 
@@ -1083,7 +1102,6 @@ def delocate_wheel(
             libraries=libraries_in_lib_path,
             install_id_prefix=DLC_PREFIX + relpath(lib_sdir, wheel_dir),
         )
-        rewrite_record(wheel_dir)
         out_wheel_ = Path(out_wheel)
         out_wheel_fixed = _check_and_update_wheel_name(
             out_wheel_, Path(wheel_dir), require_target_macos_version
@@ -1091,7 +1109,8 @@ def delocate_wheel(
         if out_wheel_fixed != out_wheel_:
             out_wheel_ = out_wheel_fixed
             in_place = False
-            _update_wheelfile(Path(wheel_dir), out_wheel_.name)
+        _update_wheelfile(Path(wheel_dir), out_wheel_.name)
+        rewrite_record(wheel_dir)
         if len(copied_libs) or not in_place:
             if remove_old:
                 os.remove(in_wheel)

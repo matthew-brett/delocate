@@ -49,7 +49,7 @@ def _copyfile(in_fname, out_fname):
 
 
 def _retag_wheel(to_wheel: Path, from_wheel: Path, to_tree: Path) -> str:
-    """Update the name and dist-info to reflect a univeral2 wheel.
+    """Update the name and dist-info to reflect a universal2 wheel.
 
     Parameters
     ----------
@@ -68,8 +68,8 @@ def _retag_wheel(to_wheel: Path, from_wheel: Path, to_tree: Path) -> str:
     to_tree = to_tree.resolve()
     # Add from_wheel platform tags onto to_wheel filename, but make sure to not
     # add a tag if it is already there
-    from_wheel_tags = parse_wheel_filename(from_wheel.name)[-1]
-    to_wheel_tags = parse_wheel_filename(to_wheel.name)[-1]
+    _, _, _, from_wheel_tags = parse_wheel_filename(from_wheel.name)
+    _, _, _, to_wheel_tags = parse_wheel_filename(to_wheel.name)
     add_platform_tags = (
         f".{tag.platform}" for tag in from_wheel_tags - to_wheel_tags
     )

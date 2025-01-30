@@ -28,14 +28,12 @@ from macholib.mach_o import (  # type: ignore[import-untyped]
 from macholib.MachO import MachO  # type: ignore[import-untyped]
 from packaging.utils import parse_wheel_filename
 from packaging.version import Version
-from typing_extensions import deprecated
 
 from .libsana import (
     DelocationError,
     _allow_all,
     get_rp_stripper,
     stripped_lib_dict,
-    tree_libs,
     tree_libs_from_directory,
 )
 from .pkginfo import read_pkg_info, write_pkg_info
@@ -253,156 +251,6 @@ def _update_install_names(
                     new_install_name,
                 )
                 set_install_name(requiring, orig_install_name, new_install_name)
-
-
-@deprecated("copy_recurse is obsolete and should no longer be called")
-def copy_recurse(
-    lib_path: str,
-    copy_filt_func: Callable[[str], bool] | None = None,
-    copied_libs: dict[str, dict[str, str]] | None = None,
-) -> dict[str, dict[str, str]]:
-    """Analyze `lib_path` for library dependencies and copy libraries.
-
-    `lib_path` is a directory containing libraries.  The libraries might
-    themselves have dependencies.  This function analyzes the dependencies and
-    copies library dependencies that match the filter `copy_filt_func`. It also
-    adjusts the depending libraries to use the copy. It keeps iterating over
-    `lib_path` until all matching dependencies (of dependencies of dependencies
-    ...) have been copied.
-
-    Parameters
-    ----------
-    lib_path : str
-        Directory containing libraries
-    copy_filt_func : None or callable, optional
-        If None, copy any library that found libraries depend on.  If callable,
-        called on each depended library name; copy where
-        ``copy_filt_func(libname)`` is True, don't copy otherwise
-    copied_libs : dict
-        Dict with (key, value) pairs of (``copied_lib_path``,
-        ``dependings_dict``) where ``copied_lib_path`` is the canonical path of
-        a library that has been copied to `lib_path`, and ``dependings_dict``
-        is a dictionary with (key, value) pairs of (``depending_lib_path``,
-        ``install_name``).  ``depending_lib_path`` is the canonical path of the
-        library depending on ``copied_lib_path``, ``install_name`` is the name
-        that ``depending_lib_path`` uses to refer to ``copied_lib_path`` (in
-        its install names).
-
-    Returns
-    -------
-    copied_libs : dict
-        Input `copied_libs` dict with any extra libraries and / or dependencies
-        added.
-
-    .. deprecated:: 0.9
-        This function is obsolete.  :func:`delocate_path` handles recursive
-        dependencies while also supporting `@loader_path`.
-    """
-    if copied_libs is None:
-        copied_libs = {}
-    else:
-        copied_libs = dict(copied_libs)
-    done = False
-    while not done:
-        in_len = len(copied_libs)
-        _copy_required(lib_path, copy_filt_func, copied_libs)
-        done = len(copied_libs) == in_len
-    return copied_libs
-
-
-def _copy_required(
-    lib_path: str,
-    copy_filt_func: Callable[[str], bool] | None,
-    copied_libs: dict[str, dict[str, str]],
-) -> None:
-    """Copy libraries required for files in `lib_path` to `copied_libs`.
-
-    Augment `copied_libs` dictionary with any newly copied libraries, modifying
-    `copied_libs` in-place - see Notes.
-
-    This is one pass of ``copy_recurse``
-
-    Parameters
-    ----------
-    lib_path : str
-        Directory containing libraries
-    copy_filt_func : None or callable, optional
-        If None, copy any library that found libraries depend on.  If callable,
-        called on each library name; copy where ``copy_filt_func(libname)`` is
-        True, don't copy otherwise
-    copied_libs : dict
-        See :func:`copy_recurse` for definition.
-
-    Notes
-    -----
-    If we need to copy another library, add that (``depended_lib_path``,
-    ``dependings_dict``) to `copied_libs`.  ``dependings_dict`` has (key,
-    value) pairs of (``depending_lib_path``, ``install_name``).
-    ``depending_lib_path`` will be the original (canonical) library name, not
-    the copy in ``lib_path``.
-
-    Sometimes we copy a library, that further depends on a library we have
-    already copied. In this case update ``copied_libs[depended_lib]`` with the
-    extra dependency (as well as fixing up the install names for the depending
-    library).
-
-    For example, imagine we've start with a lib path like this::
-
-        my_lib_path/
-            libA.dylib
-            libB.dylib
-
-    Our input `copied_libs` has keys ``/sys/libA.dylib``, ``/sys/libB.lib``
-    telling us we previously copied those guys from the ``/sys`` folder.
-
-    On a first pass, we discover that ``libA.dylib`` depends on
-    ``/sys/libC.dylib``, so we copy that.
-
-    On a second pass, we discover now that ``libC.dylib`` also depends on
-    ``/sys/libB.dylib``.  `copied_libs` tells us that we already have a copy of
-    ``/sys/libB.dylib``, so we fix our copy of `libC.dylib`` to point to
-    ``my_lib_path/libB.dylib`` and add ``/sys/libC.dylib`` as a
-    ``dependings_dict`` entry for ``copied_libs['/sys/libB.dylib']``
-
-    .. deprecated:: 0.9
-        This function is obsolete, and is only used by :func:`copy_recurse`.
-    """
-    # Paths will be prepended with `lib_path`
-    lib_dict = tree_libs(lib_path)
-    # Map library paths after copy ('copied') to path before copy ('orig')
-    rp_lp = realpath(lib_path)
-    copied2orig = dict((pjoin(rp_lp, basename(c)), c) for c in copied_libs)
-    for required, requirings in lib_dict.items():
-        if copy_filt_func is not None and not copy_filt_func(required):
-            continue
-        if required.startswith("@"):
-            # May have been processed by us, or have some rpath, loader_path of
-            # its own. Either way, leave alone
-            continue
-        # Requiring names may well be the copies in lib_path.  Replace the copy
-        # names with the original names for entry into `copied_libs`
-        procd_requirings = {}
-        # Set requiring lib install names to point to local copy
-        for requiring, orig_install_name in requirings.items():
-            set_install_name(
-                requiring,
-                orig_install_name,
-                "@loader_path/" + basename(required),
-            )
-            # Make processed version of ``dependings_dict``
-            mapped_requiring = copied2orig.get(requiring, requiring)
-            procd_requirings[mapped_requiring] = orig_install_name
-        if required in copied_libs:
-            # Have copied this already, add any new requirings
-            copied_libs[required].update(procd_requirings)
-            continue
-        # Haven't see this one before, add entry to copied_libs
-        out_path = pjoin(lib_path, basename(required))
-        if exists(out_path):
-            raise DelocationError(out_path + " already exists")
-        shutil.copy(required, lib_path)
-        copied2orig[out_path] = required
-        copied_libs[required] = procd_requirings
 
 
 def _dylibs_only(filename: str) -> bool:

@@ -127,26 +127,6 @@ def _unique_everseen(iterable: Iterable[T], /) -> Iterator[T]:
             yield element
 
 
-@deprecated("Use more-itertools unique_everseen instead")
-def unique_by_index(sequence: Iterable[T]) -> list[T]:
-    """Return unique elements in `sequence` in the order in which they occur.
-
-    Parameters
-    ----------
-    sequence : iterable
-
-    Returns
-    -------
-    uniques : list
-        unique elements of sequence, ordered by the order in which the element
-        occurs in `sequence`
-
-    .. deprecated:: 0.12
-        Use more-itertools unique_everseen instead.
-    """
-    return list(_unique_everseen(sequence))
-
-
 def chmod_perms(fname):
     """Return permissions relevant to chmod."""
     return stat.S_IMODE(os.stat(fname).st_mode)

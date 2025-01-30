@@ -30,7 +30,6 @@ from ..tools import (
     replace_signature,
     set_install_id,
     set_install_name,
-    unique_by_index,
     validate_signature,
     zip2dir,
 )
@@ -47,20 +46,6 @@ ARCH_64 = frozenset(["x86_64"])
 ARCH_M1 = frozenset(["arm64"])
 ARCH_BOTH = ARCH_64 | ARCH_M1
 ARCH_32 = frozenset(["i386"])
-
-
-def test_uniqe_by_index():
-    assert_equal(unique_by_index([1, 2, 3, 4]), [1, 2, 3, 4])
-    assert_equal(unique_by_index([1, 2, 2, 4]), [1, 2, 4])
-    assert_equal(unique_by_index([4, 2, 2, 1]), [4, 2, 1])
-
-    def gen():
-        yield 4
-        yield 2
-        yield 2
-        yield 1
-
-    assert_equal(unique_by_index(gen()), [4, 2, 1])
 
 
 @pytest.mark.xfail(sys.platform == "win32", reason="Needs chmod.")

@@ -15,6 +15,10 @@ rules on making a good Changelog.
 - `get_archs` supports `PathLike` and raises `FileNotFoundError` instead of
   `RuntimeError` on missing files.
 
+### Removed
+
+- Removed `lib_exts` parameter from `fuse_trees`.
+
 ## [0.13.0] - 2025-01-29
 
 ### Changed

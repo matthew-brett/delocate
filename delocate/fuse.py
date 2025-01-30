@@ -19,8 +19,6 @@ import re
 import shutil
 import subprocess
 import tempfile
-import warnings
-from collections.abc import Container
 from os import PathLike
 from pathlib import Path
 
@@ -93,7 +91,6 @@ _RE_LIPO_UNKNOWN_FILE_STDERR = re.compile(
 def fuse_trees(
     to_tree: str | PathLike[str],
     from_tree: str | PathLike[str],
-    lib_exts: Container[str] | None = None,
 ) -> None:
     """Fuse path `from_tree` into path `to_tree`.
 
@@ -110,19 +107,11 @@ def fuse_trees(
         path of tree to fuse into (update into)
     from_tree : str or Path-like
         path of tree to fuse from (update from)
-    lib_exts : sequence, optional
-        This parameter is deprecated and should be ignored.
 
     .. versionchanged:: 0.13
         Binary files are auto-detected instead of using `lib_exts` to test file
         suffixes.
     """
-    if lib_exts:
-        warnings.warn(
-            "`lib_exts` parameter ignored, will be removed in future.",
-            FutureWarning,
-            stacklevel=2,
-        )
     for from_dirpath, dirnames, filenames in os.walk(Path(from_tree)):
         to_dirpath = Path(to_tree, Path(from_dirpath).relative_to(from_tree))
         # Copy any missing directories in to_path

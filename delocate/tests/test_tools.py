@@ -18,7 +18,6 @@ from ..tools import (
     _get_rpaths,
     _is_macho_file,
     add_rpath,
-    back_tick,
     chmod_perms,
     cmp_contents,
     dir2zip,
@@ -48,16 +47,6 @@ ARCH_64 = frozenset(["x86_64"])
 ARCH_M1 = frozenset(["arm64"])
 ARCH_BOTH = ARCH_64 | ARCH_M1
 ARCH_32 = frozenset(["i386"])
-
-
-@pytest.mark.filterwarnings("ignore:back_tick is deprecated")
-def test_back_tick() -> None:
-    cmd = '''python -c "print('Hello')"'''
-    assert back_tick(cmd) == "Hello"
-    assert back_tick(cmd, ret_err=True) == ("Hello", "")
-    assert back_tick(cmd, True, False) == (b"Hello", b"")
-    with pytest.raises(RuntimeError):
-        back_tick('python -c "raise ValueError()"')
 
 
 def test_uniqe_by_index():

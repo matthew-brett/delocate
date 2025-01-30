@@ -17,7 +17,6 @@ from os.path import exists, isdir
 from os.path import join as pjoin
 from pathlib import Path
 from typing import (
-    Any,
     TypeVar,
 )
 
@@ -30,67 +29,6 @@ logger = logging.getLogger(__name__)
 
 class InstallNameError(Exception):
     """Errors reading or modifying macOS install name identifiers."""
-
-
-@deprecated("Replace this call with subprocess.run")
-def back_tick(
-    cmd: str | Sequence[str],
-    ret_err: bool = False,
-    as_str: bool = True,
-    raise_err: bool | None = None,
-) -> Any:
-    """Run command `cmd`, return stdout, or stdout, stderr if `ret_err`.
-
-    Roughly equivalent to ``check_output`` in Python 2.7.
-
-    Parameters
-    ----------
-    cmd : sequence
-        command to execute
-    ret_err : bool, optional
-        If True, return stderr in addition to stdout.  If False, just return
-        stdout
-    as_str : bool, optional
-        Whether to decode outputs to unicode string on exit.
-    raise_err : None or bool, optional
-        If True, raise RuntimeError for non-zero return code. If None, set to
-        True when `ret_err` is False, False if `ret_err` is True
-
-    Returns
-    -------
-    out : str or tuple
-        If `ret_err` is False, return stripped string containing stdout from
-        `cmd`.  If `ret_err` is True, return tuple of (stdout, stderr) where
-        ``stdout`` is the stripped stdout, and ``stderr`` is the stripped
-        stderr.
-
-    Raises
-    ------
-    Raises RuntimeError if command returns non-zero exit code and `raise_err`
-    is True
-
-    .. deprecated:: 0.10
-        This function was deprecated because the return type is too dynamic.
-        You should use :func:`subprocess.run` instead.
-    """
-    if raise_err is None:
-        raise_err = False if ret_err else True
-    cmd_is_seq = isinstance(cmd, (list, tuple))
-    try:
-        proc = subprocess.run(
-            cmd,
-            shell=not cmd_is_seq,
-            capture_output=True,
-            text=as_str,
-            check=raise_err,
-        )
-    except subprocess.CalledProcessError as exc:
-        raise RuntimeError(
-            f"{exc.cmd} returned code {exc.returncode} with error {exc.stderr}"
-        )
-    if not ret_err:
-        return proc.stdout.strip()
-    return proc.stdout.strip(), proc.stderr.strip()
 
 
 def _run(

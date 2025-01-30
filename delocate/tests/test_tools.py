@@ -25,7 +25,6 @@ from ..tools import (
     ensure_writable,
     find_package_dirs,
     get_archs,
-    lipo_fuse,
     parse_install_name,
     replace_signature,
     set_install_id,
@@ -222,27 +221,15 @@ def test_cmp_contents():
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="Needs lipo.")
-def test_get_archs_fuse():
+def test_get_archs() -> None:
     # Test routine to get architecture types from file
-    assert_equal(get_archs(LIBM1), ARCH_M1)
-    assert_equal(get_archs(LIBM1_ARCH), ARCH_M1)
-    assert_equal(get_archs(LIB64), ARCH_64)
-    assert_equal(get_archs(LIB64A), ARCH_64)
-    assert_equal(get_archs(LIBBOTH), ARCH_BOTH)
-    assert_raises(RuntimeError, get_archs, "not_a_file")
-    with InTemporaryDirectory():
-        lipo_fuse(LIBM1, LIB64, "anotherlib")
-        assert_equal(get_archs("anotherlib"), ARCH_BOTH)
-        lipo_fuse(LIBM1, LIB64, "anotherlib++")
-        assert_equal(get_archs("anotherlib++"), ARCH_BOTH)
-        lipo_fuse(LIB64, LIBM1, "anotherlib")
-        assert_equal(get_archs("anotherlib"), ARCH_BOTH)
-        shutil.copyfile(LIBM1, "libcopym1")
-        lipo_fuse("libcopym1", LIB64, "anotherlib")
-        assert_equal(get_archs("anotherlib"), ARCH_BOTH)
-        assert_raises(RuntimeError, lipo_fuse, "libcopym1", LIBM1, "yetanother")
-        shutil.copyfile(LIB64, "libcopy64")
-        assert_raises(RuntimeError, lipo_fuse, "libcopy64", LIB64, "yetanother")
+    assert get_archs(LIBM1) == ARCH_M1
+    assert get_archs(LIBM1_ARCH) == ARCH_M1
+    assert get_archs(LIB64) == ARCH_64
+    assert get_archs(LIB64A) == ARCH_64
+    assert get_archs(LIBBOTH) == ARCH_BOTH
+    with pytest.raises(FileNotFoundError):
+        get_archs("/nonexistent_file")
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="Needs codesign.")

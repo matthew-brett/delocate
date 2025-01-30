@@ -10,6 +10,11 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+### Changed
+
+- `get_archs` supports `PathLike` and raises `FileNotFoundError` instead of
+  `RuntimeError` on missing files.
+
 ## [0.13.0] - 2025-01-29
 
 ### Changed

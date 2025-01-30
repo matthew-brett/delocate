@@ -979,12 +979,12 @@ def cmp_contents(filename1, filename2):
     return contents1 == contents2
 
 
-def get_archs(libname: str) -> frozenset[str]:
+def get_archs(libname: str | PathLike[str]) -> frozenset[str]:
     """Return architecture types from library `libname`.
 
     Parameters
     ----------
-    libname : str
+    libname : str or PathLike
         filename of binary for which to return arch codes
 
     Returns
@@ -993,12 +993,16 @@ def get_archs(libname: str) -> frozenset[str]:
         Empty (frozen)set if no arch codes.  If not empty, contains one or more
         of 'ppc', 'ppc64', 'i386', 'x86_64', 'arm64'.
     """
-    if not exists(libname):
-        raise RuntimeError(libname + " is not a file")
+    libname = Path(libname).resolve(strict=True)
     try:
-        lipo = _run(["lipo", "-info", libname], check=True)
+        lipo = subprocess.run(
+            ["lipo", "-info", libname],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
         stdout = lipo.stdout.strip()
-    except RuntimeError:
+    except subprocess.CalledProcessError:
         return frozenset()
     lines = [line.strip() for line in stdout.split("\n") if line.strip()]
     # For some reason, output from lipo -info on .a file generates this line
@@ -1008,47 +1012,13 @@ def get_archs(libname: str) -> frozenset[str]:
         assert len(lines) == 1
         line = lines[0]
     for reggie in (
-        f"Non-fat file: {re.escape(libname)} is architecture: (.*)",
-        f"Architectures in the fat file: {re.escape(libname)} are: (.*)",
+        rf"Non-fat file: {re.escape(str(libname))} is architecture: (.*)",
+        rf"Architectures in the fat file: {re.escape(str(libname))} are: (.*)",
     ):
         match = re.match(reggie, line)
         if match is not None:
             return frozenset(match.groups()[0].split(" "))
     raise ValueError(f"Unexpected output: '{stdout}' for {libname}")
-
-
-@deprecated("Call lipo directly")
-def lipo_fuse(
-    in_fname1: str | PathLike[str],
-    in_fname2: str | PathLike[str],
-    out_fname: str | PathLike[str],
-    ad_hoc_sign: bool = True,
-) -> str:
-    """Use lipo to merge libs `filename1`, `filename2`, store in `out_fname`.
-
-    Parameters
-    ----------
-    in_fname1 : str or PathLike
-        filename of library
-    in_fname2 : str or PathLike
-        filename of library
-    out_fname : str or PathLike
-        filename to which to write new fused library
-    ad_hoc_sign : {True, False}, optional
-        If True, sign file with ad-hoc signature
-
-    Raises
-    ------
-    RuntimeError
-        If the lipo command exits with an error.
-    """
-    lipo = _run(
-        ["lipo", "-create", in_fname1, in_fname2, "-output", out_fname],
-        check=True,
-    )
-    if ad_hoc_sign:
-        replace_signature(out_fname, "-")
-    return lipo.stdout.strip()
 
 
 @ensure_writable

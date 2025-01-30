@@ -230,6 +230,7 @@ def test_get_archs() -> None:
     assert get_archs(LIBBOTH) == ARCH_BOTH
     with pytest.raises(FileNotFoundError):
         get_archs("/nonexistent_file")
+    assert get_archs(Path(DATA_PATH, "icon.ico")) == set()  # Non-library
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="Needs codesign.")

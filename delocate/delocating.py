@@ -31,7 +31,6 @@ from packaging.version import Version
 
 from .libsana import (
     DelocationError,
-    _allow_all,
     get_rp_stripper,
     stripped_lib_dict,
     tree_libs_from_directory,
@@ -273,6 +272,11 @@ def _delocate_filter_function(
     So that libraries which won't be copied will not be followed.
     """
     return lib_filt_func(path) and copy_filt_func(path)
+
+
+def _allow_all(path: str) -> bool:
+    """Return True for all files."""
+    return True
 
 
 def delocate_path(

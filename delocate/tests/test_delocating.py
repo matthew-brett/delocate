@@ -29,7 +29,6 @@ from ..delocating import (
 from ..libsana import (
     DelocationError,
     search_environment_for_lib,
-    tree_libs,
     tree_libs_from_directory,
 )
 from ..tmpdirs import InTemporaryDirectory
@@ -108,10 +107,7 @@ def without_system_libs(obj):
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="Runs macOS executable.")
-@pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
-@pytest.mark.parametrize(
-    "tree_libs_func", [tree_libs, tree_libs_from_directory]
-)
+@pytest.mark.parametrize("tree_libs_func", [tree_libs_from_directory])
 def test_delocate_tree_libs(
     tree_libs_func: Callable[[str], dict[str, dict[str, str]]],
 ) -> None:

@@ -17,8 +17,6 @@ from typing import (
     Callable,
 )
 
-from typing_extensions import deprecated
-
 from .tmpdirs import TemporaryDirectory
 from .tools import (
     _get_install_names,
@@ -391,83 +389,6 @@ def tree_libs_from_directory(
         copy_filt_func=copy_filt_func,
         ignore_missing=ignore_missing,
     )
-
-
-def _allow_all(path: str) -> bool:
-    """Return True for all files."""
-    return True
-
-
-@deprecated("tree_libs doesn't support @loader_path and has been deprecated")
-def tree_libs(
-    start_path: str,
-    filt_func: Callable[[str], bool] | None = None,
-) -> dict[str, dict[str, str]]:
-    """Return analysis of library dependencies within `start_path`.
-
-    Parameters
-    ----------
-    start_path : str
-        root path of tree to search for libraries depending on other libraries.
-    filt_func : None or callable, optional
-        If None, inspect all files for library dependencies. If callable,
-        accepts filename as argument, returns True if we should inspect the
-        file, False otherwise.
-
-    Returns
-    -------
-    lib_dict : dict
-        dictionary with (key, value) pairs of (``libpath``,
-        ``dependings_dict``).
-
-        ``libpath`` is a canonical (``os.path.realpath``) filename of library,
-        or library name starting with {'@loader_path'}.
-
-
-        ``dependings_dict`` is a dict with (key, value) pairs of
-        (``depending_libpath``, ``install_name``), where ``dependings_libpath``
-        is the canonical (``os.path.realpath``) filename of the library
-        depending on ``libpath``, and ``install_name`` is the "install_name" by
-        which ``depending_libpath`` refers to ``libpath``.
-
-    Notes
-    -----
-    See:
-
-    * https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/dyld.1.html
-    * http://matthew-brett.github.io/pydagogue/mac_runtime_link.html
-
-    .. deprecated:: 0.9
-        This function does not support `@loader_path` and only returns the
-        direct dependencies of the libraries in `start_path`.
-
-        :func:`tree_libs_from_directory` should be used instead.
-    """
-    if filt_func is None:
-        filt_func = _allow_all
-    lib_dict: dict[str, dict[str, str]] = {}
-    for dirpath, dirnames, basenames in os.walk(start_path):
-        for base in basenames:
-            depending_path = realpath(pjoin(dirpath, base))
-            for dependency_path, install_name in get_dependencies(
-                depending_path,
-                filt_func=filt_func,
-            ):
-                if dependency_path is None:
-                    # Mimic deprecated behavior.
-                    # A lib_dict with unresolved paths is unsuitable for
-                    # delocating, this is a missing dependency.
-                    dependency_path = realpath(install_name)
-                if install_name.startswith("@loader_path/"):
-                    # Support for `@loader_path` would break existing callers.
-                    logger.debug(
-                        "Excluding %s because it has '@loader_path'.",
-                        install_name,
-                    )
-                    continue
-                lib_dict.setdefault(dependency_path, {})
-                lib_dict[dependency_path][depending_path] = install_name
-    return lib_dict
 
 
 _default_paths_to_search = ("/usr/local/lib", "/usr/lib")

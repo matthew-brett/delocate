@@ -17,8 +17,15 @@ rules on making a good Changelog.
 
 ### Removed
 
-- Removed `lib_exts` parameter from `fuse_trees`.
-- Removed `check_verbose` parameter from `delocate_wheel`.
+- Removed deprecated `lib_exts` parameter from `fuse_trees`.
+- Removed deprecated `check_verbose` parameter from `delocate_wheel`.
+- Removed deprecated functions:
+  - `back_tick`
+  - `copy_recurse`
+  - `lipo_fuse`
+  - `resolve_rpath`
+  - `tree_libs`
+  - `unique_by_index`
 
 ## [0.13.0] - 2025-01-29
 

@@ -8,7 +8,6 @@ from __future__ import annotations
 import logging
 import os
 import sys
-import warnings
 from collections.abc import Iterable, Iterator
 from os import PathLike
 from os.path import join as pjoin
@@ -553,52 +552,6 @@ def resolve_dynamic_paths(
             return str(abs_path)
 
     raise DependencyNotFound(lib_path)
-
-
-@deprecated(
-    "This function doesn't support @loader_path "
-    "and was replaced by resolve_dynamic_paths"
-)
-def resolve_rpath(lib_path: str, rpaths: Iterable[str]) -> str:
-    """Return `lib_path` with its `@rpath` resolved.
-
-    If the `lib_path` doesn't have `@rpath` then it's returned as is.
-    If `lib_path` has `@rpath` then returns the first `rpaths`/`lib_path`
-    combination found.  If the library can't be found in `rpaths` then a
-    detailed warning is printed and `lib_path` is returned as is.
-
-    Parameters
-    ----------
-    lib_path : str
-        The path to a library file, which may or may not start with `@rpath`.
-    rpaths : sequence of str
-        A sequence of search paths, usually gotten from a call to `get_rpaths`.
-
-    Returns
-    -------
-    lib_path : str
-        A str with the resolved libraries realpath.
-
-    .. deprecated:: 0.9
-        This function does not support `@loader_path`.
-        Use `resolve_dynamic_paths` instead.
-    """
-    if not lib_path.startswith("@rpath/"):
-        return lib_path
-
-    lib_rpath = lib_path.split("/", 1)[1]
-    for rpath in (*rpaths, *_default_paths_to_search):
-        rpath_lib = realpath(pjoin(rpath, lib_rpath))
-        if os.path.exists(rpath_lib):
-            return rpath_lib
-
-    warnings.warn(
-        "Couldn't find {} on paths:\n\t{}".format(
-            lib_path,
-            "\n\t".join(realpath(path) for path in rpaths),
-        )
-    )
-    return lib_path
 
 
 def search_environment_for_lib(lib_path: str | PathLike[str]) -> str:

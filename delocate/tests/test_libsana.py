@@ -22,7 +22,6 @@ from ..libsana import (
     get_prefix_stripper,
     get_rp_stripper,
     resolve_dynamic_paths,
-    resolve_rpath,
     stripped_lib_dict,
     tree_libs,
     tree_libs_from_directory,
@@ -482,17 +481,6 @@ def test_resolve_dynamic_paths() -> None:
     # Should raise DependencyNotFound if the dependency can not be resolved.
     with pytest.raises(DependencyNotFound):
         resolve_dynamic_paths(lib_rpath, [], path)
-
-
-@pytest.mark.xfail(sys.platform == "win32", reason="Path seperators.")
-def test_resolve_rpath() -> None:
-    # A minimal test of the resolve_rpath function
-    path, lib = split(LIBA)
-    lib_rpath = pjoin("@rpath", lib)
-    # Should skip '/nonexist' path
-    assert_equal(resolve_rpath(lib_rpath, ["/nonexist", path]), realpath(LIBA))
-    # Should return the given parameter as is since it can't be found
-    assert_equal(resolve_rpath(lib_rpath, []), lib_rpath)
 
 
 @pytest.mark.xfail(sys.platform == "win32", reason="Needs Unix linkage.")

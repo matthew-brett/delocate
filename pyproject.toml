@@ -7,7 +7,10 @@ name = "delocate"
 dynamic = ["version"]
 description = "Move macOS dynamic libraries into package"
 authors = [{ name = "Matthew Brett", email = "matthew.brett@gmail.com" }]
-maintainers = [{ name = "Matthew Brett", email = "matthew.brett@gmail.com" }]
+maintainers = [
+    { name = "Matthew Brett", email = "matthew.brett@gmail.com" },
+    { name = "Kyle Benesch", email = "4b796c65+github@gmail.com" },
+]
 readme = "README.rst"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
@@ -76,10 +79,7 @@ select = [
     "UP", # pyupgrade
     "FA", # flake8-future-annotations
 ]
-ignore = [
-    "ANN101", # missing-type-self
-    "ANN102", # missing-type-cls
-]
+ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "test_*.py" = ["D103"] # Docstrings not required for test functions

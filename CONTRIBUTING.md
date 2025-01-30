@@ -64,9 +64,12 @@ A guide for maintainers who are doing a Delocate release.
 
 - Check the copyright years in `LICENSE`
 
+- Ensure pre-commit hooks are up-to-date by running `pre-commit autoupdate`.
+  Then apply the latest pre-commit hooks with `pre-commit run -a`.
+
 - Make sure all tests are passing for the latest commit intended to be released.
   The recommended way to do this is to make a PR for the release.
-  Once the PR is merged then the release is now ready.
+  Once the PR is merged then the release is ready to be tagged in the next step.
 
 #### Doing the release
 

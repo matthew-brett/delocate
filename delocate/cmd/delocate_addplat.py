@@ -58,7 +58,7 @@ parser.add_argument(
     action="store",
     type=str,
     help=(
-        "Directory to store delocated wheels (default is to " "overwrite input)"
+        "Directory to store delocated wheels (default is to overwrite input)"
     ),
 )
 parser.add_argument(

@@ -113,7 +113,7 @@ def fuse_trees(
     lib_exts : sequence, optional
         This parameter is deprecated and should be ignored.
 
-    .. versionchanged:: Unreleased
+    .. versionchanged:: 0.13
         Binary files are auto-detected instead of using `lib_exts` to test file
         suffixes.
     """

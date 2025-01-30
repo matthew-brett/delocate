@@ -10,6 +10,8 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+## [0.13.0] - 2025-01-29
+
 ### Changed
 
 - `patch_wheel` function raises `FileNotFoundError` instead of `ValueError` on

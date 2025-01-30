@@ -25,9 +25,9 @@ from ..delocating import (
 from ..libsana import DelocationError
 from ..tmpdirs import InGivenDirectory, InTemporaryDirectory
 from ..tools import (
+    _get_install_ids,
     dir2zip,
     get_archs,
-    get_install_id,
     get_install_names,
     set_install_name,
     zip2dir,
@@ -170,10 +170,11 @@ def test_fix_plat() -> None:
         )
         # Check that copied libraries have modified install_name_ids
         zip2dir(fixed_wheel, "plat_pkg3")
-        base_stray = basename(stray_lib)
-        the_lib = pjoin("plat_pkg3", "fakepkg1", ".dylibs", base_stray)
+        base_stray = Path(stray_lib).name
+        the_lib = Path("plat_pkg3", "fakepkg1", ".dylibs", base_stray)
         inst_id = DLC_PREFIX + "fakepkg1/.dylibs/" + base_stray
-        assert get_install_id(the_lib) == inst_id
+        inst_ids = {"arm64": inst_id, "x86_64": inst_id}
+        assert _get_install_ids(the_lib) == inst_ids
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")

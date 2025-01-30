@@ -313,54 +313,6 @@ def _parse_otool_listing(stdout: str) -> dict[str, list[str]]:
     return out
 
 
-@deprecated("This function is no longer needed and should not be used")
-def _check_ignore_archs(input: dict[str, T]) -> T:
-    """Merge architecture outputs for functions which don't support multiple.
-
-    This is used to maintain backward compatibility inside of functions which
-    never supported multiple architectures.  You should not call this function
-    from new functions.
-
-    Parameters
-    ----------
-    input : dict of T
-        A dict similar to the return value of :func:`_parse_otool_listing`.
-        Must be non-empty.
-
-    Returns
-    -------
-    out : T
-        One of the values from ``input``.
-        Multiple architectures combined into a single output where possible.
-
-    Raises
-    ------
-    NotImplementedError
-        If ``input`` has different values per-architecture.
-
-    Examples
-    --------
-    >>> values = {"a": 10, "b": 10}
-    >>> _check_ignore_archs(values)
-    10
-    >>> values
-    {'a': 10, 'b': 10}
-    >>> _check_ignore_archs({"": ["1", "2", "2"]})
-    ['1', '2', '2']
-    >>> _check_ignore_archs({"a": "1", "b": "not 1"})
-    Traceback (most recent call last):
-        ...
-    NotImplementedError: ...
-    """
-    first, *rest = input.values()
-    if any(first != others for others in rest):
-        raise NotImplementedError(
-            "This function does not support separate values per-architecture:"
-            f" {input}"
-        )
-    return first
-
-
 def _parse_otool_install_names(
     stdout: str,
 ) -> dict[str, list[tuple[str, str, str]]]:
@@ -546,37 +498,6 @@ def get_install_names(filename: str | PathLike[str]) -> tuple[str, ...]:
             itertools.chain(*_get_install_names(filename).values())
         )
     )
-
-
-@deprecated("This function was replaced by _get_install_ids")
-def get_install_id(filename: str) -> str | None:
-    """Return install id from library named in `filename`.
-
-    Returns None if no install id, or if this is not an object file.
-
-    Parameters
-    ----------
-    filename : str
-        filename of library
-
-    Returns
-    -------
-    install_id : str
-        install id of library `filename`, or None if no install id
-
-    Raises
-    ------
-    NotImplementedError
-        If ``filename`` has different install ids per-architecture.
-
-    .. deprecated:: 0.12
-        This function has been replaced by the private function
-        `_get_install_ids`.
-    """
-    install_ids = _get_install_ids(filename)
-    if not install_ids:
-        return None  # No install ids or nothing returned.
-    return _check_ignore_archs(install_ids)
 
 
 def _get_install_ids(filename: str | PathLike[str]) -> dict[str, str]:

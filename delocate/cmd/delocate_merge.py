@@ -39,5 +39,5 @@ def main() -> None:  # noqa: D103
     fuse_wheels(wheel1, wheel2, out_wheel)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

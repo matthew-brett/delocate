@@ -126,5 +126,5 @@ def main() -> None:  # noqa: D103
             print("\n".join(copy_lines))
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

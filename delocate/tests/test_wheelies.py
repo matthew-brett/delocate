@@ -273,7 +273,6 @@ def test__thinning():
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
-@pytest.mark.filterwarnings("ignore:The check_verbose flag is deprecated")
 def test_check_plat_archs():
     # Check flag to check architectures
     with InTemporaryDirectory() as tmpdir:
@@ -332,7 +331,7 @@ def test_check_plat_archs():
             r"fakepkg1/subpkg/module2.abi3.so needs arch arm64 missing from "
             r".*/libextfunc.dylib",
         ):
-            delocate_wheel(fixed_wheel, require_archs=(), check_verbose=True)
+            delocate_wheel(fixed_wheel, require_archs=())
 
 
 def test_patch_wheel() -> None:

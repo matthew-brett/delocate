@@ -18,6 +18,7 @@ rules on making a good Changelog.
 ### Removed
 
 - Removed `lib_exts` parameter from `fuse_trees`.
+- Removed `check_verbose` parameter from `delocate_wheel`.
 
 ## [0.13.0] - 2025-01-29
 

@@ -9,7 +9,6 @@ import re
 import shutil
 import stat
 import struct
-import warnings
 from collections.abc import Iterable, Iterator, Mapping
 from os.path import abspath, basename, dirname, exists, realpath, relpath
 from os.path import join as pjoin
@@ -832,7 +831,6 @@ def delocate_wheel(
     lib_filt_func: Callable[[str], bool] | str | None = None,
     copy_filt_func: Callable[[str], bool] | None = filter_system_libs,
     require_archs: Iterable[str] | str | None = None,
-    check_verbose: bool | None = None,
     *,
     executable_path: str | None = None,
     ignore_missing: bool = False,
@@ -877,8 +875,6 @@ def delocate_wheel(
         archs as depending libraries.  If string, either "intel" (corresponds
         to sequence ``['x86_64, 'i386']``) or name of required architecture
         (e.g "i386" or "x86_64").
-    check_verbose : bool, optional
-        This flag is deprecated, and has no effect.
     executable_path : None or str, optional, keyword-only
         An alternative path to use for resolving `@executable_path`.
     ignore_missing : bool, default=False, keyword-only
@@ -899,13 +895,6 @@ def delocate_wheel(
         is the ``install_name`` of ``copied_lib_path`` in the depending
         library. The filenames in the keys are relative to the wheel root path.
     """
-    if check_verbose is not None:
-        warnings.warn(
-            "The check_verbose flag is deprecated and shouldn't be provided,"
-            " all subsequent parameters should be changed over to keywords.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
     in_wheel = abspath(in_wheel)
     if out_wheel is None:
         out_wheel = in_wheel

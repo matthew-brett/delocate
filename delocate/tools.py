@@ -17,7 +17,6 @@ from os.path import exists, isdir
 from os.path import join as pjoin
 from pathlib import Path
 from typing import (
-    Any,
     TypeVar,
 )
 
@@ -30,67 +29,6 @@ logger = logging.getLogger(__name__)
 
 class InstallNameError(Exception):
     """Errors reading or modifying macOS install name identifiers."""
-
-
-@deprecated("Replace this call with subprocess.run")
-def back_tick(
-    cmd: str | Sequence[str],
-    ret_err: bool = False,
-    as_str: bool = True,
-    raise_err: bool | None = None,
-) -> Any:
-    """Run command `cmd`, return stdout, or stdout, stderr if `ret_err`.
-
-    Roughly equivalent to ``check_output`` in Python 2.7.
-
-    Parameters
-    ----------
-    cmd : sequence
-        command to execute
-    ret_err : bool, optional
-        If True, return stderr in addition to stdout.  If False, just return
-        stdout
-    as_str : bool, optional
-        Whether to decode outputs to unicode string on exit.
-    raise_err : None or bool, optional
-        If True, raise RuntimeError for non-zero return code. If None, set to
-        True when `ret_err` is False, False if `ret_err` is True
-
-    Returns
-    -------
-    out : str or tuple
-        If `ret_err` is False, return stripped string containing stdout from
-        `cmd`.  If `ret_err` is True, return tuple of (stdout, stderr) where
-        ``stdout`` is the stripped stdout, and ``stderr`` is the stripped
-        stderr.
-
-    Raises
-    ------
-    Raises RuntimeError if command returns non-zero exit code and `raise_err`
-    is True
-
-    .. deprecated:: 0.10
-        This function was deprecated because the return type is too dynamic.
-        You should use :func:`subprocess.run` instead.
-    """
-    if raise_err is None:
-        raise_err = False if ret_err else True
-    cmd_is_seq = isinstance(cmd, (list, tuple))
-    try:
-        proc = subprocess.run(
-            cmd,
-            shell=not cmd_is_seq,
-            capture_output=True,
-            text=as_str,
-            check=raise_err,
-        )
-    except subprocess.CalledProcessError as exc:
-        raise RuntimeError(
-            f"{exc.cmd} returned code {exc.returncode} with error {exc.stderr}"
-        )
-    if not ret_err:
-        return proc.stdout.strip()
-    return proc.stdout.strip(), proc.stderr.strip()
 
 
 def _run(
@@ -187,26 +125,6 @@ def _unique_everseen(iterable: Iterable[T], /) -> Iterator[T]:
         if element not in seen:
             seen.add(element)
             yield element
-
-
-@deprecated("Use more-itertools unique_everseen instead")
-def unique_by_index(sequence: Iterable[T]) -> list[T]:
-    """Return unique elements in `sequence` in the order in which they occur.
-
-    Parameters
-    ----------
-    sequence : iterable
-
-    Returns
-    -------
-    uniques : list
-        unique elements of sequence, ordered by the order in which the element
-        occurs in `sequence`
-
-    .. deprecated:: 0.12
-        Use more-itertools unique_everseen instead.
-    """
-    return list(_unique_everseen(sequence))
 
 
 def chmod_perms(fname):
@@ -373,54 +291,6 @@ def _parse_otool_listing(stdout: str) -> dict[str, list[str]]:
         while lines and not lines[0].endswith(":"):
             out[current_arch].append(lines.pop(0).strip())
     return out
-
-
-@deprecated("This function is no longer needed and should not be used")
-def _check_ignore_archs(input: dict[str, T]) -> T:
-    """Merge architecture outputs for functions which don't support multiple.
-
-    This is used to maintain backward compatibility inside of functions which
-    never supported multiple architectures.  You should not call this function
-    from new functions.
-
-    Parameters
-    ----------
-    input : dict of T
-        A dict similar to the return value of :func:`_parse_otool_listing`.
-        Must be non-empty.
-
-    Returns
-    -------
-    out : T
-        One of the values from ``input``.
-        Multiple architectures combined into a single output where possible.
-
-    Raises
-    ------
-    NotImplementedError
-        If ``input`` has different values per-architecture.
-
-    Examples
-    --------
-    >>> values = {"a": 10, "b": 10}
-    >>> _check_ignore_archs(values)
-    10
-    >>> values
-    {'a': 10, 'b': 10}
-    >>> _check_ignore_archs({"": ["1", "2", "2"]})
-    ['1', '2', '2']
-    >>> _check_ignore_archs({"a": "1", "b": "not 1"})
-    Traceback (most recent call last):
-        ...
-    NotImplementedError: ...
-    """
-    first, *rest = input.values()
-    if any(first != others for others in rest):
-        raise NotImplementedError(
-            "This function does not support separate values per-architecture:"
-            f" {input}"
-        )
-    return first
 
 
 def _parse_otool_install_names(
@@ -608,37 +478,6 @@ def get_install_names(filename: str | PathLike[str]) -> tuple[str, ...]:
             itertools.chain(*_get_install_names(filename).values())
         )
     )
-
-
-@deprecated("This function was replaced by _get_install_ids")
-def get_install_id(filename: str) -> str | None:
-    """Return install id from library named in `filename`.
-
-    Returns None if no install id, or if this is not an object file.
-
-    Parameters
-    ----------
-    filename : str
-        filename of library
-
-    Returns
-    -------
-    install_id : str
-        install id of library `filename`, or None if no install id
-
-    Raises
-    ------
-    NotImplementedError
-        If ``filename`` has different install ids per-architecture.
-
-    .. deprecated:: 0.12
-        This function has been replaced by the private function
-        `_get_install_ids`.
-    """
-    install_ids = _get_install_ids(filename)
-    if not install_ids:
-        return None  # No install ids or nothing returned.
-    return _check_ignore_archs(install_ids)
 
 
 def _get_install_ids(filename: str | PathLike[str]) -> dict[str, str]:
@@ -1140,12 +979,12 @@ def cmp_contents(filename1, filename2):
     return contents1 == contents2
 
 
-def get_archs(libname: str) -> frozenset[str]:
+def get_archs(libname: str | PathLike[str]) -> frozenset[str]:
     """Return architecture types from library `libname`.
 
     Parameters
     ----------
-    libname : str
+    libname : str or PathLike
         filename of binary for which to return arch codes
 
     Returns
@@ -1154,12 +993,16 @@ def get_archs(libname: str) -> frozenset[str]:
         Empty (frozen)set if no arch codes.  If not empty, contains one or more
         of 'ppc', 'ppc64', 'i386', 'x86_64', 'arm64'.
     """
-    if not exists(libname):
-        raise RuntimeError(libname + " is not a file")
+    libname = Path(libname).resolve(strict=True)
     try:
-        lipo = _run(["lipo", "-info", libname], check=True)
+        lipo = subprocess.run(
+            ["lipo", "-info", libname],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
         stdout = lipo.stdout.strip()
-    except RuntimeError:
+    except subprocess.CalledProcessError:
         return frozenset()
     lines = [line.strip() for line in stdout.split("\n") if line.strip()]
     # For some reason, output from lipo -info on .a file generates this line
@@ -1169,47 +1012,13 @@ def get_archs(libname: str) -> frozenset[str]:
         assert len(lines) == 1
         line = lines[0]
     for reggie in (
-        f"Non-fat file: {re.escape(libname)} is architecture: (.*)",
-        f"Architectures in the fat file: {re.escape(libname)} are: (.*)",
+        rf"Non-fat file: {re.escape(str(libname))} is architecture: (.*)",
+        rf"Architectures in the fat file: {re.escape(str(libname))} are: (.*)",
     ):
         match = re.match(reggie, line)
         if match is not None:
             return frozenset(match.groups()[0].split(" "))
     raise ValueError(f"Unexpected output: '{stdout}' for {libname}")
-
-
-@deprecated("Call lipo directly")
-def lipo_fuse(
-    in_fname1: str | PathLike[str],
-    in_fname2: str | PathLike[str],
-    out_fname: str | PathLike[str],
-    ad_hoc_sign: bool = True,
-) -> str:
-    """Use lipo to merge libs `filename1`, `filename2`, store in `out_fname`.
-
-    Parameters
-    ----------
-    in_fname1 : str or PathLike
-        filename of library
-    in_fname2 : str or PathLike
-        filename of library
-    out_fname : str or PathLike
-        filename to which to write new fused library
-    ad_hoc_sign : {True, False}, optional
-        If True, sign file with ad-hoc signature
-
-    Raises
-    ------
-    RuntimeError
-        If the lipo command exits with an error.
-    """
-    lipo = _run(
-        ["lipo", "-create", in_fname1, in_fname2, "-output", out_fname],
-        check=True,
-    )
-    if ad_hoc_sign:
-        replace_signature(out_fname, "-")
-    return lipo.stdout.strip()
 
 
 @ensure_writable

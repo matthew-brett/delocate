@@ -22,9 +22,7 @@ from ..libsana import (
     get_prefix_stripper,
     get_rp_stripper,
     resolve_dynamic_paths,
-    resolve_rpath,
     stripped_lib_dict,
-    tree_libs,
     tree_libs_from_directory,
     walk_directory,
     walk_library,
@@ -55,97 +53,6 @@ def get_ext_dict(local_libs: Iterable[str]) -> dict[str, dict[str, str]]:
             lib_deps[realpath(local_lib)] = ext_lib
         ext_deps[realpath(ext_lib)] = lib_deps
     return ext_deps
-
-
-@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
-@pytest.mark.filterwarnings("ignore:tree_libs:DeprecationWarning")
-def test_tree_libs() -> None:
-    # Test ability to walk through tree, finding dynamic library refs
-    # Copy specific files to avoid working tree cruft
-    to_copy = [LIBA, LIBB, LIBC, TEST_LIB]
-    with InTemporaryDirectory() as tmpdir:
-        local_libs = _copy_libs(to_copy, tmpdir)
-        rp_local_libs = [realpath(L) for L in local_libs]
-        liba, libb, libc, test_lib = local_libs
-        rp_liba, rp_libb, rp_libc, rp_test_lib = rp_local_libs
-        exp_dict = get_ext_dict(local_libs)
-        exp_dict.update(
-            {
-                rp_liba: {rp_libb: "liba.dylib", rp_libc: "liba.dylib"},
-                rp_libb: {rp_libc: "libb.dylib"},
-                rp_libc: {rp_test_lib: "libc.dylib"},
-            }
-        )
-        # default - no filtering
-        assert tree_libs(tmpdir) == exp_dict
-
-        def filt(fname: str) -> bool:
-            return fname.endswith(".dylib")
-
-        exp_dict = get_ext_dict([liba, libb, libc])
-        exp_dict.update(
-            {
-                rp_liba: {rp_libb: "liba.dylib", rp_libc: "liba.dylib"},
-                rp_libb: {rp_libc: "libb.dylib"},
-            }
-        )
-        # filtering
-        assert tree_libs(tmpdir, filt) == exp_dict
-        # Copy some libraries into subtree to test tree walking
-        subtree = pjoin(tmpdir, "subtree")
-        slibc, stest_lib = _copy_libs([libc, test_lib], subtree)
-        st_exp_dict = get_ext_dict([liba, libb, libc, slibc])
-        st_exp_dict.update(
-            {
-                rp_liba: {
-                    rp_libb: "liba.dylib",
-                    rp_libc: "liba.dylib",
-                    realpath(slibc): "liba.dylib",
-                },
-                rp_libb: {
-                    rp_libc: "libb.dylib",
-                    realpath(slibc): "libb.dylib",
-                },
-            }
-        )
-        assert tree_libs(tmpdir, filt) == st_exp_dict
-        # Change an install name, check this is picked up
-        set_install_name(slibc, "liba.dylib", "newlib")
-        inc_exp_dict = get_ext_dict([liba, libb, libc, slibc])
-        inc_exp_dict.update(
-            {
-                rp_liba: {rp_libb: "liba.dylib", rp_libc: "liba.dylib"},
-                realpath("newlib"): {realpath(slibc): "newlib"},
-                rp_libb: {
-                    rp_libc: "libb.dylib",
-                    realpath(slibc): "libb.dylib",
-                },
-            }
-        )
-        assert tree_libs(tmpdir, filt) == inc_exp_dict
-        # Symlink a depending canonical lib - should have no effect because of
-        # the canonical names
-        os.symlink(liba, pjoin(dirname(liba), "funny.dylib"))
-        assert tree_libs(tmpdir, filt) == inc_exp_dict
-        # Symlink a depended lib.  Now 'newlib' is a symlink to liba, and the
-        # dependency of slibc on newlib appears as a dependency on liba, but
-        # with install name 'newlib'
-        os.symlink(liba, "newlib")
-        sl_exp_dict = get_ext_dict([liba, libb, libc, slibc])
-        sl_exp_dict.update(
-            {
-                rp_liba: {
-                    rp_libb: "liba.dylib",
-                    rp_libc: "liba.dylib",
-                    realpath(slibc): "newlib",
-                },
-                rp_libb: {
-                    rp_libc: "libb.dylib",
-                    realpath(slibc): "libb.dylib",
-                },
-            }
-        )
-        assert tree_libs(tmpdir, filt) == sl_exp_dict
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
@@ -482,17 +389,6 @@ def test_resolve_dynamic_paths() -> None:
     # Should raise DependencyNotFound if the dependency can not be resolved.
     with pytest.raises(DependencyNotFound):
         resolve_dynamic_paths(lib_rpath, [], path)
-
-
-@pytest.mark.xfail(sys.platform == "win32", reason="Path seperators.")
-def test_resolve_rpath() -> None:
-    # A minimal test of the resolve_rpath function
-    path, lib = split(LIBA)
-    lib_rpath = pjoin("@rpath", lib)
-    # Should skip '/nonexist' path
-    assert_equal(resolve_rpath(lib_rpath, ["/nonexist", path]), realpath(LIBA))
-    # Should return the given parameter as is since it can't be found
-    assert_equal(resolve_rpath(lib_rpath, []), lib_rpath)
 
 
 @pytest.mark.xfail(sys.platform == "win32", reason="Needs Unix linkage.")

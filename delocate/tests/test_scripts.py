@@ -88,9 +88,7 @@ def test_listdeps(plat_wheel: PlatWheel, script_runner: ScriptRunner) -> None:
     }
     # single path, with libs
     with InGivenDirectory(DATA_PATH):
-        result = script_runner.run(
-            "delocate-listdeps", str(DATA_PATH), check=True
-        )
+        result = script_runner.run(["delocate-listdeps", DATA_PATH], check=True)
     assert set(_proc_lines(result.stdout)) == local_libs
     # single path, no libs
     with InTemporaryDirectory():

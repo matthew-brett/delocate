@@ -144,5 +144,5 @@ def main() -> None:  # noqa: D103
                 print("Deleted old wheel " + wheel)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

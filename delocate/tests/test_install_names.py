@@ -24,7 +24,6 @@ from ..tools import (
     _get_install_ids,
     add_rpath,
     get_environment_variable_paths,
-    get_install_id,
     get_install_names,
     get_rpaths,
     parse_install_name,
@@ -106,18 +105,6 @@ def test_parse_install_name():
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
-def test_install_id() -> None:
-    # Test basic otool library listing
-    assert get_install_id(LIBA) == "liba.dylib"
-    assert get_install_id(LIBB) == "libb.dylib"
-    assert get_install_id(LIBC) == "libc.dylib"
-    assert get_install_id(TEST_LIB) is None
-    # Non-object file returns None too
-    assert get_install_id(__file__) is None
-    assert get_install_id(ICO_FILE) is None
-
-
-@pytest.mark.xfail(sys.platform != "darwin", reason="otool")
 def test_install_ids(tmp_path: Path) -> None:
     # Test basic otool library listing
     assert _get_install_ids(LIBA) == {"": "liba.dylib"}
@@ -155,17 +142,17 @@ def test_change_install_name():
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")
-def test_set_install_id():
+def test_set_install_id(tmp_path: Path) -> None:
     # Test ability to change install id in library
-    liba_id = get_install_id(LIBA)
-    with InTemporaryDirectory() as tmpdir:
-        libfoo = pjoin(tmpdir, "libfoo.dylib")
-        shutil.copy2(LIBA, libfoo)
-        assert_equal(get_install_id(libfoo), liba_id)
-        set_install_id(libfoo, "libbar.dylib")
-        assert_equal(get_install_id(libfoo), "libbar.dylib")
+    liba_id = _get_install_ids(LIBA)
+    libfoo = Path(tmp_path, "libfoo.dylib")
+    shutil.copy2(LIBA, libfoo)
+    assert _get_install_ids(libfoo) == liba_id
+    set_install_id(libfoo, "libbar.dylib")
+    assert _get_install_ids(libfoo) == {key: "libbar.dylib" for key in liba_id}
     # If no install id, raise error (unlike install_name_tool)
-    assert_raises(InstallNameError, set_install_id, TEST_LIB, "libbof.dylib")
+    with pytest.raises(InstallNameError, match=r".* has no install id"):
+        set_install_id(TEST_LIB, "libbof.dylib")
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="otool")

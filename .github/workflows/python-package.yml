@@ -113,10 +113,7 @@ jobs:
           if-no-files-found: error
       - name: Run tests
         run: |
-          pytest
-      - name: Collect code coverage data
-        run: |
-          coverage xml
+          pytest --cov-report term-missing
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:

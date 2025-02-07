@@ -67,5 +67,5 @@ def main() -> None:  # noqa: D103
                 print(i2 + ("\n" + i2).join(libs))
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

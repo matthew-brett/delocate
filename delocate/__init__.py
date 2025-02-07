@@ -3,7 +3,7 @@
 import warnings
 
 from .delocating import delocate_path, delocate_wheel, patch_wheel
-from .libsana import tree_libs, wheel_libs
+from .libsana import wheel_libs
 
 try:
     from ._version import __version__
@@ -20,7 +20,6 @@ __all__ = (
     "delocate_path",
     "delocate_wheel",
     "patch_wheel",
-    "tree_libs",
     "wheel_libs",
     "__version__",
 )

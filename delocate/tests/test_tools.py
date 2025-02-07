@@ -18,7 +18,6 @@ from ..tools import (
     _get_rpaths,
     _is_macho_file,
     add_rpath,
-    back_tick,
     chmod_perms,
     cmp_contents,
     dir2zip,
@@ -26,12 +25,10 @@ from ..tools import (
     ensure_writable,
     find_package_dirs,
     get_archs,
-    lipo_fuse,
     parse_install_name,
     replace_signature,
     set_install_id,
     set_install_name,
-    unique_by_index,
     validate_signature,
     zip2dir,
 )
@@ -48,30 +45,6 @@ ARCH_64 = frozenset(["x86_64"])
 ARCH_M1 = frozenset(["arm64"])
 ARCH_BOTH = ARCH_64 | ARCH_M1
 ARCH_32 = frozenset(["i386"])
-
-
-@pytest.mark.filterwarnings("ignore:back_tick is deprecated")
-def test_back_tick() -> None:
-    cmd = '''python -c "print('Hello')"'''
-    assert back_tick(cmd) == "Hello"
-    assert back_tick(cmd, ret_err=True) == ("Hello", "")
-    assert back_tick(cmd, True, False) == (b"Hello", b"")
-    with pytest.raises(RuntimeError):
-        back_tick('python -c "raise ValueError()"')
-
-
-def test_uniqe_by_index():
-    assert_equal(unique_by_index([1, 2, 3, 4]), [1, 2, 3, 4])
-    assert_equal(unique_by_index([1, 2, 2, 4]), [1, 2, 4])
-    assert_equal(unique_by_index([4, 2, 2, 1]), [4, 2, 1])
-
-    def gen():
-        yield 4
-        yield 2
-        yield 2
-        yield 1
-
-    assert_equal(unique_by_index(gen()), [4, 2, 1])
 
 
 @pytest.mark.xfail(sys.platform == "win32", reason="Needs chmod.")
@@ -248,27 +221,16 @@ def test_cmp_contents():
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="Needs lipo.")
-def test_get_archs_fuse():
+def test_get_archs() -> None:
     # Test routine to get architecture types from file
-    assert_equal(get_archs(LIBM1), ARCH_M1)
-    assert_equal(get_archs(LIBM1_ARCH), ARCH_M1)
-    assert_equal(get_archs(LIB64), ARCH_64)
-    assert_equal(get_archs(LIB64A), ARCH_64)
-    assert_equal(get_archs(LIBBOTH), ARCH_BOTH)
-    assert_raises(RuntimeError, get_archs, "not_a_file")
-    with InTemporaryDirectory():
-        lipo_fuse(LIBM1, LIB64, "anotherlib")
-        assert_equal(get_archs("anotherlib"), ARCH_BOTH)
-        lipo_fuse(LIBM1, LIB64, "anotherlib++")
-        assert_equal(get_archs("anotherlib++"), ARCH_BOTH)
-        lipo_fuse(LIB64, LIBM1, "anotherlib")
-        assert_equal(get_archs("anotherlib"), ARCH_BOTH)
-        shutil.copyfile(LIBM1, "libcopym1")
-        lipo_fuse("libcopym1", LIB64, "anotherlib")
-        assert_equal(get_archs("anotherlib"), ARCH_BOTH)
-        assert_raises(RuntimeError, lipo_fuse, "libcopym1", LIBM1, "yetanother")
-        shutil.copyfile(LIB64, "libcopy64")
-        assert_raises(RuntimeError, lipo_fuse, "libcopy64", LIB64, "yetanother")
+    assert get_archs(LIBM1) == ARCH_M1
+    assert get_archs(LIBM1_ARCH) == ARCH_M1
+    assert get_archs(LIB64) == ARCH_64
+    assert get_archs(LIB64A) == ARCH_64
+    assert get_archs(LIBBOTH) == ARCH_BOTH
+    with pytest.raises(FileNotFoundError):
+        get_archs("/nonexistent_file")
+    assert get_archs(Path(DATA_PATH, "icon.ico")) == set()  # Non-library
 
 
 @pytest.mark.xfail(sys.platform != "darwin", reason="Needs codesign.")

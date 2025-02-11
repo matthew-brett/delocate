@@ -789,9 +789,9 @@ def _check_and_update_wheel_name(
     return wheel_path
 
 
-def _get_delocate_generator_header() -> tuple[str, str]:
+def _get_delocate_generator_header() -> str:
     """Return Delocate's version info to be appended to the WHEEL metadata."""
-    return ("Generator", f"delocate {__version__}".rstrip())
+    return f"delocate {__version__}".rstrip()
 
 
 def _update_wheelfile(wheel_dir: Path, wheel_name: str) -> None:
@@ -818,8 +818,12 @@ def _update_wheelfile(wheel_dir: Path, wheel_name: str) -> None:
 
     # Mark wheel as modifed by this version of Delocate
     delocate_generator = _get_delocate_generator_header()
-    if delocate_generator not in info.items():
+    if "Generator" not in info:
         info.add_header(*delocate_generator)
+    else:
+        old_header = str(info.get("Generator"))
+        if old_header != delocate_generator:
+            info.replace_header("Generator", f"{old_header}, modified by {delocate_generator}")
 
     write_pkg_info(file_path, info)
 

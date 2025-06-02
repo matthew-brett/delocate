@@ -17,6 +17,7 @@ from os.path import exists, isdir
 from os.path import join as pjoin
 from pathlib import Path
 from typing import (
+    Literal,
     TypeVar,
 )
 
@@ -125,6 +126,24 @@ def _unique_everseen(iterable: Iterable[T], /) -> Iterator[T]:
         if element not in seen:
             seen.add(element)
             yield element
+
+
+def _otool_escape_flags(*paths: str | PathLike) -> tuple[(Literal["-m"], ...)]:
+    """Return otool's '-m' escape flag if any file contains a parenthesis.
+
+    Examples
+    --------
+    >>> _otool_escape_flags("test")
+    ()
+    >>> _otool_escape_flags("test(foo)")
+    ('-m',)
+    >>> _otool_escape_flags(Path("dir(foo)/test"))
+    ()
+    """
+    for path in paths:
+        if "(" in Path(path).name:
+            return ("-m",)
+    return ()
 
 
 def chmod_perms(fname):
@@ -431,7 +450,17 @@ def _get_install_names(
     """
     if not _is_macho_file(filename):
         return {}
-    otool = _run(["otool", "-arch", "all", "-m", "-L", filename], check=False)
+    otool = _run(
+        [
+            "otool",
+            "-arch",
+            "all",
+            *_otool_escape_flags(filename),
+            "-L",
+            filename,
+        ],
+        check=False,
+    )
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return {}
     install_ids = _get_install_ids(filename)
@@ -503,7 +532,17 @@ def _get_install_ids(filename: str | PathLike[str]) -> dict[str, str]:
     """
     if not _is_macho_file(filename):
         return {}
-    otool = _run(["otool", "-arch", "all", "-m", "-D", filename], check=False)
+    otool = _run(
+        [
+            "otool",
+            "-arch",
+            "all",
+            *_otool_escape_flags(filename),
+            "-D",
+            filename,
+        ],
+        check=False,
+    )
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return {}
     out = {}
@@ -662,7 +701,17 @@ def _get_rpaths(
     """
     if not _is_macho_file(filename):
         return {}
-    otool = _run(["otool", "-arch", "all", "-m", "-l", filename], check=False)
+    otool = _run(
+        [
+            "otool",
+            "-arch",
+            "all",
+            *_otool_escape_flags(filename),
+            "-l",
+            filename,
+        ],
+        check=False,
+    )
     if not _line0_says_object(otool.stdout or otool.stderr, filename):
         return {}
 

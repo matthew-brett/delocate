@@ -9,6 +9,7 @@ import re
 import shutil
 import stat
 import struct
+from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping
 from os.path import abspath, basename, dirname, exists, realpath, relpath
 from os.path import join as pjoin
@@ -133,10 +134,22 @@ def _sanitize_rpaths(
     files_to_delocate: Iterable[str],
 ) -> None:
     """Sanitize the rpaths of libraries."""
+
+    requiring_sanitizes = {}  # requiring -> True
+
     for required in files_to_delocate:
         # Set relative path for local library
         for requiring, orig_install_name in lib_dict[required].items():
+            requiring_sanitizes[requiring] = True
+
+    try:
+        from joblib import Parallel, delayed, cpu_count
+    except ImportError:
+        for requiring in requiring_sanitizes:
             _remove_absolute_rpaths(requiring)
+    else:
+        Parallel(n_jobs=3 * cpu_count())(delayed(_remove_absolute_rpaths)(requiring)
+                                         for requiring in requiring_sanitizes)
 
 
 def _analyze_tree_libs(
@@ -229,6 +242,9 @@ def _update_install_names(
     files_to_delocate: Iterable[str],
 ) -> None:
     """Update the install names of libraries."""
+
+    requiring_updates = defaultdict(list)  # requiring -> (orig_install_name, new_install_name)
+
     for required in files_to_delocate:
         # Set relative path for local library
         for requiring, orig_install_name in lib_dict[required].items():
@@ -248,7 +264,20 @@ def _update_install_names(
                     orig_install_name,
                     new_install_name,
                 )
-                set_install_name(requiring, orig_install_name, new_install_name)
+                requiring_updates[requiring].append((orig_install_name, new_install_name))
+
+    def update(requiring, updates):
+        for orig_install_name, new_install_name in updates:
+            set_install_name(requiring, orig_install_name, new_install_name)
+
+    try:
+        from joblib import Parallel, delayed, cpu_count
+    except ImportError:
+        for requiring, updates in requiring_updates.items():
+            update(requiring, updates)
+    else:
+        Parallel(n_jobs=3 * cpu_count())(delayed(update)(requiring, updates)
+                                         for requiring, updates in requiring_updates.items())
 
 
 def _dylibs_only(filename: str) -> bool:

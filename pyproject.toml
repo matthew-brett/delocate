@@ -28,6 +28,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 
+[project.optional-dependencies]
+joblib = [
+    "joblib",
+]
+
 [project.scripts]
 delocate-addplat = "delocate.cmd.delocate_addplat:main"
 delocate-fuse = "delocate.cmd.delocate_fuse:main"

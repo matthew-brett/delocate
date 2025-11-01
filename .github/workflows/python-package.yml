@@ -152,7 +152,11 @@ jobs:
           - os: "ubuntu-latest"
             python: "3.12"
           - os: "ubuntu-latest"
-            python: "3.13-dev"
+            python: "3.13"
+          - os: "ubuntu-latest"
+            python: "3.14"
+          - os: "ubuntu-latest"
+            python: "3.15-dev"
           - os: "windows-latest"
             python: "3.x"
     steps:

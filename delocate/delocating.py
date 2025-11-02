@@ -9,6 +9,7 @@ import re
 import shutil
 import stat
 import struct
+from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping
 from os.path import abspath, basename, dirname, exists, realpath, relpath
 from os.path import join as pjoin
@@ -244,6 +245,10 @@ def _update_install_names(
     """
     needs_codesign = set()
 
+    requiring_updates = defaultdict(
+        list
+    )  # requiring -> (orig_install_name, new_install_name)
+
     for required in files_to_delocate:
         # Set relative path for local library
         for requiring, orig_install_name in lib_dict[required].items():
@@ -263,13 +268,22 @@ def _update_install_names(
                     orig_install_name,
                     new_install_name,
                 )
-                set_install_name(
-                    requiring,
-                    orig_install_name,
-                    new_install_name,
-                    ad_hoc_sign=False,
+                requiring_updates[requiring].append(
+                    (orig_install_name, new_install_name)
                 )
                 needs_codesign.add(Path(requiring))
+
+    def update(requiring, updates):
+        for orig_install_name, new_install_name in updates:
+            set_install_name(
+                requiring,
+                orig_install_name,
+                new_install_name,
+                ad_hoc_sign=False,
+            )
+
+    for requiring, updates in requiring_updates.items():
+        update(requiring, updates)
 
     return needs_codesign
 

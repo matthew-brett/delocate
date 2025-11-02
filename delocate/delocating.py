@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import functools
 import logging
 import os
@@ -273,7 +274,8 @@ def _update_install_names(
                 )
                 needs_codesign.add(Path(requiring))
 
-    def update(requiring, updates):
+    def update(item):
+        requiring, updates = item
         for orig_install_name, new_install_name in updates:
             set_install_name(
                 requiring,
@@ -282,8 +284,9 @@ def _update_install_names(
                 ad_hoc_sign=False,
             )
 
-    for requiring, updates in requiring_updates.items():
-        update(requiring, updates)
+    with concurrent.futures.ThreadPoolExecutor() as executer:
+        for _ in executer.map(update, requiring_updates.items()):
+            pass
 
     return needs_codesign
 

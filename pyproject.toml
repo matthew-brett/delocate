@@ -14,7 +14,7 @@ maintainers = [
 readme = "README.rst"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
-dependencies = ["packaging>=20.9", "typing_extensions>=4.12.2", "macholib"]
+dependencies = ["packaging>=20.9", "typing_extensions>=4.12.2", "macholib", "joblib"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
@@ -26,11 +26,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Build Tools",
     "Typing :: Typed",
-]
-
-[project.optional-dependencies]
-joblib = [
-    "joblib",
 ]
 
 [project.scripts]

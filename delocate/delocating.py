@@ -142,7 +142,11 @@ def _sanitize_rpaths(
             requiring_sanitizes[requiring] = True
 
     try:
-        from joblib import Parallel, cpu_count, delayed  # type: ignore[import-untyped]
+        from joblib import (  # type: ignore[import-untyped]
+            Parallel,
+            cpu_count,
+            delayed,
+        )
     except ImportError:
         for requiring in requiring_sanitizes:
             _remove_absolute_rpaths(requiring)

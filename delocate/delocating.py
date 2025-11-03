@@ -274,13 +274,12 @@ def _update_install_names(
                 )
                 needs_codesign.add(Path(requiring))
 
-    def update(item):
-        requiring, updates = item
-        _set_install_names(requiring, updates)
-
     with concurrent.futures.ThreadPoolExecutor() as executer:
-        for _ in executer.map(update, requiring_updates.items()):
-            pass
+        futures = []
+        for requiring, updates in requiring_updates.items():
+            futures.append(executer.submit(_set_install_names, requiring, updates))
+        for future in futures:
+            future.result()
 
     return needs_codesign
 

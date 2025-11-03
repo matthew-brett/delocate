@@ -537,7 +537,7 @@ def _set_install_names(
     options: list[str] = []
     for oldname, newname in changes:
         options.extend(("-change", oldname, newname))
-    _run(["install_name_tool", *options, str(Path(path))], check=True)
+    _run(["install_name_tool", *options, path], check=True)
 
 
 @ensure_writable

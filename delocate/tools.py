@@ -522,6 +522,25 @@ def _get_install_ids(filename: str | PathLike[str]) -> dict[str, str]:
 
 
 @ensure_writable
+def _set_install_names(
+    path: str | PathLike[str], changes: Iterable[Sequence[str, str]]
+) -> None:
+    """Set install names in binary `path`.
+
+    Parameters
+    ----------
+    path
+        Path to binary file.
+    changes
+        Sequence of (old, new)
+    """
+    options: list[str] = []
+    for oldname, newname in changes:
+        options.extend(("-change", oldname, newname))
+    _run(["install_name_tool", *options, str(Path(path))], check=True)
+
+
+@ensure_writable
 def set_install_name(
     filename: str, oldname: str, newname: str, ad_hoc_sign: bool = True
 ) -> None:
@@ -541,9 +560,7 @@ def set_install_name(
     names = get_install_names(filename)
     if oldname not in names:
         raise InstallNameError(f"{oldname} not in install names for {filename}")
-    _run(
-        ["install_name_tool", "-change", oldname, newname, filename], check=True
-    )
+    _set_install_names(filename, [(oldname, newname)])
     if ad_hoc_sign:
         # ad hoc signature is represented by a dash
         # https://developer.apple.com/documentation/security/seccodesignatureflags/kseccodesignatureadhoc

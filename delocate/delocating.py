@@ -277,7 +277,9 @@ def _update_install_names(
     with concurrent.futures.ThreadPoolExecutor() as executer:
         futures = []
         for requiring, updates in requiring_updates.items():
-            futures.append(executer.submit(_set_install_names, requiring, updates))
+            futures.append(
+                executer.submit(_set_install_names, requiring, updates)
+            )
         for future in futures:
             future.result()
 

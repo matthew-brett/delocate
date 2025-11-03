@@ -40,12 +40,12 @@ from .pkginfo import read_pkg_info, write_pkg_info
 from .tmpdirs import TemporaryDirectory
 from .tools import (
     _remove_absolute_rpaths,
+    _set_install_names,
     _update_signatures,
     dir2zip,
     find_package_dirs,
     get_archs,
     set_install_id,
-    set_install_name,
     zip2dir,
 )
 from .wheeltools import InWheel, rewrite_record
@@ -276,13 +276,7 @@ def _update_install_names(
 
     def update(item):
         requiring, updates = item
-        for orig_install_name, new_install_name in updates:
-            set_install_name(
-                requiring,
-                orig_install_name,
-                new_install_name,
-                ad_hoc_sign=False,
-            )
+        _set_install_names(requiring, updates)
 
     with concurrent.futures.ThreadPoolExecutor() as executer:
         for _ in executer.map(update, requiring_updates.items()):

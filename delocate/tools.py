@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import concurrent.futures
+import functools
 import itertools
 import logging
 import os
@@ -520,6 +522,25 @@ def _get_install_ids(filename: str | PathLike[str]) -> dict[str, str]:
 
 
 @ensure_writable
+def _set_install_names(
+    path: str | PathLike[str], changes: Iterable[tuple[str, str]]
+) -> None:
+    """Set install names in binary `path`.
+
+    Parameters
+    ----------
+    path
+        Path to binary file.
+    changes
+        (old, new) pairs
+    """
+    options: list[str] = []
+    for oldname, newname in changes:
+        options.extend(("-change", oldname, newname))
+    _run(["install_name_tool", *options, path], check=True)
+
+
+@ensure_writable
 def set_install_name(
     filename: str, oldname: str, newname: str, ad_hoc_sign: bool = True
 ) -> None:
@@ -539,9 +560,7 @@ def set_install_name(
     names = get_install_names(filename)
     if oldname not in names:
         raise InstallNameError(f"{oldname} not in install names for {filename}")
-    _run(
-        ["install_name_tool", "-change", oldname, newname, filename], check=True
-    )
+    _set_install_names(filename, [(oldname, newname)])
     if ad_hoc_sign:
         # ad hoc signature is represented by a dash
         # https://developer.apple.com/documentation/security/seccodesignatureflags/kseccodesignatureadhoc
@@ -742,34 +761,6 @@ def add_rpath(filename: str, newpath: str, ad_hoc_sign: bool = True) -> None:
         replace_signature(filename, "-")
 
 
-@ensure_writable
-def _delete_rpaths(
-    filename: str, rpaths: Iterable[str], ad_hoc_sign: bool = True
-) -> None:
-    """Remove rpath `newpath` from library `filename`.
-
-    Parameters
-    ----------
-    filename : str
-        filename of library
-    rpaths : Iterable[str]
-        rpaths to delete
-    ad_hoc_sign : {True, False}, optional
-        If True, sign file with ad-hoc signature
-    """
-    for rpath in rpaths:
-        logger.info("Sanitize: Deleting rpath %r from %r", rpath, filename)
-        # We can run these as one command to install_name_tool if there are
-        # no duplicates. When there are duplicates, we need to delete them
-        # separately.
-        _run(
-            ["install_name_tool", "-delete_rpath", rpath, filename],
-            check=True,
-        )
-    if ad_hoc_sign:
-        replace_signature(filename, "-")
-
-
 _SANITARY_RPATH = re.compile(r"^@loader_path/|^@executable_path/")
 """Matches rpaths which are considered sanitary."""
 
@@ -799,26 +790,47 @@ def _is_rpath_sanitary(rpath: str) -> bool:
     return bool(_SANITARY_RPATH.match(rpath))
 
 
+def _find_absolute_rpaths_to_remove(
+    filename: str | PathLike[str], /
+) -> list[str]:
+    """Read `filename` and return any rpaths which need to be sanitized."""
+    return [
+        rpath
+        for rpath in _unique_everseen(
+            itertools.chain(*_get_rpaths(filename).values())
+        )
+        if not _is_rpath_sanitary(rpath)
+    ]
+
+
 @ensure_writable
-def _remove_absolute_rpaths(filename: str, ad_hoc_sign: bool = True) -> None:
+def _remove_absolute_rpaths(filename: str | PathLike[str]) -> bool:
     """Remove absolute filename rpaths in `filename`.
+
+    Returns True if file was modifed, modifed files need to be code signed.
 
     Parameters
     ----------
-    filename : str
+    filename : str or Path
         filename of library
-    ad_hoc_sign : {True, False}, optional
-        If True, sign file with ad-hoc signature
     """
-    _delete_rpaths(
-        filename,
-        (
-            rpath
-            for rpath in get_rpaths(filename)
-            if not _is_rpath_sanitary(rpath)
-        ),
-        ad_hoc_sign,
-    )
+    was_modified = False
+    while True:
+        rpaths_to_remove = _find_absolute_rpaths_to_remove(filename)
+        if not rpaths_to_remove:
+            return was_modified
+        was_modified = True
+        options: list[str] = []
+        # Can run many delete_rpath's as one command to install_name_tool if
+        # there are no duplicates.
+        # Duplicate rpaths must be deleted using multiple calls.
+        for rpath in rpaths_to_remove:
+            logger.info("Sanitize: Deleting rpath %r from %r", rpath, filename)
+            options.extend(("-delete_rpath", rpath))
+        _run(
+            ["install_name_tool", *options, filename],
+            check=True,
+        )
 
 
 def zip2dir(
@@ -1025,11 +1037,11 @@ def get_archs(libname: str | PathLike[str]) -> frozenset[str]:
 def replace_signature(filename: str | PathLike[str], identity: str) -> None:
     """Replace the signature of a binary file using `identity`.
 
-    See the codesign documentation for more info.
+    See the codesign man page for more info.
 
     Parameters
     ----------
-    filename : str
+    filename : str or PathLike
         Filepath to a binary file.
     identity : str
         The signing identity to use.
@@ -1037,7 +1049,7 @@ def replace_signature(filename: str | PathLike[str], identity: str) -> None:
     _run(["codesign", "--force", "--sign", identity, filename], check=True)
 
 
-def validate_signature(filename: str) -> None:
+def validate_signature(filename: str | PathLike) -> None:
     """Remove invalid signatures from a binary file.
 
     If the file signature is missing or valid then it will be ignored.
@@ -1047,7 +1059,7 @@ def validate_signature(filename: str) -> None:
 
     Parameters
     ----------
-    filename : str
+    filename : str or PathLike
         Filepath to a binary file
     """
     codesign = _run(["codesign", "--verify", filename], check=False)
@@ -1058,3 +1070,28 @@ def validate_signature(filename: str) -> None:
 
     # This file's signature is invalid and needs to be replaced
     replace_signature(filename, "-")  # Replace with an ad-hoc signature
+
+
+def _update_signatures(
+    paths: Iterable[str | PathLike[str]], /, *, identity: str | None
+) -> None:
+    """Batch codesign binary files on `paths` using `identity`.
+
+    See the codesign man page for more info.
+
+    Parameters
+    ----------
+    paths
+        Paths to binary files.
+    identity
+        The signing identity to use,
+        if None then only invalided binaries are signed ad-hoc.
+    """
+    with concurrent.futures.ThreadPoolExecutor() as executer:
+        signing_call = (
+            validate_signature
+            if identity is None
+            else functools.partial(replace_signature, identity=identity)
+        )
+        for _ in executer.map(signing_call, paths):
+            pass

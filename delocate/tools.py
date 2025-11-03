@@ -523,7 +523,7 @@ def _get_install_ids(filename: str | PathLike[str]) -> dict[str, str]:
 
 @ensure_writable
 def _set_install_names(
-    path: str | PathLike[str], changes: Iterable[Sequence[str, str]]
+    path: str | PathLike[str], changes: Iterable[tuple[str, str]]
 ) -> None:
     """Set install names in binary `path`.
 
@@ -532,7 +532,7 @@ def _set_install_names(
     path
         Path to binary file.
     changes
-        Sequence of (old, new)
+        (old, new) pairs
     """
     options: list[str] = []
     for oldname, newname in changes:

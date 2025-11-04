@@ -550,6 +550,19 @@ def set_install_name(
         replace_signature(filename, "-")
 
 
+def _set_install_id(filename: str | PathLike[str], install_id: str):
+    """Set install id for library named in `filename`.
+
+    Parameters
+    ----------
+    filename : str or PathLike
+        filename of library
+    install_id : str
+        install id for library `filename`
+    """
+    _run(["install_name_tool", "-id", install_id, filename], check=True)
+
+
 @ensure_writable
 def set_install_id(
     filename: str | PathLike[str], install_id: str, ad_hoc_sign: bool = True
@@ -571,7 +584,7 @@ def set_install_id(
     """
     if not _get_install_ids(filename):
         raise InstallNameError(f"{filename} has no install id")
-    _run(["install_name_tool", "-id", install_id, filename], check=True)
+    _set_install_id(filename, install_id)
     if ad_hoc_sign:
         replace_signature(filename, "-")
 

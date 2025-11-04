@@ -150,8 +150,10 @@ def _sanitize_rpaths(
     import concurrent.futures
 
     with concurrent.futures.ThreadPoolExecutor() as executer:
-        for modified_files in executer.map(_remove_absolute_rpaths, requiring_sanitizes):
-            needs_signing |= modified_files 
+        for modified_files in executer.map(
+            _remove_absolute_rpaths, requiring_sanitizes
+        ):
+            needs_signing |= modified_files
 
     return needs_signing
 

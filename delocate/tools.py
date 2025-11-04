@@ -787,22 +787,22 @@ def _find_absolute_rpaths_to_remove(
 
 
 @ensure_writable
-def _remove_absolute_rpaths(filename: str | PathLike[str]) -> bool:
+def _remove_absolute_rpaths(filename: str | PathLike[str]) -> set[Path]:
     """Remove absolute filename rpaths in `filename`.
 
-    Returns True if file was modifed, modifed files need to be code signed.
+    Returns the paths of modified binaries which require new code signing.
 
     Parameters
     ----------
     filename : str or Path
         filename of library
     """
-    was_modified = False
+    needs_signing = set()
     while True:
         rpaths_to_remove = _find_absolute_rpaths_to_remove(filename)
         if not rpaths_to_remove:
-            return was_modified
-        was_modified = True
+            return needs_signing
+        needs_signing.add(Path(filename))
         options: list[str] = []
         # Can run many delete_rpath's as one command to install_name_tool if
         # there are no duplicates.

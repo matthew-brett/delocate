@@ -42,7 +42,6 @@ from .tools import (
     dir2zip,
     find_package_dirs,
     get_archs,
-    set_install_id,
     set_install_name,
     zip2dir,
 )
@@ -460,8 +459,18 @@ def _make_install_name_ids_unique(
         )
     if not install_id_prefix.endswith("/"):
         install_id_prefix += "/"
-    for lib in libraries:
-        set_install_id(lib, install_id_prefix + Path(lib).name)
+
+    import concurrent.futures
+
+    from .tools import _set_install_id
+
+    with concurrent.futures.ThreadPoolExecutor() as executer:
+        for _ in executer.map(
+            _set_install_id,
+            libraries,
+            (install_id_prefix + Path(lib).name for lib in libraries),
+        ):
+            pass
 
 
 def _get_macos_min_version(

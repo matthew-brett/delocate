@@ -797,7 +797,7 @@ def _remove_absolute_rpaths(filename: str | PathLike[str]) -> set[Path]:
     filename : str or Path
         filename of library
     """
-    needs_signing = set()
+    needs_signing: set[Path] = set()
     while True:
         rpaths_to_remove = _find_absolute_rpaths_to_remove(filename)
         if not rpaths_to_remove:

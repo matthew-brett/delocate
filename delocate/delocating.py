@@ -140,7 +140,7 @@ def _sanitize_rpaths(
 
     Returns the paths of modified binaries which require new code signing.
     """
-    needs_signing = set()
+    needs_signing: set[Path] = set()
     requiring_sanitizes = {}  # requiring -> True
     for required in files_to_delocate:
         # Set relative path for local library

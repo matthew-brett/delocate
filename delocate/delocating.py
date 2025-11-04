@@ -147,9 +147,15 @@ def _sanitize_rpaths(
         for requiring, orig_install_name in lib_dict[required].items():
             requiring_sanitizes[requiring] = True
 
-    for requiring in requiring_sanitizes:
-        if _remove_absolute_rpaths(requiring):
-            needs_signing.add(Path(requiring))
+    import concurrent.futures
+
+    with concurrent.futures.ThreadPoolExecutor() as executer:
+        for requiring, needs in zip(
+            requiring_sanitizes,
+            executer.map(_remove_absolute_rpaths, requiring_sanitizes),
+        ):
+            if needs:
+                needs_signing.add(Path(requiring))
 
     return needs_signing
 

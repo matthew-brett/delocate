@@ -17,6 +17,7 @@ rules on making a good Changelog.
 
 ### Removed
 
+- Dropped support for Python 3.9
 - Removed deprecated `lib_exts` parameter from `fuse_trees`.
 - Removed deprecated `check_verbose` parameter from `delocate_wheel`.
 - Removed deprecated functions:

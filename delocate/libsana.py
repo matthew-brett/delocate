@@ -8,14 +8,11 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from os import PathLike
 from os.path import join as pjoin
 from os.path import realpath
 from pathlib import Path
-from typing import (
-    Callable,
-)
 
 from .tmpdirs import TemporaryDirectory
 from .tools import (

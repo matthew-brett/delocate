@@ -63,8 +63,8 @@ jobs:
           get_macpython_environment $MB_PYTHON_VERSION venv
           make
         env:
-          MB_PYTHON_VERSION: "3.9"
-          MB_PYTHON_OSX_VER: "10.9"
+          MB_PYTHON_VERSION: "3.10" # https://www.python.org/downloads/macos/
+          MB_PYTHON_OSX_VER: "11"
           SOURCE_DATE_EPOCH: "0"
           PYTHONHASHSEED: "0"
       - name: Upload test data
@@ -143,8 +143,6 @@ jobs:
           - os: "macos-26"
             xcode: "26.0"
             python: "3.x"
-          - os: "ubuntu-latest"
-            python: "3.9"
           - os: "ubuntu-latest"
             python: "3.10"
           - os: "ubuntu-latest"

@@ -17,7 +17,7 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
@@ -26,7 +26,7 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
@@ -47,7 +47,7 @@ jobs:
     needs: [pre-commit, mypy]
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
       - uses: maxim-lobanov/setup-xcode@v1
@@ -115,7 +115,7 @@ jobs:
         run: |
           pytest --cov-report term-missing
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: false
           token: "624762bf-aaf0-4a75-b450-16f5ebece0b1"
@@ -198,7 +198,7 @@ jobs:
       name: pypi
       url: https://pypi.org/project/delocate/${{ github.ref_name }}/
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.x"

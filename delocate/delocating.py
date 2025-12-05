@@ -114,7 +114,7 @@ def delocate_tree_libs(
     lib_dict, copied_libraries = _copy_required_libs(
         lib_dict, lib_path, root_path, libraries_to_copy
     )
-    # Update the install names of local and copied libaries.
+    # Update the install names of local and copied libraries.
     _update_install_names(
         lib_dict, root_path, libraries_to_delocate | copied_libraries
     )
@@ -813,7 +813,7 @@ def _update_wheelfile(wheel_dir: Path, wheel_name: str) -> None:
     for tag in platform_tag_set:
         info.add_header("Tag", str(tag))
 
-    # Mark wheel as modifed by this version of Delocate
+    # Mark wheel as modified by this version of Delocate
     delocate_generator = _get_delocate_generator_header()
     if delocate_generator not in info.items():
         info.add_header(*delocate_generator)

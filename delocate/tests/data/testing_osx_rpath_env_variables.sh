@@ -33,7 +33,7 @@
 #     so that it causes libc's @rpath entry to resolve correctly.
 #     (note that that list does not contain LD_LIBRARY_PATH)
 
-# We'll demonstrate this using the three libaries liba, b, and c that
+# We'll demonstrate this using the three libraries liba, b, and c that
 # ship with the tests, along with the "test-libs" binary.
 
 # We're going to be manipulating the location of the test-lib script

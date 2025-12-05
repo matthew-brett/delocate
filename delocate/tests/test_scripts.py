@@ -107,7 +107,7 @@ def test_listdeps(plat_wheel: PlatWheel, script_runner: ScriptRunner) -> None:
             plat_wheel.stray_lib,
         ]
 
-        # With -d flag, get list of dependending modules
+        # With -d flag, get list of depending modules
         result = script_runner.run(
             ["delocate-listdeps", "-d", "pure", "plat"], check=True
         )
@@ -198,7 +198,7 @@ def test_path(script_runner: ScriptRunner) -> None:
             check=True,
         )
         assert len(os.listdir(Path("subtree", "deplibs"))) == 0
-        # Check fake libary gets copied and delocated
+        # Check fake library gets copied and delocated
         out_path = Path("subtree2", "deplibs")
         assert os.listdir(out_path) == ["libfake.dylib"]
 

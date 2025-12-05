@@ -265,7 +265,7 @@ def test_delocate_path() -> None:
         set_install_name(slibc, EXT_LIBS[0], fake_lib)
         # shortcut
         _rp = realpath
-        # Check fake libary gets copied and delocated
+        # Check fake library gets copied and delocated
         slc_rel = pjoin("subtree2", "subsub", "libc.dylib")
         assert delocate_path("subtree2", "deplibs2") == {
             _rp(fake_lib): {_rp(slc_rel): fake_lib}

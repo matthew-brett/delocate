@@ -203,7 +203,7 @@ In the new wheel, you will find, using ``lipo -archs`` - that all binaries with
 the same name in each wheel are now universal (``x86_64`` and ``arm64``).
 
     `:warning:` **Note:** In previous versions (``<0.12.0``) making dual architecture binaries was
-    performed with the ``delocate-fuse`` command. This commannd would overwrite the
+    performed with the ``delocate-fuse`` command. This command would overwrite the
     first wheel passed in by default. This led to the user needing to rename the
     wheel to correctly describe what platforms it supported. For this and other
     reasons, wheels created with this were often incorrect. From version ``0.12.0``

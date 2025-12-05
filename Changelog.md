@@ -14,6 +14,7 @@ rules on making a good Changelog.
 
 - `get_archs` supports `PathLike` and raises `FileNotFoundError` instead of
   `RuntimeError` on missing files.
+- `-m` flag is only passed to `otool` if the file contains parenthesis. #247
 
 ### Removed
 

@@ -232,7 +232,6 @@ class ToolArchMock(NamedTuple):
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-L",
                     "example.so",
                 ): """\
@@ -245,7 +244,6 @@ example.so:
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-D",
                     "example.so",
                 ): """\
@@ -256,7 +254,6 @@ example.so:
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-l",
                     "example.so",
                 ): """\
@@ -278,7 +275,6 @@ cmdsize 0
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-L",
                     "example.so",
                 ): """\
@@ -295,7 +291,6 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-D",
                     "example.so",
                 ): """\
@@ -308,7 +303,6 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-l",
                     "example.so",
                 ): """\
@@ -334,7 +328,6 @@ cmdsize 0
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-L",
                     "example.so",
                 ): """\
@@ -351,7 +344,6 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-D",
                     "example.so",
                 ): """\
@@ -364,7 +356,6 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-l",
                     "example.so",
                 ): """\
@@ -390,7 +381,6 @@ cmdsize 0
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-L",
                     "example.so",
                 ): """\
@@ -407,7 +397,6 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-D",
                     "example.so",
                 ): """\
@@ -420,7 +409,6 @@ example.so (architecture arm64):
                     "otool",
                     "-arch",
                     "all",
-                    "-m",
                     "-l",
                     "example.so",
                 ): """\

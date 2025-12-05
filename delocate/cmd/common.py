@@ -10,11 +10,11 @@ import logging
 import os
 import sys
 from argparse import ArgumentParser, Namespace
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from pathlib import Path
-from typing import Callable
+from typing import Literal
 
-from typing_extensions import Literal, TypedDict
+from typing_extensions import TypedDict
 
 from delocate import __version__
 from delocate.delocating import filter_system_libs

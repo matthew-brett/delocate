@@ -9,15 +9,12 @@ import re
 import shutil
 import stat
 import struct
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from os.path import abspath, basename, dirname, exists, realpath, relpath
 from os.path import join as pjoin
 from pathlib import Path
 from subprocess import PIPE, Popen
-from typing import (
-    Callable,
-    Final,
-)
+from typing import Final
 
 from macholib.mach_o import (  # type: ignore[import-untyped]
     CPU_TYPE_NAMES,

@@ -7,11 +7,11 @@ import shutil
 import subprocess
 import sys
 from collections import namedtuple
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from os.path import basename, dirname, realpath, relpath, splitext
 from os.path import join as pjoin
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 from packaging.utils import InvalidWheelFilename

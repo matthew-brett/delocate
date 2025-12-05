@@ -12,7 +12,7 @@ maintainers = [
     { name = "Kyle Benesch", email = "4b796c65+github@gmail.com" },
 ]
 readme = "README.rst"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 dependencies = ["packaging>=20.9", "typing_extensions>=4.12.2", "macholib"]
 classifiers = [
@@ -58,7 +58,6 @@ omit = ["*/_version.py", "*/tests/*"]
 
 [tool.mypy]
 files = ["*.py", "delocate"]
-python_version = "3.9"
 
 [[tool.mypy.overrides]] # Ignore delocate._version module.
 module = "delocate._version"
@@ -68,6 +67,7 @@ ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 80
+extend-exclude = ["multibuild/"]
 
 [tool.ruff.lint] # https://docs.astral.sh/ruff/rules/
 select = [

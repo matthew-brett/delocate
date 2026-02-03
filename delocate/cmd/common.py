@@ -11,6 +11,7 @@ import os
 import sys
 from argparse import ArgumentParser, Namespace
 from collections.abc import Callable, Iterable, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Literal
 
@@ -21,6 +22,10 @@ from delocate.delocating import filter_system_libs
 
 logger = logging.getLogger(__name__)
 
+if sys.version_info < (3, 13):
+    _DEFAULT_JOB_THREADS = (os.cpu_count() or 1) + 1
+else:
+    _DEFAULT_JOB_THREADS = (os.process_cpu_count() or 1) + 1
 
 common_parser = ArgumentParser(add_help=False)
 """Version and logging arguments shared by all commands."""
@@ -80,6 +85,14 @@ delocate_parser.add_argument(
     dest="sanitize_rpaths",
     help="Don't remove absolute and relative rpaths from binaries",
 )
+delocate_parser.add_argument(
+    "-j",
+    "--jobs",
+    action="store",
+    default=_DEFAULT_JOB_THREADS,
+    type=int,
+    help="Number of job threads to use",
+)
 
 
 def verbosity_config(args: Namespace) -> None:
@@ -99,6 +112,7 @@ class DelocateArgs(TypedDict):
     lib_filt_func: Callable[[str], bool] | Literal["dylibs-only"] | None
     ignore_missing: bool
     sanitize_rpaths: bool
+    executor: ThreadPoolExecutor
 
 
 def delocate_values(args: Namespace) -> DelocateArgs:
@@ -123,6 +137,7 @@ def delocate_values(args: Namespace) -> DelocateArgs:
         "lib_filt_func": "dylibs-only" if args.dylibs_only else None,
         "ignore_missing": args.ignore_missing_dependencies,
         "sanitize_rpaths": args.sanitize_rpaths,
+        "executor": ThreadPoolExecutor(max_workers=args.jobs),
     }
 
 

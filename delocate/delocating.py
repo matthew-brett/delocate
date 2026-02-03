@@ -10,6 +10,7 @@ import shutil
 import stat
 import struct
 from collections.abc import Callable, Iterable, Iterator, Mapping
+from concurrent.futures import ThreadPoolExecutor
 from os.path import abspath, basename, dirname, exists, realpath, relpath
 from os.path import join as pjoin
 from pathlib import Path
@@ -35,12 +36,12 @@ from .pkginfo import read_pkg_info, write_pkg_info
 from .tmpdirs import TemporaryDirectory
 from .tools import (
     _remove_absolute_rpaths,
+    _update_signatures,
     dir2zip,
     find_package_dirs,
     get_archs,
     set_install_id,
     set_install_name,
-    validate_signature,
     zip2dir,
 )
 from .wheeltools import InWheel, rewrite_record
@@ -64,6 +65,7 @@ def delocate_tree_libs(
     root_path: str,
     *,
     sanitize_rpaths: bool = False,
+    executor: ThreadPoolExecutor = ThreadPoolExecutor(),
 ) -> dict[str, dict[str, str]]:
     """Move needed libraries in `lib_dict` into `lib_path`.
 
@@ -93,6 +95,8 @@ def delocate_tree_libs(
         this library.
     sanitize_rpaths : bool, default=False, keyword-only
         If True, absolute paths in rpaths of binaries are removed.
+    executor : optional, keyword-only
+        Executor to use for batch operations.
 
     Returns
     -------
@@ -115,12 +119,16 @@ def delocate_tree_libs(
         lib_dict, lib_path, root_path, libraries_to_copy
     )
     # Update the install names of local and copied libraries.
-    _update_install_names(
+    needs_codesign = _update_install_names(
         lib_dict, root_path, libraries_to_delocate | copied_libraries
     )
     # Remove absolute rpaths
     if sanitize_rpaths:
-        _sanitize_rpaths(lib_dict, libraries_to_delocate | copied_libraries)
+        needs_codesign |= _sanitize_rpaths(
+            lib_dict, libraries_to_delocate | copied_libraries
+        )
+
+    _update_signatures(needs_codesign, identity=None, executor=executor)
 
     return libraries_to_copy
 
@@ -128,12 +136,18 @@ def delocate_tree_libs(
 def _sanitize_rpaths(
     lib_dict: Mapping[str, Mapping[str, str]],
     files_to_delocate: Iterable[str],
-) -> None:
-    """Sanitize the rpaths of libraries."""
+) -> set[Path]:
+    """Sanitize the rpaths of libraries.
+
+    Returns the paths of modified binaries which require new code signing.
+    """
+    needs_signing = set()
     for required in files_to_delocate:
         # Set relative path for local library
         for requiring, orig_install_name in lib_dict[required].items():
-            _remove_absolute_rpaths(requiring)
+            if _remove_absolute_rpaths(requiring):
+                needs_signing.add(Path(requiring))
+    return needs_signing
 
 
 def _analyze_tree_libs(
@@ -224,8 +238,13 @@ def _update_install_names(
     lib_dict: Mapping[str, Mapping[str, str]],
     root_path: str,
     files_to_delocate: Iterable[str],
-) -> None:
-    """Update the install names of libraries."""
+) -> set[Path]:
+    """Update the install names of libraries.
+
+    Returns the paths of files which were modified and require a new signature.
+    """
+    needs_codesign = set()
+
     for required in files_to_delocate:
         # Set relative path for local library
         for requiring, orig_install_name in lib_dict[required].items():
@@ -245,7 +264,15 @@ def _update_install_names(
                     orig_install_name,
                     new_install_name,
                 )
-                set_install_name(requiring, orig_install_name, new_install_name)
+                set_install_name(
+                    requiring,
+                    orig_install_name,
+                    new_install_name,
+                    ad_hoc_sign=False,
+                )
+                needs_codesign.add(Path(requiring))
+
+    return needs_codesign
 
 
 def _dylibs_only(filename: str) -> bool:
@@ -284,6 +311,7 @@ def delocate_path(
     ignore_missing: bool = False,
     *,
     sanitize_rpaths: bool = False,
+    executor: ThreadPoolExecutor = ThreadPoolExecutor(),
 ) -> dict[str, dict[str, str]]:
     """Copy required libraries for files in `tree_path` into `lib_path`.
 
@@ -312,6 +340,8 @@ def delocate_path(
         Continue even if missing dependencies are detected.
     sanitize_rpaths : bool, default=False, keyword-only
         If True, absolute paths in rpaths of binaries are removed.
+    executor : optional, keyword-only
+        Executor to use for batch operations.
 
     Returns
     -------
@@ -355,7 +385,11 @@ def delocate_path(
     )
 
     return delocate_tree_libs(
-        lib_dict, lib_path, tree_path, sanitize_rpaths=sanitize_rpaths
+        lib_dict,
+        lib_path,
+        tree_path,
+        sanitize_rpaths=sanitize_rpaths,
+        executor=executor,
     )
 
 
@@ -402,11 +436,13 @@ def _decide_dylib_bundle_directory(
 
 
 def _make_install_name_ids_unique(
-    libraries: Iterable[str], install_id_prefix: str
+    libraries: Iterable[str | os.PathLike[str]], install_id_prefix: str
 ) -> None:
     """Replace each library's install name id with a unique id.
 
     This is to change install ids to be unique within Python space.
+
+    Libraries modifed by this function must be codesigned.
 
     Parameters
     ----------
@@ -433,8 +469,7 @@ def _make_install_name_ids_unique(
     if not install_id_prefix.endswith("/"):
         install_id_prefix += "/"
     for lib in libraries:
-        set_install_id(lib, install_id_prefix + basename(lib))
-        validate_signature(lib)
+        set_install_id(lib, install_id_prefix + Path(lib).name)
 
 
 def _get_macos_min_version(
@@ -833,6 +868,7 @@ def delocate_wheel(
     ignore_missing: bool = False,
     sanitize_rpaths: bool = False,
     require_target_macos_version: Version | None = None,
+    executor: ThreadPoolExecutor = ThreadPoolExecutor(),
 ) -> dict[str, dict[str, str]]:
     """Update wheel by copying required libraries to `lib_sdir` in wheel.
 
@@ -880,6 +916,8 @@ def delocate_wheel(
         If True, absolute paths in rpaths of binaries are removed.
     require_target_macos_version : None or Version, optional, keyword-only
         If provided, the minimum macOS version that the wheel should support.
+    executor : optional, keyword-only
+        Executor to use for batch operations.
 
     Returns
     -------
@@ -917,6 +955,7 @@ def delocate_wheel(
             executable_path=executable_path,
             ignore_missing=ignore_missing,
             sanitize_rpaths=sanitize_rpaths,
+            executor=executor,
         )
         if copied_libs and lib_path_exists_before_delocate:
             raise DelocationError(
@@ -934,11 +973,14 @@ def delocate_wheel(
                     f"\n{bads_report(bads, pjoin(tmpdir, 'wheel'))}"
                 )
         libraries_in_lib_path = [
-            pjoin(lib_path, basename(lib)) for lib in copied_libs
+            Path(lib_path, Path(lib).name) for lib in copied_libs
         ]
         _make_install_name_ids_unique(
             libraries=libraries_in_lib_path,
             install_id_prefix=DLC_PREFIX + relpath(lib_sdir, wheel_dir),
+        )
+        _update_signatures(
+            libraries_in_lib_path, identity=None, executor=executor
         )
         out_wheel_ = Path(out_wheel)
         out_wheel_fixed = _check_and_update_wheel_name(

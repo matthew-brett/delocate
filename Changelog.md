@@ -10,6 +10,12 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+## Added
+
+- Delocate tasks are now multithreaded.
+  Thread count can be adjusted via the `--jobs` CLI argument or by passing
+  custom executors to `delocate_tree_libs`, `delocate_path`, or `delocate_wheel`.
+
 ### Changed
 
 - `get_archs` supports `PathLike` and raises `FileNotFoundError` instead of

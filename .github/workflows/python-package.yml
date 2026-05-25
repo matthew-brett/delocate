@@ -38,7 +38,7 @@ jobs:
           pip install --requirement test-requirements.txt
           pip install --editable .
       - name: MyPy
-        uses: liskin/gh-problem-matcher-wrap@v3
+        uses: liskin/gh-problem-matcher-wrap@v4
         with:
           linters: mypy
           run: mypy --show-column-numbers delocate/
@@ -68,7 +68,7 @@ jobs:
           SOURCE_DATE_EPOCH: "0"
           PYTHONHASHSEED: "0"
       - name: Upload test data
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: delocate-tests-data
           path: |
@@ -89,7 +89,7 @@ jobs:
         run: |
           pip install --editable .
       - name: Upload wheel
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: delocate-wheel
           path: dist/delocate-*.whl
@@ -97,7 +97,7 @@ jobs:
           if-no-files-found: error
           compression-level: 0
       - name: Upload sdist
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: delocate-sdist
           path: dist/delocate-*.tar.gz
@@ -105,7 +105,7 @@ jobs:
           if-no-files-found: error
           compression-level: 0
       - name: Upload requirements
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: test-requirements
           path: test-requirements.txt
@@ -115,7 +115,7 @@ jobs:
         run: |
           pytest --cov-report term-missing
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           fail_ci_if_error: false
           token: "624762bf-aaf0-4a75-b450-16f5ebece0b1"
@@ -171,14 +171,14 @@ jobs:
         name: Check otool version
         run: otool --version
       - name: Download wheel
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: delocate-wheel
       - name: Install delocate
         run: |
           pip install delocate-*.whl
       - name: Download requirements
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: test-requirements
       - name: Install test dependencies
@@ -205,12 +205,12 @@ jobs:
       - name: Install deployment dependencies
         run: pip install twine
       - name: Download wheel
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: delocate-wheel
           path: dist/
       - name: Download sdist
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: delocate-sdist
           path: dist/

@@ -83,8 +83,12 @@ def _retag_wheel(to_wheel: Path, from_wheel: Path, to_tree: Path) -> str:
 
 
 _RE_LIPO_UNKNOWN_FILE_STDERR = re.compile(
-    r"^fatal error: (?P<program>.+): "
-    r"can't figure out the architecture type of: (?P<file>.+)\n$"
+    r"("
+    r"fatal error: (?P<program>.+): "
+    r"can't figure out the architecture type of: (?P<file>.+)"
+    r"|"
+    r".*no eligible inputs found$"
+    r")", re.MULTILINE
 )
 
 
@@ -147,7 +151,8 @@ def fuse_trees(
                     capture_output=True,
                 )
             except subprocess.CalledProcessError as exc:
-                if not _RE_LIPO_UNKNOWN_FILE_STDERR.match(exc.stderr):
+                matched = _RE_LIPO_UNKNOWN_FILE_STDERR.search(exc.stderr)
+                if not matched:
                     # Unexpected error on library file
                     raise RuntimeError(exc.stderr) from None
                 # Existing non-library file not identical to source

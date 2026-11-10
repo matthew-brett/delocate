@@ -132,7 +132,10 @@ def glob_paths(paths: Iterable[str]) -> Iterator[str]:
     Does not try to glob paths which match existing files.
     """
     for path in paths:
-        if Path(path).exists():
+        # An empty path normalizes to the current directory in `Path`, so it
+        # must be excluded explicitly, or it would slip past the missing-file
+        # guard below and fail later with a confusing error.
+        if path and Path(path).exists():
             yield path  # Don't try to expand paths when their target exists
             continue
         expanded_paths = glob.glob(path)

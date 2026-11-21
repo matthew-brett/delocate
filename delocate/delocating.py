@@ -34,6 +34,7 @@ from .libsana import (
 from .pkginfo import read_pkg_info, write_pkg_info
 from .tmpdirs import TemporaryDirectory
 from .tools import (
+    _is_macho_file,
     _remove_absolute_rpaths,
     dir2zip,
     find_package_dirs,
@@ -865,10 +866,10 @@ def delocate_wheel(
         ``/usr/lib`` or ``/System``.  None means copy all libraries. This will
         usually end up copying large parts of the system run-time.
     require_archs : None or str or sequence, optional
-        If None, do no checks of architectures in libraries.  If sequence,
-        sequence of architectures (output from ``lipo -info``) that every
-        library in the wheels should have (e.g. ``['x86_64, 'i386']``). An
-        empty sequence results in checks that depended libraries have the same
+        If None, do no checks of architectures in libraries. If a sequence,
+        require these architectures (e.g. ``['x86_64', 'i386']``) in every
+        Mach-O file in the wheel, including executables. An empty sequence
+        results in checks that depended libraries have the same
         archs as depending libraries.  If string, either "intel" (corresponds
         to sequence ``['x86_64, 'i386']``) or name of required architecture
         (e.g "i386" or "x86_64").
@@ -927,7 +928,8 @@ def delocate_wheel(
             shutil.rmtree(lib_path)
         # Check architectures
         if require_archs is not None:
-            bads = check_archs(copied_libs, require_archs)
+            bads = check_archs(copied_libs)
+            bads.update(_missing_wheel_archs(Path(wheel_dir), require_archs))
             if bads:
                 raise DelocationError(
                     "Some missing architectures in wheel"
@@ -994,6 +996,28 @@ def patch_wheel(
 _ARCH_LOOKUP = {"intel": ["i386", "x86_64"], "universal2": ["x86_64", "arm64"]}
 
 
+def _required_archs(require_archs: str | Iterable[str]) -> frozenset[str]:
+    """Expand a named architecture set or collect the requested slices."""
+    if isinstance(require_archs, str):
+        require_archs = _ARCH_LOOKUP.get(require_archs, [require_archs])
+    return frozenset(require_archs)
+
+
+def _missing_wheel_archs(
+    wheel_dir: Path, require_archs: str | Iterable[str]
+) -> set[tuple[str, frozenset[str]]]:
+    """Find bundled Mach-O files missing an explicitly requested slice."""
+    required = _required_archs(require_archs)
+    bads: set[tuple[str, frozenset[str]]] = set()
+    if required:
+        for path in wheel_dir.rglob("*"):
+            if path.is_file() and _is_macho_file(path):
+                archs = get_archs(path)
+                if archs and (missing := required - archs):
+                    bads.add((str(path), missing))
+    return bads
+
+
 def check_archs(
     copied_libs: Mapping[str, Mapping[str, str]],
     require_archs: str | Iterable[str] = (),
@@ -1038,9 +1062,7 @@ def check_archs(
         ``depended_lib``.  An empty set means all architectures were present as
         required.
     """
-    if isinstance(require_archs, str):
-        require_archs = _ARCH_LOOKUP.get(require_archs, [require_archs])
-    require_archs_set = frozenset(require_archs)
+    require_archs_set = _required_archs(require_archs)
     bads: list[
         tuple[str, frozenset[str]] | tuple[str, str, frozenset[str]]
     ] = []

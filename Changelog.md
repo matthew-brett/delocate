@@ -10,6 +10,12 @@ rules on making a good Changelog.
 
 ## [Unreleased]
 
+### Fixed
+
+- `delocate-wheel --require-archs` now checks bundled Mach-O files, including
+  executables with no dependencies to copy.
+  https://github.com/matthew-brett/delocate/issues/132
+
 ### Changed
 
 - `get_archs` supports `PathLike` and raises `FileNotFoundError` instead of

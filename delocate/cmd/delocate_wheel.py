@@ -64,7 +64,7 @@ parser.add_argument(
     metavar="ARCHITECTURES",
     action="store",
     type=str,
-    help="Architectures that all wheel libraries should have"
+    help="Architectures required in every Mach-O file in the wheel"
     " (from 'intel', 'i386', 'x86_64', 'i386,x86_64', 'universal2',"
     " 'x86_64,arm64')",
 )

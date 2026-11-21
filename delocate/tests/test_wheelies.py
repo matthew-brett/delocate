@@ -334,6 +334,29 @@ def test_check_plat_archs():
             delocate_wheel(fixed_wheel, require_archs=())
 
 
+@pytest.mark.skipif(shutil.which("lipo") is None, reason="requires lipo")
+def test_require_archs_checks_bundled_binaries(tmp_path: Path) -> None:
+    wheel = tmp_path / "fakepkg2-1.0-py3-none-macosx_10_9_universal2.whl"
+    shutil.copyfile(PURE_WHEEL, wheel)
+    with zipfile.ZipFile(wheel, "a") as archive:
+        archive.write(Path(DATA_PATH) / "liba_both.dylib", "fakepkg2/both")
+        archive.write(Path(DATA_PATH) / "test-lib", "fakepkg2/bin/tool")
+
+    # Both tags exist in the wheel, but the executable only contains x86_64.
+    # Restrict dependency copying so the standalone files have no copied libs.
+    for required in ((), ("x86_64",)):
+        delocate_wheel(
+            str(wheel), lib_filt_func="dylibs-only", require_archs=required
+        )
+    with pytest.raises(
+        DelocationError,
+        match="Required arch arm64 missing from fakepkg2/bin/tool",
+    ):
+        delocate_wheel(
+            str(wheel), lib_filt_func="dylibs-only", require_archs="universal2"
+        )
+
+
 def test_patch_wheel() -> None:
     # Check patching of wheel
     with InTemporaryDirectory():
